@@ -20,6 +20,14 @@ Install
 
     add2virtualenv /path/to/GenomeKey
 
+Configuration
+=============
+
+After Cosmos is properly configured,
+
+Edit GenomeKey/genomekey/wga_settings.py and make sure it is pointing to the correct paths
+to the GATK bundle, reference genome, and binaries
+
 Usage
 ======
 
