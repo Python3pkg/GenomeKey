@@ -8,7 +8,8 @@ Whole Genome Analysis Pipeline
 Install
 =======
 
-* Install Cosmos using virtualenvwrapper
-* Clone this repository
-* activate the cosmos virtualenv
-* add2virtualenv GenomeKey (this will add GenomeKey to your PYTHONPATH when you're in the cosmos virtualenv)
+1) Install Cosmos using virtualenvwrapper
+2) Clone git@github.com:egafni/GenomeKey.git
+3) `$ workon cosmos`
+4) `$ add2virtualenv /path/to/GenomeKey`
+  (this will add GenomeKey to your PYTHONPATH when you're in the cosmos virtualenv)
