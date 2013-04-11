@@ -7,10 +7,10 @@ import sys
 
 from cosmos.contrib.ezflow.dag import DAG,Add,SWF,Map
 from cosmos.contrib.ezflow.tool import INPUT
-from erik.wga.workflows.gatk import GATK_Best_Practices
-from erik.wga.workflows import annotate
-from erik.wga.tools import annotation
-from erik.wga.workflows.bam2fastq import Bam2Fastq
+from genomekey.workflows.gatk import GATK_Best_Practices
+from genomekey.workflows import annotate
+from genomekey.tools import annotation
+from genomekey.workflows.bam2fastq import Bam2Fastq
 from cosmos.Workflow.cli import CLI
 from cosmos.Workflow.models import TaskFile, Workflow
 from scripts import rg_helpers

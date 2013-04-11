@@ -1,7 +1,7 @@
 from cosmos.contrib.ezflow.dag import DAG, Map, Reduce, Split, ReduceSplit, Add
 from cosmos.contrib.ezflow.flow import SubWorkFlow
 from subprocess import Popen,PIPE
-from wga.tools import annotation
+from genomekey.tools import annotation
 
 def get_db_names():
     cmd = 'annovarext listdbs'

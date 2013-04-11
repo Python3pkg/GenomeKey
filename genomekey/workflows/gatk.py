@@ -1,5 +1,5 @@
 from cosmos.contrib.ezflow.dag import DAG, Map, Reduce, Split, ReduceSplit, Add
-from wga.tools import gatk,picard,bwa
+from genomekey.tools import gatk,picard,bwa
 
 def GATK_Best_Practices(dag,wga_settings):
     """

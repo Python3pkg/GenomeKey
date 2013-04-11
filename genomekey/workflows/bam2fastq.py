@@ -6,7 +6,7 @@ Convert a Bam to Fastqs
 
 from cosmos.contrib.ezflow.dag import DAG, Map, Reduce, Split, ReduceSplit, Add
 from cosmos.contrib.ezflow.tool import INPUT,Tool
-from wga.tools import picard
+from genomekey.tools import picard
 import os
 import re
 
