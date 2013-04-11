@@ -96,10 +96,10 @@ def anno(workflow,input_files,file_format='vcf',**kwargs):
     dag = DAG()
 
     if file_format == 'tsv':
-        dag |Add| [ INPUT(i) for i in input_files ]
+        dag |Add| [ INPUT(i,tags={'input':i}) for i in input_files ]
     elif file_format == 'vcf':
         (dag
-         |Add| [ INPUT(i) for i in input_files ]
+         |Add| [ INPUT(i,tags={'input':i}) for i in input_files ]
          |Map| annotation.SetID
          |Map| annotation.Vcf2Anno_in
          )
@@ -133,7 +133,7 @@ def main():
     anno_sp = subparsers.add_parser('anno',help=annotate.Annotate.__doc__)
     CLI.add_default_args(anno_sp)
     anno_sp.add_argument('-f','--file_format',type=str,default='vcf',help='vcf or tsv.  If tsv: Input file is already a tsv file with ID as the 5th column')
-    anno_sp.add_argument('input_files',help="input vcf files", nargs='+')
+    anno_sp.add_argument('input_files',help="input files", nargs='+')
     anno_sp.set_defaults(func=anno)
 
     a = parser.parse_args()

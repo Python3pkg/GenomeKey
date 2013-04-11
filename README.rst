@@ -1,9 +1,9 @@
 Whole Genome Analysis Pipeline
 ===============================
 
-* (BWA + GATK Best Practices v4) Cosmos workflow
-* (AnnovarExtensions annotation) Cosmos workflow
-* VarDB - Variant Database Warehouse
+* *BWA + GATK Best Practices v4* Cosmos workflow
+* *AnnovarExtensions annotation* Cosmos workflow
+* VarDB - Variant Database Warehouse.  Integration coming soon.
 
 Install
 =======
