@@ -16,9 +16,9 @@ Install
 
     $ workon cosmos
 
-4) this will add GenomeKey to your PYTHONPATH when you're in the cosmos virtualenv)
+4) Add GenomeKey to your PYTHONPATH when you're in the cosmos virtualenv
 
-    add2virtualenv /path/to/GenomeKey (
+    add2virtualenv /path/to/GenomeKey
 
 Using
 ======
@@ -28,9 +28,9 @@ GenomeKey/bin/genomekey -h
 Examples
 +++++++++
 
-genomekey bam -n "My workflow from bam" -i '/path/to/bam'
+    genomekey bam -n "My workflow from bam" -i '/path/to/bam'
 
-genomekey json -n "My workflow from a json file" -i '/path/to/json'
+    genomekey json -n "My workflow from a json file" -i '/path/to/json'
 
 .. code-block:: json
 
