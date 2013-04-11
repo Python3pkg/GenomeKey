@@ -34,8 +34,6 @@ genomekey json -n "My workflow from a json file" -i '/path/to/json'
 
 .. code-block:: json
 
-    Input file is a json of the following format:
-
     [
         {
             'lane': 001,
