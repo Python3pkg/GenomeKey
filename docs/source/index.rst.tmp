@@ -1,0 +1,10 @@
+Description
+============
+
+This whole genome analysis pipeline is python package that aligns next generation sequence reads
+to a reference genome, and implements the GATK Best Practices v4 to do alignment cleaning and
+variant calling.  It is a Cosmos workflow, and so is able to take advantage of a compute
+cluster with a distributed resource management system installed such as LSF, Grid Engine,
+or Condor.  All Job informatin and resource usage are stored in the Cosmos SQL database.  The workflow
+is capable of processing many gene panels, exomes and whole genomes worth of genomic next generation
+sequencing data.
