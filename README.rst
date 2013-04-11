@@ -9,10 +9,16 @@ Install
 =======
 
 1) Install Cosmos using virtualenvwrapper
+
 2) Clone git@github.com:egafni/GenomeKey.git
-3) ``$ workon cosmos``
-4) ``$ add2virtualenv /path/to/GenomeKey``
-  (this will add GenomeKey to your PYTHONPATH when you're in the cosmos virtualenv)
+
+3) Activate Cosmos vrtualenv
+
+    $ workon cosmos
+
+4) this will add GenomeKey to your PYTHONPATH when you're in the cosmos virtualenv)
+
+    add2virtualenv /path/to/GenomeKey (
 
 Using
 ======
@@ -23,6 +29,7 @@ Examples
 +++++++++
 
 genomekey bam -n "My workflow from bam" -i '/path/to/bam'
+
 genomekey json -n "My workflow from a json file" -i '/path/to/json'
 
 .. code-block:: json
