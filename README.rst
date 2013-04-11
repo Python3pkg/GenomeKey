@@ -10,6 +10,33 @@ Install
 
 1) Install Cosmos using virtualenvwrapper
 2) Clone git@github.com:egafni/GenomeKey.git
-3) `$ workon cosmos`
-4) `$ add2virtualenv /path/to/GenomeKey`
+3) ``$ workon cosmos``
+4) ``$ add2virtualenv /path/to/GenomeKey``
   (this will add GenomeKey to your PYTHONPATH when you're in the cosmos virtualenv)
+
+Using
+======
+
+GenomeKey/bin/genomekey -h
+
+Examples
++++++++++
+
+genomekey bam -n "My workflow from bam" -i '/path/to/bam'
+genomekey json -n "My workflow from a json file" -i '/path/to/json'
+
+    Input file is a json of the following format:
+
+    [
+        {
+            'lane': 001,
+            'chunk': 001,
+            'library': 'LIB-1216301779A',
+            'sample': '1216301779A',
+            'platform': 'ILLUMINA',
+            'flowcell': 'C0MR3ACXX'
+            'pair': 0, #0 or 1
+            'path': '/path/to/fastq'
+        },
+        {..}
+    ]
