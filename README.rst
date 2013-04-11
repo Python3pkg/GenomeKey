@@ -20,13 +20,12 @@ Install
 
     add2virtualenv /path/to/GenomeKey
 
-Using
+Usage
 ======
 
 GenomeKey/bin/genomekey -h
 
-Examples
-+++++++++
+*Examples*:
 
     genomekey bam -n "My workflow from bam" -i '/path/to/bam'
 
