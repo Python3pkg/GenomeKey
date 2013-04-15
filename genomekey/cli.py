@@ -5,7 +5,7 @@ import argparse
 import json
 import sys
 
-from cosmos.contrib.ezflow.dag import DAG,Add,SWF,Map
+from cosmos.contrib.ezflow.dag import DAG,Add,Map
 from cosmos.contrib.ezflow.tool import INPUT
 from genomekey.workflows.gatk import GATK_Best_Practices
 from genomekey.workflows import annotate
@@ -16,6 +16,8 @@ from cosmos.Workflow.models import TaskFile, Workflow
 from scripts import rg_helpers
 import wga_settings
 from cosmos import session
+import ipdb
+import os
 
 wga_settings = wga_settings.wga_settings
 session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']
@@ -81,33 +83,33 @@ def downdbs(workflow,**kwargs):
     """
     Download all annotation databases
     """
-    dag = DAG() |SWF| annotate.DownDBs
+    dag = DAG()
+    annotate.downdbs(dag)
 
     dag.add_run(workflow)
 
 
-def anno(workflow,input_files,file_format='vcf',**kwargs):
+def anno(workflow,input_dir,file_format='vcf',**kwargs):
     """
-    Annotate a vcf file
+    Annotates all files in input_dir
     """
-
+    input_files = map(lambda i: os.path.join(input_dir,i),os.listdir(input_dir))
     print >> sys.stderr, 'annotating {0}'.format(', '.join(input_files))
 
-    dag = DAG()
+    dag = DAG() |Add| [ INPUT(input_file,tags={'input':i}) for i,input_file in enumerate(input_files) ]
 
     if file_format == 'tsv':
-        dag |Add| [ INPUT(i,tags={'input':i}) for i in input_files ]
+        pass
     elif file_format == 'vcf':
         (dag
-         |Add| [ INPUT(i,tags={'input':i}) for i in input_files ]
          |Map| annotation.SetID
          |Map| annotation.Vcf2Anno_in
          )
     else:
-        print >> sys.stderr, 'file_format "{0}" not support'.format(file_format)
+        print >> sys.stderr, 'file_format "{0}" not supported'.format(file_format)
         sys.exit(1)
 
-    dag |SWF| annotate.Annotate
+    annotate.anno(dag)
 
     dag.add_run(workflow)
 
@@ -130,10 +132,10 @@ def main():
     CLI.add_default_args(downdbs_sp)
     downdbs_sp.set_defaults(func=downdbs)
 
-    anno_sp = subparsers.add_parser('anno',help=annotate.Annotate.__doc__)
+    anno_sp = subparsers.add_parser('anno',help=anno.__doc__)
     CLI.add_default_args(anno_sp)
     anno_sp.add_argument('-f','--file_format',type=str,default='vcf',help='vcf or tsv.  If tsv: Input file is already a tsv file with ID as the 5th column')
-    anno_sp.add_argument('input_files',help="input files", nargs='+')
+    anno_sp.add_argument('input_dir',help="input directory")
     anno_sp.set_defaults(func=anno)
 
     a = parser.parse_args()

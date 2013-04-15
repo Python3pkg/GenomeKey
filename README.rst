@@ -54,3 +54,8 @@ GenomeKey/bin/genomekey -h
         },
         {..}
     ]
+
+.. note::
+
+    I have GenomeKey set to launch you into an ipdb post mortem debugging session on any exceptions.  That behavior is
+    set in bin/genomekey.

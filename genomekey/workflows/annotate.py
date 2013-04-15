@@ -1,5 +1,4 @@
 from cosmos.contrib.ezflow.dag import DAG, Map, Reduce, Split, ReduceSplit, Add
-from cosmos.contrib.ezflow.flow import SubWorkFlow
 from subprocess import Popen,PIPE
 from genomekey.tools import annotation
 
@@ -10,32 +9,17 @@ def get_db_names():
         raise Exception, "could not list databases"
     return [ db for db in dbs.split('\n') if db != '' ]
 
-class Annotate(SubWorkFlow):
-    """
-    Annotates with all databases
-    """
-    def flow(self,dag):
-        """
-        No inputs or outputs, just downloads databases
-        """
-        ( dag
-          |Split| ( [('build',['hg19']),
-                      ('dbname',get_db_names()) ],
-                    annotation.Anno )
-          |Reduce| ([],annotation.MergeAnno)
-        )
 
-
-    def cli(self,parser):
-        pass
-
-class DownDBs(SubWorkFlow):
+def anno(dag):
     """
-    Downloads all available databases
+    Annotates with all databases in annovar extensions
     """
-    def flow(self,dag):
-        """
-        No inputs or outputs, just downloads databases
-        """
-        dag |Add| [ annotation.DownDB(tags={'build':'hg19','dbname':db}) for db in get_db_names() ]
+    ( dag
+      |Split| ( [('build',['hg19']),('dbname',get_db_names()) ],
+                annotation.Anno )
+      |Reduce| (['input'],annotation.MergeAnno)
+    )
+
+def downdbs(dag):
+    dag |Add| [ annotation.DownDB(tags={'build':'hg19','dbname':db}) for db in get_db_names() ]
 

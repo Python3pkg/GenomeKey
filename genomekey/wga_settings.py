@@ -25,9 +25,9 @@ elif settings['server_name']  == 'orchestra':
         time_req = task.time_requirement
         queue = task.workflow.default_queue
 
-        if time_req < 10:
+        if time_req <= 10:
             queue = 'mini'
-        if time_req <= 12*60:
+        elif time_req <= 12*60:
             queue = 'short'
         else:
             queue = 'long'
