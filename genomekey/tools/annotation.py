@@ -34,7 +34,7 @@ class Anno(Tool):
     inputs = ['anno_in']
     outputs = ['dir']
     forward_input=True
-    time_req = 120
+    time_req = 10
     mem_req = 8*1024
 
     def cmd(self,i,s,p):

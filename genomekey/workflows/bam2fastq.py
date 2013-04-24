@@ -22,7 +22,7 @@ class SplitFastq(Tool):
 
     def cmd(self,i,s,p):
         input = i['1.fastq'][0] if p['pair'] == 1 else i['2.fastq'][0]
-        return "python scripts/splitfastq.py {input} $OUT.dir", { 'input': input}
+        return "python {s[genomekey_library_path]}/splitfastq.py {input} $OUT.dir", { 'input': input}
 
 class FilterBamByRG(Tool):
     inputs = ['bam']
