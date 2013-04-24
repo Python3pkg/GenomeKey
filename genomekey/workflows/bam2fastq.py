@@ -1,12 +1,12 @@
 __author__ = 'erik'
 
 """
-Convert a Bam to Fastqs
+Convert a Bam to Fastq
 """
 
 from cosmos.contrib.ezflow.dag import DAG, Map, Reduce, Split, ReduceSplit, Add
 from cosmos.contrib.ezflow.tool import INPUT,Tool
-from genomekey.tools import picard
+from genomekey.tools import picard,samtools,scripts
 import os
 import re
 
@@ -14,33 +14,14 @@ import re
 # Tools
 ####################
 
-class SplitFastq(Tool):
-    inputs = ['1.fastq','2.fastq']
-    outputs = ['dir']
-    time_req = 12*60
-    mem_req = 1000
-
-    def cmd(self,i,s,p):
-        input = i['1.fastq'][0] if p['pair'] == 1 else i['2.fastq'][0]
-        return "python {s[genomekey_library_path]}/splitfastq.py {input} $OUT.dir", { 'input': input}
-
-class FilterBamByRG(Tool):
-    inputs = ['bam']
-    outputs = ['bam']
-    time_req = 12*60
-    mem_req = 3000
-
-    def cmd(self,i,s,p):
-        return "{s[samtools_path]} view -h -b -r {p[rgid]} {i[bam][0]} -o $OUT.bam"
-
 
 def Bam2Fastq(workflow,dag,settings,rgids):
 
     (  dag
-        |Split| ([('rgid',rgids)],FilterBamByRG)
+        |Split| ([('rgid',rgids)],samtools.FilterBamByRG)
         |Map| picard.REVERTSAM
         |Map| picard.SAM2FASTQ
-        |Split| ([('pair',[1,2])],SplitFastq)
+        |Split| ([('pair',[1,2])],scripts.SplitFastq)
     )
     dag.configure(settings)
     # if workflow.stages.filter(name='SplitFastq',successful=True).count() == 0:
