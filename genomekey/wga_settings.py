@@ -15,7 +15,7 @@ if settings['server_name'] == 'gpp':
         'get_drmaa_native_specification':session.default_get_drmaa_native_specification
         }
 
-elif settings['server_name']  in ['orchestra','orchestra2'] :
+elif settings['server_name'] in ['orchestra', 'orchestra2']:
     def get_drmaa_native_specification(jobAttempt):
         task = jobAttempt.task
         DRM = settings['DRM']
@@ -42,10 +42,10 @@ elif settings['server_name']  in ['orchestra','orchestra2'] :
         else:
             raise Exception('DRM not supported')
 
-    if 'server_name' == 'orchestra':
+    if settings['server_name'] == 'orchestra':
         resource_bundle_path = '/groups/cbi/WGA/bundle/2.2/b37'
         tools_dir = '/groups/cbi/WGA/tools'
-    elif 'server_name' == 'orchestra2':
+    elif settings['server_name'] == 'orchestra2':
         resource_bundle_path = '/groups/lpm/erik/WGA/bundle/2.2/b37'
         tools_dir = '/groups/lpm/erik/WGA/tools'
 
@@ -66,7 +66,8 @@ elif settings['server_name']  == 'bioseq':
         'Picard_dir' : os.path.join(tools_dir,'picard-tools-1.81'),
         'bwa_path' : os.path.join(tools_dir,'bwa-0.6.2/bwa'),
         'bwa_reference_fasta_path' : '/cosmos/WGA/bwa_reference/human_g1k_v37.fasta',
-        'samtools_path':os.path.join(tools_dir,'samtools-0.1.18/samtools')
+        'samtools_path':os.path.join(tools_dir,'samtools-0.1.18/samtools'),
+        'get_drmaa_native_specification':session.default_get_drmaa_native_specification
         }
 else:
     resource_bundle_path = '/gluster/gv0/WGA/bundle/2.2/b37/'
@@ -76,7 +77,8 @@ else:
         'Picard_dir' : os.path.join(tools_dir,'picard-tools-1.84'),
         'bwa_path' : os.path.join(tools_dir,'bwa-0.6.2/bwa'),
         'bwa_reference_fasta_path' : '/gluster/gv0/WGA/bwa_reference/human_g1k_v37.fasta',
-        'samtools_path':os.path.join(tools_dir,'samtools-0.1.18/samtools')
+        'samtools_path':os.path.join(tools_dir,'samtools-0.1.18/samtools'),
+        'get_drmaa_native_specification':session.default_get_drmaa_native_specification
     }
 
 wga_settings.update({
