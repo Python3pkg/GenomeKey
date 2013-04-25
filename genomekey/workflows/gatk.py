@@ -17,11 +17,11 @@ def GATK_Best_Practices(dag,wga_settings):
 
     dag = (dag
            |Map| bwa.ALN
-           |Reduce| (['sample','flowcell','lane','chunk'],bwa.SAMPE)
+           |Reduce| (['sample_name','library','platform','platform_unit','chunk'],bwa.SAMPE)
            |Map| picard.CLEAN_SAM
            |Map| picard.SORT_BAM
            |Map| (picard.INDEX_BAM,'Index Cleaned BAMs')
-           |Reduce| (['sample','lane'],gatk.BQSR)
+           |Reduce| (['sample_name'],gatk.BQSR)
            |Map| gatk.PR
            |Reduce| ([],picard.MARK_DUPES)
            |Map| (picard.INDEX_BAM,'Index Deduped')
@@ -32,10 +32,5 @@ def GATK_Best_Practices(dag,wga_settings):
            |Map| gatk.VQSR
            |Map| gatk.Apply_VQSR
            |Reduce| ([],gatk.CV,"Combine into Master vcf")
-           # |Split| ([dbs],annotate.ANNOVAR)
-           # |Workflow| annotate.PROCESS_ANNOVAR
-           # |Reduce| ([],annotate.MERGE_ANNOTATIONS)
-           # |Workflow| annotate.SQL_DUMP
-           # |Workflow| annotate.ANALYSIS
     )
     dag.configure(wga_settings,parameters)

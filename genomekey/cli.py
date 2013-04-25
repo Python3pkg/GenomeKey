@@ -32,12 +32,11 @@ def json_(workflow,input_dict,**kwargs):
 
     [
         {
-            'lane': 001,
             'chunk': 001,
             'library': 'LIB-1216301779A',
-            'sample': '1216301779A',
+            'sample_name': '1216301779A',
             'platform': 'ILLUMINA',
-            'flowcell': 'C0MR3ACXX'
+            'platform_unit': 'C0MR3ACXX.001'
             'pair': 0, #0 or 1
             'path': '/path/to/fastq'
         },
@@ -54,20 +53,23 @@ def json_(workflow,input_dict,**kwargs):
 
     dag.add_run(workflow)
 
-def bam(workflow,input_bam,**kwargs):
+def bam(workflow,input_bam,input_bams,**kwargs):
     """
-    Input file is a bam with properly annotated readgroups.  Note that this also
-    means the bam header is also properly annotated with the correct readgroups.
+    Input file is a bam with properly annotated readgroups.
+    **********
+    Note that this workflow assumes the bam header is also properly annotated with the correct readgroups!!
+    **********
+
+    Example usage:
+    genomekey bam -n 'Bam to VCF Workflow 1' input_bam.bam input_bam2.bam input_bam3.bam
+
     """
+    input_bams.append(input_bam)
 
-    rgids = list(rg_helpers.list_rgids(input_bam,wga_settings['samtools_path']))
-    print 'RGIDS:'
-    print rgids
-
-    dag = DAG() |Add| [ INPUT(input_bam,tags={'input':input_bam}) ]
+    dag = DAG()
 
     #Run bam2fastq
-    Bam2Fastq(workflow,dag,wga_settings,rgids)
+    Bam2Fastq(workflow,dag,wga_settings,input_bams)
 
     #Run GATK
     GATK_Best_Practices(dag,wga_settings)
@@ -89,53 +91,45 @@ def downdbs(workflow,**kwargs):
     dag.add_run(workflow)
 
 
-def anno(workflow,input_dir,file_format='vcf',**kwargs):
+def anno(workflow,input_file,input_files,file_format='vcf',**kwargs):
     """
-    Annotates all files in input_dir
+    Annotates all files in input_Files
+
+    $ genomekey anno -n 'My Annotation Workflow #1' file1.vcf file2.vcf
     """
-    input_files = map(lambda i: os.path.join(input_dir,i),os.listdir(input_dir))
+    input_files.append(input_file)
     print >> sys.stderr, 'annotating {0}'.format(', '.join(input_files))
 
     dag = DAG() |Add| [ INPUT(input_file,tags={'input':i}) for i,input_file in enumerate(input_files) ]
-
-    if file_format == 'tsv':
-        pass
-    elif file_format == 'vcf':
-        (dag
-         |Map| annotation.SetID
-         |Map| annotation.Vcf2Anno_in
-         )
-    else:
-        print >> sys.stderr, 'file_format "{0}" not supported'.format(file_format)
-        sys.exit(1)
-
-    annotate.anno(dag)
-
+    annotate.anno(dag,file_format=file_format)
     dag.add_run(workflow)
 
 
 def main():
+    from argparse import RawTextHelpFormatter
     parser = argparse.ArgumentParser(description='WGA')
     subparsers = parser.add_subparsers(title="Commands", metavar="<command>")
 
-    json_sp = subparsers.add_parser('json',help=json_.__doc__)
+    json_sp = subparsers.add_parser('json',help="Input is FASTQs, encoded as a json file",description=json_.__doc__,formatter_class=RawTextHelpFormatter)
     CLI.add_default_args(json_sp)
     json_sp.set_defaults(func=json_)
     json_sp.add_argument('-i','--input_dict',type=str,help='Inputs, see script comments for format.',required=True)
 
-    bam_sp = subparsers.add_parser('bam',help=bam.__doc__)
+    bam_sp = subparsers.add_parser('bam',help="",description=bam.__doc__,formatter_class=RawTextHelpFormatter)
     CLI.add_default_args(bam_sp)
-    bam_sp.add_argument('-i','--input_bam',required=True)
+    bam_sp.add_argument('input_bam')
+    bam_sp.add_argument('input_bams',type=str,help="Any number of input files",nargs=argparse.REMAINDER)
     bam_sp.set_defaults(func=bam)
 
     downdbs_sp = subparsers.add_parser('downdbs',help=downdbs.__doc__)
     CLI.add_default_args(downdbs_sp)
     downdbs_sp.set_defaults(func=downdbs)
 
-    anno_sp = subparsers.add_parser('anno',help=anno.__doc__)
+    anno_sp = subparsers.add_parser('anno',help="Annotate",description=anno.__doc__,formatter_class=RawTextHelpFormatter)
     CLI.add_default_args(anno_sp)
     anno_sp.add_argument('-f','--file_format',type=str,default='vcf',help='vcf or tsv.  If tsv: Input file is already a tsv file with ID as the 5th column')
-    anno_sp.add_argument('input_dir',help="input directory")
+    anno_sp.add_argument('input_file',type=str,help='An input file')
+    anno_sp.add_argument('input_files',type=str,help="Any number of input files",nargs=argparse.REMAINDER)
     anno_sp.set_defaults(func=anno)
 
     a = parser.parse_args()

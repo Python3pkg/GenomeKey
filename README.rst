@@ -1,6 +1,10 @@
-Whole Genome Analysis Pipeline
+GenomeKey
 ===============================
 
+GenomeKey is a Whole Genome Analysis pipeline, that can call variants from FASTQ or BAM files, as well as massively
+annotate VCF files.  It is implemented and made possible by the Cosmos workflow management system.
+
+Components include:
 * *BWA + GATK Best Practices v4* Cosmos workflow
 * *AnnovarExtensions annotation* Cosmos workflow
 * VarDB - Variant Database Warehouse.  Integration coming soon.
@@ -43,12 +47,11 @@ GenomeKey/bin/genomekey -h
 
     [
         {
-            'lane': 001,
             'chunk': 001,
             'library': 'LIB-1216301779A',
-            'sample': '1216301779A',
+            'sample_name': '1216301779A',
             'platform': 'ILLUMINA',
-            'flowcell': 'C0MR3ACXX'
+            'platform_unit': 'C0MR3ACXX.001'
             'pair': 0, #0 or 1
             'path': '/path/to/fastq'
         },

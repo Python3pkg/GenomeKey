@@ -8,26 +8,26 @@ class DownDB(Tool):
         return 'annovarext downdb {p[build]} {p[dbname]}'
 
 
-class SetID(Tool):
-    name = "Set VCF ID"
-    inputs = ['vcf']
-    outputs = ['vcf_id']
-    forward_input=True
-    time_req = 10
-
-    def cmd(self,i,s,p):
-        return "annovarext setid '{i[vcf][0]}' > $OUT.vcf_id"
+# class SetID(Tool):
+#     name = "Set VCF ID"
+#     inputs = ['vcf']
+#     outputs = ['vcf_id']
+#     forward_input=True
+#     time_req = 10
+#
+#     def cmd(self,i,s,p):
+#         return "annovarext setid '{i[vcf][0]}' > $OUT.vcf_id"
 
 
 class Vcf2Anno_in(Tool):
-    name = "Convert VCF"
-    inputs = ['vcf_id']
+    name = "Convert VCF to Annovar"
+    inputs = ['vcf']
     outputs = ['anno_in']
     forward_input=True
     time_req = 10
 
     def cmd(self,i,s,p):
-        return "annovarext vcf2anno '{i[vcf_id][0]}' > $OUT.anno_in"
+        return "annovarext vcf2anno '{i[vcf][0]}' > $OUT.anno_in"
 
 class Anno(Tool):
     name = "Annotate"
@@ -40,16 +40,16 @@ class Anno(Tool):
     def cmd(self,i,s,p):
         return 'annovarext anno {p[build]} {p[dbname]} {i[anno_in][0]} $OUT.dir'
 
-class MergeAnno(Tool):
+class MergeAnnotations(Tool):
     name = "Merge Annotations"
-    inputs = ['vcf_id','dir']
+    inputs = ['anno_in','dir']
     outputs = ['dir']
     mem_req = 40*1024
     time_req = 120
     forward_input=True
     
     def cmd(self,i,s,p):
-        return ('annovarext merge {i[vcf_id][0]} $OUT.dir {annotated_dir_output}',
+        return ('annovarext merge {i[anno_in][0]} $OUT.dir {annotated_dir_output}',
                 { 'annotated_dir_output' : ' '.join(map(str,i['dir'])) }
         )
 

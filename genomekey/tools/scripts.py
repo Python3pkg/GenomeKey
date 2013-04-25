@@ -1,3 +1,4 @@
+from cosmos.contrib.ezflow.tool import Tool
 
 class SplitFastq(Tool):
     inputs = ['1.fastq','2.fastq']

@@ -1,5 +1,7 @@
+from cosmos.contrib.ezflow.tool import Tool
 
 class FilterBamByRG(Tool):
+    # name = "Filter Bam By RG"
     inputs = ['bam']
     outputs = ['bam']
     time_req = 12*60

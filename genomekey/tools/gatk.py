@@ -93,7 +93,7 @@ class PR(GATK):
     outputs = ['bam']
     
     def map_inputs(self):
-        input_bams = [p.get_output('bam') for p in self.parent.parents ]
+        input_bams = [ p.get_output('bam') for p in self.parent.parents ]
         return {'bam' : input_bams,
                'recal' : self.parent.get_output('recal')
               }
@@ -224,7 +224,7 @@ class Apply_VQSR(GATK):
             {self.bin}
             -T MapRecalibration
             -R {s[reference_fasta_path]}
-            -input {i[vcf]}
+            -input {i[vcf][0]}
             -tranchesFile {i[tranches][0]}
             -recalFile {i[recal][0]}
             -o $OUT.vcf
@@ -236,7 +236,7 @@ class Apply_VQSR(GATK):
             {self.bin}
             -T MapRecalibration
             -R {s[reference_fasta_path]}
-            -input {i[vcf]}
+            -input {i[vcf][0]}
             -tranchesFile {i[tranches][0]}
             -recalFile {i[recal][0]}
             -o $OUT.vcf

@@ -2,6 +2,7 @@ import argparse
 from subprocess import Popen,PIPE
 import re
 import logging
+
 def rg2rgid(readgroup):
     return re.search('\tID:(.+?)\t',readgroup).group(1)
 

@@ -12,6 +12,5 @@ class Bunzip2(Tool):
 
     def cmd(self,i,s,p):
         """
-        Expects tags: lane, chunk, library, sample, platform, flowcell, pair
         """
         return 'bunzip2 -c {i[bz2]} > $OUT.*'

@@ -13,7 +13,7 @@ class ALN(Tool):
     
     def cmd(self,i,s,p):
         """
-        Expects tags: lane, chunk, library, sample, platform, flowcell, pair
+        Expects tags: chunk, library, sample_name, platform, platform_unit, pair
         """
         return '{s[bwa_path]} aln -q {p[q]} -t {self.cpu_req} {s[bwa_reference_fasta_path]} {i[fastq.gz][0]} > $OUT.sai'
 
@@ -27,22 +27,18 @@ class SAMPE(Tool):
 
     def cmd(self,i,s,p):
         """
-        Expects tags: lane, chunk, library, sample, platform, flowcell, pair
+        Expects tags: chunk, library, sample_name, platform, platform_unit, pair
         """
         #todo assert correct fastq and sai are paired
         t2 = self.parents[0].tags
         return r"""
             {s[bwa_path]} sampe
             -f $OUT.sam
-            -r "@RG\tID:{RG_ID}\tLB:{t2[library]}\tSM:{t2[sample]}\tPL:{t2[platform]}"
+            -r "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}"
             {s[bwa_reference_fasta_path]}
             {i[sai][0]}
             {i[sai][1]}
             {i[fastq.gz][0]}
             {i[fastq.gz][1]}
-            """, {
-            't2' : t2,
-            'RG_ID':'{0}.L{1}'.format(t2['flowcell'],t2['lane'])
-        }
-
+            """
     
