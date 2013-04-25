@@ -83,7 +83,7 @@ else:
 
 wga_settings.update({
     'resource_bundle_path' : resource_bundle_path,
-    'tmp_dir' : settings['tmp_dir'],
+    'tmp_dir' : settings['working_directory'],
     'reference_fasta_path' : opj(resource_bundle_path,'human_g1k_v37.fasta'),
     'dbsnp_path' : opj(resource_bundle_path,'dbsnp_137.b37.vcf'),
     'hapmap_path' : opj(resource_bundle_path,'hapmap_3.3.b37.vcf'),

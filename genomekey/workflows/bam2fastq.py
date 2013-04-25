@@ -4,12 +4,14 @@ __author__ = 'erik'
 Convert a Bam to Fastq
 """
 
-from cosmos.contrib.ezflow.dag import DAG, Map, Reduce, Split, ReduceSplit, Add
+from cosmos.contrib.ezflow.dag import DAG, Map, Reduce, Split, ReduceSplit, Add, StageNameCollision
 from cosmos.contrib.ezflow.tool import INPUT,Tool
 from cosmos.Workflow.models import TaskFile
 from genomekey.tools import picard,samtools,genomekey_scripts
+from genomekey import log
 import os
 import re
+
 
 ####################
 # Tools
@@ -21,19 +23,22 @@ class WorkflowException(Exception):pass
 def Bam2Fastq(workflow, dag,settings, input_bams):
     if len(input_bams) == 0:
         raise WorkflowException, 'At least 1 BAM input required'
+    dag.ignore_stage_name_collisions=True
     import pysam
-    inputs = []
+
+    filters = []
     for input_bam in input_bams:
         RG = pysam.Samfile(input_bam).header['RG']
         rgids = [ tags['ID'] for tags in RG ]
-        inputs.append(INPUT(input_bam,
+        (dag |Add| [INPUT(input_bam,
                             tags={
                                 'input':os.path.basename(input_bam)
-                            }))
+                            })]
+            |Split| ([('rgid',rgids)],samtools.FilterBamByRG)
+        )
+        filters.extend(dag.last_tools)
 
-    (dag
-        |Add| inputs
-        |Split| ([('rgid',rgids)],samtools.FilterBamByRG)
+    (dag.branch_from_tools(filters)
         |Map| picard.REVERTSAM
         |Map| picard.SAM2FASTQ
         |Split| ([('pair',[1,2])],genomekey_scripts.SplitFastq)
@@ -61,7 +66,7 @@ def Bam2Fastq(workflow, dag,settings, input_bams):
         tags['sample_name'] = RG['SM']
         tags['library'] = RG['LB']
         tags['platform'] = RG['PL']
-        tags['platform_unit'] = RG['PU']
+        tags['platform_unit'] = RG.get('PU',RG['ID']) # use 'ID' if 'PU' does not exist
 
         # Add fastq chucks as input files
         fastq_output_dir = TaskFile.objects.get(id=split_fastq_tool.get_output('dir').id).path
