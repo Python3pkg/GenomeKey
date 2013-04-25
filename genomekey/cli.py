@@ -1,6 +1,3 @@
-"""
-WGA Workflow
-"""
 import argparse
 import json
 import sys
@@ -9,17 +6,12 @@ from cosmos.contrib.ezflow.dag import DAG,Add,Map
 from cosmos.contrib.ezflow.tool import INPUT
 from genomekey.workflows.gatk import GATK_Best_Practices
 from genomekey.workflows import annotate
-from genomekey.tools import annotation
 from genomekey.workflows.bam2fastq import Bam2Fastq
 from cosmos.Workflow.cli import CLI
 from cosmos.Workflow.models import TaskFile, Workflow
-from scripts import rg_helpers
-import wga_settings
+from wga_settings import wga_settings
 from cosmos import session
-import ipdb
-import os
 
-wga_settings = wga_settings.wga_settings
 session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']
 
 ###############################
@@ -53,27 +45,27 @@ def json_(workflow,input_dict,**kwargs):
 
     dag.add_run(workflow)
 
-def bam(workflow,input_bam,input_bams,**kwargs):
+def bam(workflow,input_bam,input_bam_list,**kwargs):
     """
     Input file is a bam with properly annotated readgroups.
-    **********
-    Note that this workflow assumes the bam header is also properly annotated with the correct readgroups!!
-    **********
+
+    *** Note that this workflow assumes the bam header is ******
+    *** also properly annotated with the correct readgroups! ***
 
     Example usage:
-    genomekey bam -n 'Bam to VCF Workflow 1' input_bam.bam input_bam2.bam input_bam3.bam
+    $ genomekey bam -n 'Bam to VCF Workflow 1' input_bam.bam
+
+    $ echo "dir/sample1.bam" > /tmp/bam.list
+    $ echo "dir/sample2.bam" >> /tmp/bam.list
+    $ genomekey bam -n 'Bam to VCF 2' -li /tmp/bam.list
 
     """
-    input_bams.append(input_bam)
-
+    input_bams = file(input_bam_list,'r').read().strip().split('\n') if input_bam_list else []
+    if input_bam:
+        input_bams.append(input_bam)
     dag = DAG()
-
-    #Run bam2fastq
     Bam2Fastq(workflow,dag,wga_settings,input_bams)
-
-    #Run GATK
     GATK_Best_Practices(dag,wga_settings)
-
     dag.add_run(workflow)
 
 
@@ -81,13 +73,13 @@ def bam(workflow,input_bam,input_bams,**kwargs):
 # Annotation
 ###############################
 
+
 def downdbs(workflow,**kwargs):
     """
     Download all annotation databases
     """
     dag = DAG()
     annotate.downdbs(dag)
-
     dag.add_run(workflow)
 
 
@@ -105,6 +97,11 @@ def anno(workflow,input_file,input_files,file_format='vcf',**kwargs):
     dag.add_run(workflow)
 
 
+###############################
+# CLI Configuration
+###############################
+
+
 def main():
     from argparse import RawTextHelpFormatter
     parser = argparse.ArgumentParser(description='WGA')
@@ -115,10 +112,10 @@ def main():
     json_sp.set_defaults(func=json_)
     json_sp.add_argument('-i','--input_dict',type=str,help='Inputs, see script comments for format.',required=True)
 
-    bam_sp = subparsers.add_parser('bam',help="",description=bam.__doc__,formatter_class=RawTextHelpFormatter)
+    bam_sp = subparsers.add_parser('bam',help="Input is a BAM or list of BAMs",description=bam.__doc__,formatter_class=RawTextHelpFormatter)
     CLI.add_default_args(bam_sp)
-    bam_sp.add_argument('input_bam')
-    bam_sp.add_argument('input_bams',type=str,help="Any number of input files",nargs=argparse.REMAINDER)
+    bam_sp.add_argument('-i','--input_bam',type=str,help='A path to a BAM with RGs properly annotated')
+    bam_sp.add_argument('-il','--input_bam_list',type=str,help='A path to a file containing a list of paths to BAMs, separated by newlines')
     bam_sp.set_defaults(func=bam)
 
     downdbs_sp = subparsers.add_parser('downdbs',help=downdbs.__doc__)

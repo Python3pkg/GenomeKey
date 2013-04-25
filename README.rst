@@ -5,6 +5,7 @@ GenomeKey is a Whole Genome Analysis pipeline, that can call variants from FASTQ
 annotate VCF files.  It is implemented and made possible by the Cosmos workflow management system.
 
 Components include:
+
 * *BWA + GATK Best Practices v4* Cosmos workflow
 * *AnnovarExtensions annotation* Cosmos workflow
 * VarDB - Variant Database Warehouse.  Integration coming soon.
@@ -16,7 +17,7 @@ Install
 
 2) Clone git@github.com:egafni/GenomeKey.git
 
-3) Activate Cosmos vrtualenv
+3) Activate Cosmos virtualenv
 
     $ workon cosmos
 
@@ -27,19 +28,19 @@ Install
 Configuration
 =============
 
-After Cosmos is properly configured,
-
-Edit GenomeKey/genomekey/wga_settings.py and make sure it is pointing to the correct paths
-to the GATK bundle, reference genome, and binaries
+After Cosmos is properly configured, edit GenomeKey/genomekey/wga_settings.py and make sure
+it is pointing to the correct paths to the GATK bundle, reference genome, and binaries.
 
 Usage
 ======
 
-GenomeKey/bin/genomekey -h
+Inside the GenomeKey directory, execute:
+
+$ bin/genomekey -h
 
 *Examples*:
 
-    genomekey bam -n "My workflow from bam" -i '/path/to/bam'
+    genomekey bam -n "My workflow from bam" '/path/to/bam1 /path/to/bam2'
 
     genomekey json -n "My workflow from a json file" -i '/path/to/json'
 
@@ -59,6 +60,7 @@ GenomeKey/bin/genomekey -h
     ]
 
 .. note::
-
     I have GenomeKey set to launch you into an ipdb post mortem debugging session on any exceptions.  That behavior is
     set in bin/genomekey.
+
+    To quit type 'q' then enter
