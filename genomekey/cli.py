@@ -1,6 +1,3 @@
-"""
-WGA Workflow
-"""
 import argparse
 import json
 import sys
@@ -9,17 +6,12 @@ from cosmos.contrib.ezflow.dag import DAG,Add,Map
 from cosmos.contrib.ezflow.tool import INPUT
 from genomekey.workflows.gatk import GATK_Best_Practices
 from genomekey.workflows import annotate
-from genomekey.tools import annotation
 from genomekey.workflows.bam2fastq import Bam2Fastq
 from cosmos.Workflow.cli import CLI
 from cosmos.Workflow.models import TaskFile, Workflow
-from scripts import rg_helpers
-import wga_settings
+from wga_settings import wga_settings
 from cosmos import session
-import ipdb
-import os
 
-wga_settings = wga_settings.wga_settings
 session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']
 
 ###############################
@@ -56,24 +48,18 @@ def json_(workflow,input_dict,**kwargs):
 def bam(workflow,input_bam,input_bams,**kwargs):
     """
     Input file is a bam with properly annotated readgroups.
-    **********
-    Note that this workflow assumes the bam header is also properly annotated with the correct readgroups!!
-    **********
+
+    *** Note that this workflow assumes the bam header is ******
+    *** also properly annotated with the correct readgroups! ***
 
     Example usage:
     genomekey bam -n 'Bam to VCF Workflow 1' input_bam.bam input_bam2.bam input_bam3.bam
 
     """
     input_bams.append(input_bam)
-
     dag = DAG()
-
-    #Run bam2fastq
     Bam2Fastq(workflow,dag,wga_settings,input_bams)
-
-    #Run GATK
     GATK_Best_Practices(dag,wga_settings)
-
     dag.add_run(workflow)
 
 
@@ -81,13 +67,13 @@ def bam(workflow,input_bam,input_bams,**kwargs):
 # Annotation
 ###############################
 
+
 def downdbs(workflow,**kwargs):
     """
     Download all annotation databases
     """
     dag = DAG()
     annotate.downdbs(dag)
-
     dag.add_run(workflow)
 
 
@@ -103,6 +89,11 @@ def anno(workflow,input_file,input_files,file_format='vcf',**kwargs):
     dag = DAG() |Add| [ INPUT(input_file,tags={'input':i}) for i,input_file in enumerate(input_files) ]
     annotate.anno(dag,file_format=file_format)
     dag.add_run(workflow)
+
+
+###############################
+# CLI Configuration
+###############################
 
 
 def main():

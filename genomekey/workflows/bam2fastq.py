@@ -7,7 +7,7 @@ Convert a Bam to Fastq
 from cosmos.contrib.ezflow.dag import DAG, Map, Reduce, Split, ReduceSplit, Add
 from cosmos.contrib.ezflow.tool import INPUT,Tool
 from cosmos.Workflow.models import TaskFile
-from genomekey.tools import picard,samtools,scripts
+from genomekey.tools import picard,samtools,genomekey_scripts
 import os
 import re
 
@@ -17,15 +17,12 @@ import re
 
 class BamException(Exception):pass
 
-def Bam2Fastq(workflow,dag,settings,input_bams):
+def Bam2Fastq(workflow, dag,settings, input_bams):
 
     import pysam
-    inputs = []
     for input_bam in input_bams:
-        sf = pysam.Samfile(input_bam)
-        RG = sf.header['RG']
+        RG = pysam.Samfile(input_bam).header['RG']
         rgids = [ tags['ID'] for tags in RG ]
-
 
         (dag
             |Add| [ INPUT(input_bam,tags={
@@ -35,37 +32,34 @@ def Bam2Fastq(workflow,dag,settings,input_bams):
             |Split| ([('rgid',rgids)],samtools.FilterBamByRG)
             |Map| picard.REVERTSAM
             |Map| picard.SAM2FASTQ
-            |Split| ([('pair',[1,2])],scripts.SplitFastq)
+            |Split| ([('pair',[1,2])],genomekey_scripts.SplitFastq)
         )
 
-    # Have to run the workflow here, because there's no way to tell how many files SplitFastq will output
+    # I have to run the workflow here, because there's no way to tell how many files SplitFastq will output until
+    # the workflow has executed
     dag.configure(settings)
     dag.add_to_workflow(workflow)
     workflow.run(finish=False)
 
-    #Load Fastq Chunks for processing
+    # Load Fastq Chunks for processing
     input_chunks = []
     for split_fastq_tool in dag.last_tools:
         tags = split_fastq_tool.tags.copy()
 
-        ####
         # Get The RG info and place into a dictionary for tags
-        # note: filterbambyrg_tool has the right RG information
-        ####
-
+        # note: FilterBamByRG's output bam has the right RG information
         filterbambyrg_tool = split_fastq_tool.parent.parent.parent
-        bam_path=filterbambyrg_tool.get_output('bam').path
-        sf = pysam.Samfile(bam_path,'rb')
-        RGs = sf.header['RG']
-        #FilterBamByRG does not remove the non-filtered RGs from the new header!
+        bam_path = filterbambyrg_tool.get_output('bam').path
+        RGs = pysam.Samfile(bam_path,'rb').header['RG']
+
+        # FilterBamByRG does not remove the non-filtered RGs from the new header
         RG = [ d for d in RGs if d['ID'] == split_fastq_tool.tags['rgid']][0]
         tags['sample_name'] = RG['SM']
         tags['library'] = RG['LB']
         tags['platform'] = RG['PL']
         tags['platform_unit'] = RG['PU']
-        ####
+
         # Add fastq chucks as input files
-        ####
         for f in os.listdir(split_fastq_tool._task_instance.output_files[0].path):
             path = os.path.join(TaskFile.objects.get(id=split_fastq_tool._task_instance.output_files[0].id).path,f)
             tags2 = tags.copy()
