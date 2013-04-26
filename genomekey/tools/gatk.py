@@ -222,7 +222,7 @@ class Apply_VQSR(GATK):
         if p['glm'] == 'SNP': 
             cmd = r"""
             {self.bin}
-            -T MapRecalibration
+            -T ApplyRecalibration
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
             -tranchesFile {i[tranches][0]}
@@ -234,7 +234,7 @@ class Apply_VQSR(GATK):
         elif p['glm'] == 'INDEL':
             cmd = r"""
             {self.bin}
-            -T MapRecalibration
+            -T ApplyRecalibration
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
             -tranchesFile {i[tranches][0]}
