@@ -23,7 +23,7 @@ def GATK_Best_Practices(dag,wga_settings):
            |Map| (picard.INDEX_BAM,'Index Cleaned BAMs')
            |Reduce| (['sample_name'],gatk.BQSR)
            |Map| gatk.PR
-           |Reduce| ([],picard.MARK_DUPES)
+           |Reduce| (['sample_name'],picard.MARK_DUPES)
            |Map| (picard.INDEX_BAM,'Index Deduped')
            |Split| ([intervals],gatk.RTC)
            |Map| gatk.IR
