@@ -15,23 +15,23 @@ def GATK_Best_Practices(dag,wga_settings):
     dbs = ('database',['1000G','PolyPhen2','COSMIC','ENCODE'])
 
     (dag.
-        Reduce(['sample_name','library','platform','platform_unit','chunk'],bwa.MEM).
-        Map(picard.AddOrReplaceReadGroups).
-        Map(picard.CLEAN_SAM).
-        Map(picard.SORT_BAM).
-        Map(picard.INDEX_BAM,'Index Cleaned BAMs').
-        Map(gatk.BQSR).
-        Reduce(['sample_name'],gatk.BQSRGatherer).
+        reduce(['sample_name','library','platform','platform_unit','chunk'],bwa.MEM).
+        map(picard.AddOrReplaceReadGroups).
+        map(picard.CLEAN_SAM).
+        map(picard.SORT_BAM).
+        map(picard.INDEX_BAM,'Index Cleaned BAMs').
+        map(gatk.BQSR).
+        reduce(['sample_name'],gatk.BQSRGatherer).
         branch([gatk.BQSR.name]).
-        Map(gatk.PR).
-        Map(picard.MARK_DUPES).
-        Map(picard.INDEX_BAM,'Index Deduped').
-        ReduceSplit(['sample_name'],[intervals],gatk.RTC).
-        Map(gatk.IR).
-        ReduceSplit([],[glm,intervals], gatk.UG).
-        Reduce(['glm'],gatk.CV,'Combine into SNP and INDEL vcfs').
-        Map(gatk.VQSR).
-        Map(gatk.Apply_VQSR).
-        Reduce([],gatk.CV,"Combine into Master vcf")
+        map(gatk.PR).
+        map(picard.MARK_DUPES).
+        map(picard.INDEX_BAM,'Index Deduped').
+        reduce_split(['sample_name'],[intervals],gatk.RTC).
+        map(gatk.IR).
+        reduce_split([],[glm,intervals], gatk.UG).
+        reduce(['glm'],gatk.CV,'Combine into SNP and INDEL vcfs').
+        map(gatk.VQSR).
+        map(gatk.Apply_VQSR).
+        reduce([],gatk.CV,"Combine into Master vcf")
     )
     dag.configure(wga_settings,parameters)
