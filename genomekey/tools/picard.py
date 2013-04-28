@@ -20,6 +20,28 @@ class Picard(Tool):
             jar=os.path.join(self.settings['Picard_dir'],self.jar),
             )
 
+class AddOrReplaceReadGroups(Picard):
+    name = "Add or Replace ReadGroups"
+    inputs = ['sam']
+    outputs = ['bam']
+    # time_req = 4*60
+    mem_req = 3*1024
+
+    jar = 'AddOrReplaceReadGroups.jar'
+
+    def cmd(self,i,s,p):
+        return r"""
+            {self.bin}
+            INPUT={i[sam][0]}
+            OUTPUT=$OUT.bam
+            RGID={p[platform_unit]}
+            RGLB={p[library]}
+            RGSM={p[sample_name]}
+            RGPL={p[platform]}
+            RGPU={p[platform_unit]}
+        """
+
+
 
 class FIXMATE(Picard):
     name = "Fix Mate Information"
@@ -125,7 +147,7 @@ class MERGE_SAMS(Picard):
 class CLEAN_SAM(Picard):
     name = "Clean Sams"
     mem_req = 4*1024
-    inputs = ['sam']
+    inputs = ['bam']
     outputs = ['bam']
         
     jar = 'CleanSam.jar'
@@ -133,7 +155,7 @@ class CLEAN_SAM(Picard):
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
-            I={i[sam][0]}
+            I={i[bam][0]}
             O=$OUT.bam
             VALIDATION_STRINGENCY=SILENT
         """

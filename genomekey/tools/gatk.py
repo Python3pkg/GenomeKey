@@ -14,6 +14,21 @@ class GATK(Tool):
             mem_req=int(self.mem_req*.8)
         )
 
+class BQSRGatherer(Tool):
+    name="BQSR Gatherer"
+    time_req=60
+    mem_req=5*1024
+    inputs = ['bam','recal']
+    outputs = ['recal']
+    forward_input = True
+
+    def cmd(self,i, s, p):
+        return r"""
+            java -cp "{s[queue_path]}:{s[bqsr_gatherer_path]} BQSRGathererMain $OUT.recal {input_recals}"
+        """, {
+            'input_recals': ' '.join(map(str,i['recal']))
+        }
+
 class RTC(GATK):
     name = "Indel Realigner Target Creator"
     mem_req = 8*1024
@@ -63,8 +78,7 @@ class BQSR(GATK):
     mem_req = 9*1024
     inputs = ['bam']
     outputs = ['recal']
-
-    # -nct {nct}
+    forward_input = True
 
     def cmd(self,i,s,p):
         return r"""
@@ -91,21 +105,31 @@ class PR(GATK):
     mem_req = 8*1024
     inputs = ['bam','recal']
     outputs = ['bam']
-    
-    def map_inputs(self):
-        input_bams = [ p.get_output('bam') for p in self.parent.parents ]
-        return {'bam' : input_bams,
-               'recal' : self.parent.get_output('recal')
-              }
-    
+
+
+
+    # def map_inputs(self):
+    #     d= dict([ ('bam',[p.get_output('bam')]) for p in self.parent.parents ])
+    #     # d['recal'] = [bqsrG_tool.get_output('recal')]
+    #     return d
+
+    added_edge = False
+
     def cmd(self,i,s,p):
+        if not self.added_edge:
+            #TODO fix this hack.  Also there might be duplicate edges being added, which doesn't matter but is ugly.
+            #TODO this forces PR to expect a BQSRMerge
+            bqsrG_tool = self.dag.get_tools_by([BQSRGatherer.name],tags={'sample_name':self.tags['sample_name']})[0]
+            self.dag.G.add_edge(bqsrG_tool,self)
+            self.added_edge=True
+
         return r"""
             {self.bin}
             -T PrintReads
             -R {s[reference_fasta_path]}
             {inputs}
             -o $OUT.bam
-            -BQSR {i[recal]}
+            -BQSR {i[recal][0]}
         """, {
             'inputs' : list2input(i['bam'])  
         }
@@ -114,6 +138,7 @@ class PR(GATK):
 class UG(GATK):
     name = "Unified Genotyper"
     mem_req = 5.5*1024
+    cpu_req = 2
     inputs = ['bam']
     outputs = ['vcf']
     
@@ -126,9 +151,14 @@ class UG(GATK):
             -glm {p[glm]}
             {inputs}
             -o $OUT.vcf
-            -A DepthOfCoverage
+            -A Coverage
+            -A AlleleBalance
+            -A AlleleBalanceBySample
+            -A DepthPerAlleleBySample
             -A HaplotypeScore
             -A InbreedingCoeff
+            -A QualByDepth
+            -A FisherStrand
             -baq CALCULATE_AS_NECESSARY
             -L {p[interval]}
             -nt {self.cpu_req}
