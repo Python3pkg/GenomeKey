@@ -26,7 +26,7 @@ def GATK_Best_Practices(dag,wga_settings):
         Map(gatk.PR).
         Map(picard.MARK_DUPES).
         Map(picard.INDEX_BAM,'Index Deduped').
-        Split([intervals],gatk.RTC).
+        ReduceSplit(['sample_name'],[intervals],gatk.RTC).
         Map(gatk.IR).
         ReduceSplit([],[glm,intervals], gatk.UG).
         Reduce(['glm'],gatk.CV,'Combine into SNP and INDEL vcfs').

@@ -4,7 +4,7 @@ import os
 
 class MEM(Tool):
     name = "BWA MEM Paired End Mapping"
-    mem_req = 5*1024
+    mem_req = 10*1024
     cpu_req = 1
     time_req = 120
     inputs = ['fastq.gz']
