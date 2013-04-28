@@ -1,8 +1,8 @@
-from genomekey.tools import gatk,picard,bwa
+from genomekey.tools import gatk, picard, bwa, misc
 
 def GATK_Best_Practices(dag,wga_settings):
     """
-    maps GATK best practices to dag's last_tools
+    maps GATK best practices to dag's active_tools
     """
 
     parameters = {
@@ -24,14 +24,18 @@ def GATK_Best_Practices(dag,wga_settings):
         reduce(['sample_name'],gatk.BQSRGatherer).
         branch([gatk.BQSR.name]).
         map(gatk.PR).
-        map(picard.MARK_DUPES).
+        reduce(['sample_name'],picard.MARK_DUPES).
         map(picard.INDEX_BAM,'Index Deduped').
-        reduce_split(['sample_name'],[intervals],gatk.RTC).
+        split([intervals],gatk.RTC).
         map(gatk.IR).
         reduce_split([],[glm,intervals], gatk.UG).
         reduce(['glm'],gatk.CV,'Combine into SNP and INDEL vcfs').
         map(gatk.VQSR).
         map(gatk.Apply_VQSR).
         reduce([],gatk.CV,"Combine into Master vcf")
+        .
+        branch(['Load Input Fastqs']).reduce(['sample_name'],misc.FastQC).
+        branch([picard.MARK_DUPES.name]).reduce(['sample_name'],picard.CollectMultipleMetrics)
+
     )
     dag.configure(wga_settings,parameters)

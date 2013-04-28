@@ -20,6 +20,23 @@ class Picard(Tool):
             jar=os.path.join(self.settings['Picard_dir'],self.jar),
             )
 
+class CollectMultipleMetrics(Picard):
+    name = "Collect Multiple Metrics"
+    inputs = ['bam']
+    outputs = ['metrics']
+    # time_req = 4*60
+    mem_req = 6*1024
+
+    jar = 'CollectMultipleMetrics.jar'
+
+    def cmd(self,i,s,p):
+        return r"""
+            {self.bin}
+            REFERENCE_SEQUENCE={s[reference_fasta_path]}
+            INPUT={i[bam][0]}
+            OUTPUT=$OUT.metrics
+        """
+
 class AddOrReplaceReadGroups(Picard):
     name = "Add or Replace ReadGroups"
     inputs = ['sam']

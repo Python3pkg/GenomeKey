@@ -1,6 +1,4 @@
 from cosmos.contrib.ezflow.tool import Tool
-import os
-
 
 class MEM(Tool):
     name = "BWA MEM Paired End Mapping"

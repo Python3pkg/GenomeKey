@@ -26,7 +26,7 @@ def Bam2Fastq(workflow, dag,settings, input_bams):
     dag.ignore_stage_name_collisions=True
     import pysam
 
-    filters = []
+    filter_by_rg_tools = []
     for input_bam in input_bams:
         RG = pysam.Samfile(input_bam).header['RG']
         rgids = [ tags['ID'] for tags in RG ]
@@ -36,9 +36,9 @@ def Bam2Fastq(workflow, dag,settings, input_bams):
                             })]
             |Split| ([('rgid',rgids)],samtools.FilterBamByRG)
         )
-        filters.extend(dag.last_tools)
+        filter_by_rg_tools.extend(dag.active_tools)
 
-    (dag.branch_from_tools(filters)
+    (dag.branch_from_tools(filter_by_rg_tools)
         |Map| picard.REVERTSAM
         |Map| picard.SAM2FASTQ
         |Split| ([('pair',[1,2])],genomekey_scripts.SplitFastq)
@@ -51,8 +51,8 @@ def Bam2Fastq(workflow, dag,settings, input_bams):
     workflow.run(finish=False)
 
     # Load Fastq Chunks for processing
-    input_chunks = []
-    for split_fastq_tool in dag.last_tools:
+    input_fastq_chunks = []
+    for split_fastq_tool in dag.active_tools:
         tags = split_fastq_tool.tags.copy()
 
         # Get The RG info and place into a dictionary for tags
@@ -74,8 +74,7 @@ def Bam2Fastq(workflow, dag,settings, input_bams):
             fastq_path = os.path.join(fastq_output_dir,f)
             tags2 = tags.copy()
             tags2['chunk'] = re.search("(\d+)\.fastq",f).group(1)
-            new_tool = INPUT(fastq_path,tags=tags2,stage_name='Load FASTQ Chunks')
-            dag.G.add_edge(split_fastq_tool,new_tool)
-            input_chunks.append(new_tool)
-
-    dag.last_tools = input_chunks
+            input_fastq = INPUT(fastq_path,tags=tags2,stage_name='Load Input Fastqs')
+            dag.G.add_edge(split_fastq_tool,input_fastq)
+            input_fastq_chunks.append(input_fastq)
+    dag.add(input_fastq_chunks)

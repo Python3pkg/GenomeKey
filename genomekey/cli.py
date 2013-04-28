@@ -36,7 +36,7 @@ def json_(workflow,input_dict,**kwargs):
     ]
     """
     input_json = json.load(open(input_dict,'r'))
-    inputs = [ INPUT(name='fastq.gz',path=i['path'],fmt='fastq.gz',tags=i) for i in input_json ]
+    inputs = [ INPUT(name='fastq.gz',path=i['path'],fmt='fastq.gz',tags=i,stage_name='Load Input Fastqs') for i in input_json ]
 
     #Create DAG
     dag = DAG(mem_req_factor=1) |Add| inputs
