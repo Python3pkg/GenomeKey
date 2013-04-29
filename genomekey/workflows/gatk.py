@@ -23,13 +23,15 @@ def GATK_Best_Practices(dag,wga_settings,parameters):
         map(gatk.ApplyBQSR).
         map(gatk.RTC).
         map(gatk.IR).
-        reduce(['interval'],gatk.ReduceReads).
+        reduce(['interval'], gatk.ReduceReads).
         split([glm], gatk.UG).
         reduce(['glm'], gatk.CV, 'Combine into SNP and INDEL vcfs').
         map(gatk.VQSR).
         map(gatk.Apply_VQSR).
         reduce([], gatk.CV, "Combine into Master vcf").
      branch(['Load Input Fastqs']).reduce(['sample_name'], misc.FastQC).
-     branch([picard.MARK_DUPES.name]).reduce(['sample_name'], picard.CollectMultipleMetrics)
+     branch([picard.MARK_DUPES.name]).reduce(['sample_name'], picard.CollectMultipleMetrics).
+     branch(["Combine into Master vcf"])
+
     )
     dag.configure(wga_settings,parameters)

@@ -47,7 +47,6 @@ if settings['server_name'] in ['orchestra', 'orchestra2']:
         queue = task.workflow.default_queue
 
         if wga_settings['test'] == True:
-            print jobAttempt.task.stage.name
             if jobAttempt.task.stage.name != 'Unified_Genotyper':
                 time_req=10
                 cpu_req=1
