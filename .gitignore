@@ -1,5 +1,5 @@
 .project
-.idea/
+.idea
 .git/
 build/
 dist/

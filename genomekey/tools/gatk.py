@@ -1,4 +1,5 @@
 from cosmos.contrib.ezflow.tool import Tool
+from genomekey import wga_settings
 
 def list2input(l):
     return "-I " +" -I ".join(map(lambda x: str(x),l))
@@ -13,6 +14,21 @@ class GATK(Tool):
             self=self,s=self.settings,
             mem_req=int(self.mem_req*.8)
         )
+
+class BQSRGatherer(Tool):
+    name="BQSR Gatherer"
+    time_req=60
+    mem_req=5*1024
+    inputs = ['bam','recal']
+    outputs = ['recal']
+    forward_input = True
+
+    def cmd(self,i, s, p):
+        return r"""
+            java -cp "{s[queue_path]}:{s[bqsr_gatherer_path]} BQSRGathererMain $OUT.recal {input_recals}"
+        """, {
+            'input_recals': ' '.join(map(str,i['recal']))
+        }
 
 class RTC(GATK):
     name = "Indel Realigner Target Creator"
@@ -63,8 +79,7 @@ class BQSR(GATK):
     mem_req = 9*1024
     inputs = ['bam']
     outputs = ['recal']
-
-    # -nct {nct}
+    forward_input = True
 
     def cmd(self,i,s,p):
         return r"""
@@ -86,36 +101,65 @@ class BQSR(GATK):
             'nct': self.cpu_req +1
           }
     
-class PR(GATK):
+class ApplyBQSR(GATK):
     name = "Apply BQSR"
     mem_req = 8*1024
     inputs = ['bam','recal']
     outputs = ['bam']
-    
-    def map_inputs(self):
-        input_bams = [ p.get_output('bam') for p in self.parent.parents ]
-        return {'bam' : input_bams,
-               'recal' : self.parent.get_output('recal')
-              }
-    
+
+    # def map_inputs(self):
+    #     d= dict([ ('bam',[p.get_output('bam')]) for p in self.parent.parents ])
+    #     # d['recal'] = [bqsrG_tool.get_output('recal')]
+    #     return d
+
+    added_edge = False
+
     def cmd(self,i,s,p):
+        if not self.added_edge:
+            #TODO fix this hack.  Also there might be duplicate edges being added, which doesn't matter but is ugly.
+            #TODO this forces ApplyBQSR to expect a ReduceBQSR
+            bqsrG_tool = self.dag.get_tools_by([BQSRGatherer.name],tags={'sample_name':self.tags['sample_name']})[0]
+            self.dag.G.add_edge(bqsrG_tool, self)
+            self.added_edge = True
+
         return r"""
             {self.bin}
             -T PrintReads
             -R {s[reference_fasta_path]}
             {inputs}
             -o $OUT.bam
-            -BQSR {i[recal]}
+            -BQSR {i[recal][0]}
         """, {
             'inputs' : list2input(i['bam'])  
         }
 
-    
+class ReduceReads(GATK):
+    name = "Reduce Reads"
+    mem_req = 5*1024
+    cpu_req = 1
+    inputs = ['bam']
+    outputs = ['bam']
+    time_req = 180
+
+    def cmd(self,i,s,p):
+        return r"""
+           {self.bin}
+           -T ReduceReads
+           -R {s[reference_fasta_path]}
+            {inputs}
+           -o $OUT.bam
+            -L {p[interval]}
+        """, {
+            'inputs' : list2input(i['bam'])
+        }
+
 class UG(GATK):
     name = "Unified Genotyper"
     mem_req = 5.5*1024
+    cpu_req = 2
     inputs = ['bam']
     outputs = ['vcf']
+    time_req = 180
     
     def cmd(self,i,s,p):
         return r"""
@@ -126,9 +170,15 @@ class UG(GATK):
             -glm {p[glm]}
             {inputs}
             -o $OUT.vcf
-            -A DepthOfCoverage
+            -A Coverage
+            -A AlleleBalance
+            -A AlleleBalanceBySample
+            -A DepthPerAlleleBySample
             -A HaplotypeScore
             -A InbreedingCoeff
+            -A QualByDepth
+            -A FisherStrand
+            -A MappingQualityRankSumTest
             -baq CALCULATE_AS_NECESSARY
             -L {p[interval]}
             -nt {self.cpu_req}
@@ -177,19 +227,29 @@ class VQSR(GATK):
     default_params = {
       'inbreeding_coeff' : False
     }
-    
+
+    # missing from bundle:
+    # -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1000G_phase1_highconfidence_path]}
+
+
     def cmd(self,i,s,p):
-        if p['glm'] == 'SNP': 
+        annotations = ['MQRankSum','ReadPosRankSum','FS']
+        if s['capture']:
+           annotations.append('DP')
+        if self.parameters['inbreeding_coeff']:
+            annotations.append('InbreedingCoeff')
+
+        if p['glm'] == 'SNP':
+            annotations.append('QD')
             cmd = r"""
             {self.bin}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
-            --maxGaussians 6
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
-            -resource:omni,known=false,training=true,truth=false,prior=12.0 {s[omni_path]}
-            -resource:dbsnp,known=true,training=false,truth=false,prior=6.0 {s[dbsnp_path]}
-            -an QD -an HaplotypeScore -an MQRankSum -an ReadPosRankSum -an FS -an MQ {InbreedingCoeff}
+            -resource:omni,known=false,training=true,truth=true,prior=12.0 {s[omni_path]}
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
+            -an {an}
             -mode SNP
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
@@ -201,15 +261,16 @@ class VQSR(GATK):
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
-            --maxGaussians 4 -std 10.0 -percentBad 0.12
-            -resource:mills,known=true,training=true,truth=true,prior=12.0 {s[mills_path]}
-            -an QD -an FS -an HaplotypeScore -an ReadPosRankSum {InbreedingCoeff}
+            --maxGaussians 4 -percentBad 0.01 -minNumBad 1000
+            -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
+            -an {an}
             -mode INDEL
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
             """
-        return cmd, {'InbreedingCoeff' : '-an InbreedingCoeff' if p['inbreeding_coeff'] else '' }
+        return cmd, {'an':' -an '.join(annotations)}
     
 class Apply_VQSR(GATK):
     name = "Apply VQSR"
@@ -222,25 +283,25 @@ class Apply_VQSR(GATK):
         if p['glm'] == 'SNP': 
             cmd = r"""
             {self.bin}
-            -T MapRecalibration
+            -T ApplyRecalibration
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
             -tranchesFile {i[tranches][0]}
             -recalFile {i[recal][0]}
             -o $OUT.vcf
-            --ts_filter_level 99.0
+            --ts_filter_level 99.9
             -mode SNP
             """
         elif p['glm'] == 'INDEL':
             cmd = r"""
             {self.bin}
-            -T MapRecalibration
+            -T ApplyRecalibration
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
             -tranchesFile {i[tranches][0]}
             -recalFile {i[recal][0]}
             -o $OUT.vcf
-            --ts_filter_level 95.0
+            --ts_filter_level 99.9
             -mode INDEL
             """
         return cmd

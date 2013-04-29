@@ -8,9 +8,14 @@ class Bunzip2(Tool):
     time_req = 100
     inputs = ['bz2']
     outputs = ['*']
-    default_params = { 'q': 5 }
 
     def cmd(self,i,s,p):
         """
         """
         return 'bunzip2 -c {i[bz2]} > $OUT.*'
+
+class Gunzip(Tool):
+    inputs = ['gz']
+
+    def cmd(self,i,s,p):
+        return """gunzip {i[gz][0]}"""
