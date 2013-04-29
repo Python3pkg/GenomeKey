@@ -40,9 +40,10 @@ $ bin/genomekey -h
 
 *Examples*:
 
-    genomekey bam -n "My workflow from bam" '/path/to/bam1 /path/to/bam2'
+    genomekey bam -n "My Workflow from BAM" -i /path/to/bam1
+    genomekey bam -n "My Multi-BAM Workflow" -il /path/to/bam.list
 
-    genomekey json -n "My workflow from a json file" -i '/path/to/json'
+    genomekey json -n "My workflow from a JSON file" '/path/to/json'
 
 .. code-block:: json
 
@@ -64,3 +65,13 @@ $ bin/genomekey -h
     set in bin/genomekey.
 
     To quit type 'q' then enter
+
+Testing
+========
+
+-test will inform genomekey you are running a test dataset.  drmaa_native_specification() will be adjusted
+accordingly automatically for Orchestra, so that requests are sent to the mini queue with a cpu_requirement of 1
+
+.. code-block:: bash
+
+    $ genomekey -test -n 'Test GK' bam -il genomekey/test/bams.list

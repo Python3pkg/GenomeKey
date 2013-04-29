@@ -28,7 +28,13 @@ def Bam2Fastq(workflow, dag,settings, input_bams):
 
     filter_by_rg_tools = []
     for input_bam in input_bams:
-        RG = pysam.Samfile(input_bam).header['RG']
+        if input_bam[-3:] == 'bam':
+            RG = pysam.Samfile(input_bam,'rb').header['RG']
+        elif input_bam[-3:] == 'sam':
+            RG = pysam.Samfile(input_bam,'r').header['RG']
+        else:
+            raise TypeError, 'input file is not a bam or sam'
+
         rgids = [ tags['ID'] for tags in RG ]
         (dag |Add| [INPUT(input_bam,
                             tags={
@@ -74,7 +80,7 @@ def Bam2Fastq(workflow, dag,settings, input_bams):
             fastq_path = os.path.join(fastq_output_dir,f)
             tags2 = tags.copy()
             tags2['chunk'] = re.search("(\d+)\.fastq",f).group(1)
-            input_fastq = INPUT(fastq_path,tags=tags2,stage_name='Load Input Fastqs')
+            input_fastq = INPUT(name='fastq.gz',path=fastq_path,tags=tags2,stage_name='Load Input Fastqs')
             dag.G.add_edge(split_fastq_tool,input_fastq)
             input_fastq_chunks.append(input_fastq)
     dag.add(input_fastq_chunks)

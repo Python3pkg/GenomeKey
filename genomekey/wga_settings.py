@@ -6,11 +6,11 @@ opj = os.path.join
 
 if settings['server_name'] == 'orchestra2':
     WGA_path = '/groups/lpm/erik/WGA'
-    resource_bundle_path = opj(WGA_path, 'bundle/2.2/b37/')
+    resource_bundle_path = opj(WGA_path, 'bundle/2.3/b37/')
     tools_dir = opj(WGA_path, 'tools')
 elif settings['server_name'] == 'orchestra':
     WGA_path = '/groups/cbi/WGA'
-    resource_bundle_path = opj(WGA_path, 'bundle/2.2/b37/')
+    resource_bundle_path = opj(WGA_path, 'bundle/2.3/b37/')
     tools_dir = opj(WGA_path, 'tools')
 
 wga_settings = {
@@ -30,6 +30,7 @@ wga_settings = {
     'dbsnp_path': opj(resource_bundle_path, 'dbsnp_137.b37.vcf'),
     'hapmap_path': opj(resource_bundle_path, 'hapmap_3.3.b37.vcf'),
     'omni_path': opj(resource_bundle_path, '1000G_omni2.5.b37.vcf'),
+    '1000G_phase1_highconfidence_path':opj(resource_bundle_path,'1000G_phase1.snps.high_confidence.vcf'),
     'mills_path': opj(resource_bundle_path, 'Mills_and_1000G_gold_standard.indels.b37.vcf'),
     'indels_1000g_phase1_path': opj(resource_bundle_path, '1000G_phase1.indels.b37.vcf'),
     'genomekey_library_path': os.path.dirname(os.path.realpath(__file__))
@@ -45,12 +46,19 @@ if settings['server_name'] in ['orchestra', 'orchestra2']:
         time_req = task.time_requirement
         queue = task.workflow.default_queue
 
+        if wga_settings['test'] == True:
+            print jobAttempt.task.stage.name
+            if jobAttempt.task.stage.name != 'Unified_Genotyper':
+                time_req=10
+                cpu_req=1
+
         if time_req <= 10:
             queue = 'mini'
         elif time_req <= 12 * 60:
             queue = 'short'
         else:
             queue = 'long'
+
 
         if DRM == 'LSF':
             s = '-R "rusage[mem={0}] span[hosts=1]" -n {1}'.format(mem_req/cpu_req, cpu_req)
