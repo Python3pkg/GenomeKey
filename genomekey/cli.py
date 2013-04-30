@@ -8,7 +8,7 @@ from cosmos.contrib.ezflow.tool import INPUT
 from cosmos.Workflow.cli import CLI
 
 from genomekey.workflows.gatk import GATK_Best_Practices
-from genomekey.workflows import annotate
+from genomekey.workflows.annotate import DownDBs,AnnovarExtensions
 from genomekey.workflows.bam2fastq import Bam2Fastq
 from genomekey.tools import unix
 from wga_settings import wga_settings
@@ -44,6 +44,7 @@ def json_(workflow,input_dict,capture,**kwargs):
     #Create DAG
     dag = DAG(mem_req_factor=1).add(inputs)
     GATK_Best_Practices(dag,wga_settings,{})
+    AnnovarExtensions(dag,file_format='vcf')
     dag.create_dag_img('/tmp/graph.svg')
 
     dag.add_run(workflow)
@@ -69,8 +70,11 @@ def bam(workflow,input_bam,input_bam_list,capture,**kwargs):
     if input_bam:
         input_bams.append(input_bam.name)
     dag = DAG()
+
     Bam2Fastq(workflow,dag,wga_settings,input_bams)
     GATK_Best_Practices(dag,wga_settings,{})
+    AnnovarExtensions(dag,file_format='vcf',multi_input=False)
+
     dag.add_run(workflow)
 
 
@@ -84,7 +88,7 @@ def downdbs(workflow,**kwargs):
     Download all annotation databases
     """
     dag = DAG()
-    annotate.downdbs(dag)
+    DownDBs(dag)
     dag.add_run(workflow)
 
 
@@ -100,7 +104,7 @@ def anno(workflow,input_file,input_file_list,file_format='vcf',**kwargs):
     print >> sys.stderr, 'annotating {0}'.format(', '.join(input_files))
 
     dag = DAG().add([ INPUT(input_file,tags={'input':i}) for i,input_file in enumerate(input_files) ])
-    annotate.anno(dag,file_format=file_format)
+    AnnovarExtensions(dag,file_format=file_format)
     dag.add_run(workflow)
 
 
@@ -129,6 +133,7 @@ def main():
     from argparse import RawTextHelpFormatter
     parser = argparse.ArgumentParser(description='WGA')
     parser.add_argument('-test',action='store_true',default=False,help='signifies this as a test run')
+    parser.add_argument('-test2',action='store_true',default=False,help='signifies this as a test2 run')
     subparsers = parser.add_subparsers(title="Commands", metavar="<command>")
 
     json_sp = subparsers.add_parser('json',help="Input is FASTQs, encoded as a json file",description=json_.__doc__,formatter_class=RawTextHelpFormatter)
@@ -153,7 +158,7 @@ def main():
     CLI.add_workflow_args(anno_sp)
     anno_sp.add_argument('-f','--file_format',type=str,default='vcf',help='vcf or tsv.  If tsv: Input file is already a tsv file with ID as the 5th column')
     anno_sp.add_argument('-i','--input_file',type=file,help='An input file')
-    anno_sp.add_argument('-il','--input_file_list',type=file,help="A file with a list of input_files, separated by newlines",nargs=argparse.REMAINDER)
+    anno_sp.add_argument('-il','--input_file_list',type=file,help="A file with a list of input_files, separated by newlines")
     anno_sp.set_defaults(func=anno)
 
     sp = subparsers.add_parser('gunzip',help="Gunzips all files in a dir",description=gunzip.__doc__,formatter_class=RawTextHelpFormatter)
@@ -163,6 +168,7 @@ def main():
 
     wf,kwargs = CLI.parse_args(parser)
     wga_settings['test'] = kwargs['test']
+    wga_settings['test2'] = kwargs['test2']
 
     kwargs['func'](wf,**kwargs)
 

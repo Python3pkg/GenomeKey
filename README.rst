@@ -38,12 +38,19 @@ Inside the GenomeKey directory, execute:
 
 $ bin/genomekey -h
 
-*Examples*:
+From BAM
++++++++++
 
     genomekey bam -n "My Workflow from BAM" -i /path/to/bam1
+
     genomekey bam -n "My Multi-BAM Workflow" -il /path/to/bam.list
 
+From FASTQ
+++++++++++
+
     genomekey json -n "My workflow from a JSON file" '/path/to/json'
+
+    json file should be of the format:
 
 .. code-block:: json
 

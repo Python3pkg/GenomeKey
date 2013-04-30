@@ -4,7 +4,7 @@ class FastQC(Tool):
     name = "FastQC"
     mem_req = 4*1024
     cpu_req = 1 #>1 is causing error messages
-    time_req = 120
+    time_req = 60*12
     inputs = ['fastq.gz']
     outputs = ['dir']
 
