@@ -158,7 +158,7 @@ def main():
     CLI.add_workflow_args(anno_sp)
     anno_sp.add_argument('-f','--file_format',type=str,default='vcf',help='vcf or tsv.  If tsv: Input file is already a tsv file with ID as the 5th column')
     anno_sp.add_argument('-i','--input_file',type=file,help='An input file')
-    anno_sp.add_argument('-il','--input_file_list',type=file,help="A file with a list of input_files, separated by newlines",nargs=argparse.REMAINDER)
+    anno_sp.add_argument('-il','--input_file_list',type=file,help="A file with a list of input_files, separated by newlines")
     anno_sp.set_defaults(func=anno)
 
     sp = subparsers.add_parser('gunzip',help="Gunzips all files in a dir",description=gunzip.__doc__,formatter_class=RawTextHelpFormatter)
