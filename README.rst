@@ -76,9 +76,10 @@ From FASTQ
 Testing
 ========
 
--test will inform genomekey you are running a test dataset.  drmaa_native_specification() will be adjusted
-accordingly automatically for Orchestra, so that requests are sent to the mini queue with a cpu_requirement of 1
+-test will inform genomekey you are running a test dataset.  It will only analyse chr20, and
+drmaa_native_specification() will be adjusted accordingly automatically for Orchestra, so that requests are sent to
+the mini queue with a cpu_requirement of 1
 
 .. code-block:: bash
 
-    $ genomekey -test -n 'Test GK' bam -il genomekey/test/bams.list
+    $ genomekey -test bam -n 'Test GK' -il genomekey/test/bams.list
