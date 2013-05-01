@@ -1,5 +1,7 @@
 from cosmos.contrib.ezflow.tool import Tool
 
+
+
 class MEM(Tool):
     name = "BWA MEM Paired End Mapping"
     mem_req = 10*1024

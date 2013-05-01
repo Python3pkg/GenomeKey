@@ -9,8 +9,6 @@ def get_db_names():
         raise Exception, "could not list databases"
     return [ db for db in dbs.split('\n') if db != '' ]
 
-
-
 massive_annotation = sequence_(
     map_(annovarext.Vcf2Anno_in),
     split_( [('build',['hg19']),('dbname',get_db_names()) ], annovarext.Annotate ),

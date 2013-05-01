@@ -7,7 +7,7 @@ from cosmos.contrib.ezflow.dag import DAG,add_,configure,add_run, map_
 from cosmos.contrib.ezflow.tool import INPUT
 from cosmos.Workflow.cli import CLI
 
-from genomekey.workflows.gatk import map_and_align,sort_and_mark_duplicates,preprocess_alignment,call_variants
+from genomekey.workflows.gatk import ThePipeline
 from genomekey.workflows.annotate import massive_annotation
 from genomekey.workflows.bam2fastq import Bam2Fastq
 from genomekey.tools import annovarext
@@ -21,16 +21,6 @@ session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specific
 # Alignment and Variant Calling
 ###############################
 
-def _runPipeline(dag,workflow):
-    dag.sequence_(
-        map_and_align,
-        sort_and_mark_duplicates,
-        preprocess_alignment,
-        call_variants,
-        massive_annotation,
-        configure(wga_settings,{}),
-        add_run(workflow)
-    )
 
 def json_(workflow,input_dict,capture,**kwargs):
     """
@@ -53,9 +43,12 @@ def json_(workflow,input_dict,capture,**kwargs):
     input_json = json.load(open(input_dict,'r'))
     inputs = [ INPUT(name='fastq.gz',path=i['path'],fmt='fastq.gz',tags=i,stage_name='Load Input Fastqs') for i in input_json ]
 
-    _runPipeline(DAG(ignore_stage_name_collisions=True).
-                 add_(inputs),
-                 workflow)
+    DAG(ignore_stage_name_collisions=True).sequence_(
+         add_(inputs),
+         ThePipeline,
+         configure(wga_settings),
+         add_run(workflow)
+    )
 
 
 def bam(workflow,input_bam,input_bam_list,capture,**kwargs):
@@ -81,7 +74,11 @@ def bam(workflow,input_bam,input_bam_list,capture,**kwargs):
 
     dag = DAG(ignore_stage_name_collisions=True)
     Bam2Fastq(workflow,dag,wga_settings,input_bams)
-    _runPipeline(dag,workflow)
+    dag.sequence_(
+         ThePipeline,
+         configure(wga_settings),
+         add_run(workflow)
+    )
 
 ###############################
 # Annotation

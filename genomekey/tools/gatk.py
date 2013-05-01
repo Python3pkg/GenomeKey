@@ -266,7 +266,7 @@ class VQSR(GATK):
         annotations = ['MQRankSum','ReadPosRankSum','FS']
         if s['capture']:
            annotations.append('DP')
-        if self.parameters['inbreeding_coeff']:
+        if p['inbreeding_coeff']:
             annotations.append('InbreedingCoeff')
 
         if p['glm'] == 'SNP':
