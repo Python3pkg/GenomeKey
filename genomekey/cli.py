@@ -148,13 +148,15 @@ def main():
     json_sp.set_defaults(func=json_)
     CLI.add_workflow_args(json_sp)
     json_sp.add_argument('-i','--input_dict',type=str,help='Inputs, see script comments for format.',required=True)
-    json_sp.add_argument('-capture','--capture',action="store_true",default=False,help='Signifies that a capture technology was used')
+    json_sp.add_argument('-capture','--capture',action="store_true",default=False,help='Signifies that a capture technology was used.  Currently'
+                                                                                       'all this does is remove -an DP to VQSR')
 
     bam_sp = subparsers.add_parser('bam',help="Input is a BAM or list of BAMs",description=bam.__doc__,formatter_class=RawTextHelpFormatter)
     CLI.add_workflow_args(bam_sp)
     bam_sp.add_argument('-i','--input_bam',type=file,help='A path to a BAM with RGs properly annotated')
     bam_sp.add_argument('-il','--input_bam_list',type=file,help='A path to a file containing a list of paths to BAMs, separated by newlines')
-    bam_sp.add_argument('-capture','--capture',action="store_true",default=False,help='Signifies that a capture technology was used')
+    bam_sp.add_argument('-capture','--capture',action="store_true",default=False,help='Signifies that a capture technology was used.  Currently'
+                                                                                       'all this does is remove -an DP to VQSR')
     bam_sp.set_defaults(func=bam)
 
     downdbs_sp = subparsers.add_parser('downdbs',help=downdbs.__doc__)
