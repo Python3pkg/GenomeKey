@@ -53,7 +53,9 @@ def json_(workflow,input_dict,capture,**kwargs):
     input_json = json.load(open(input_dict,'r'))
     inputs = [ INPUT(name='fastq.gz',path=i['path'],fmt='fastq.gz',tags=i,stage_name='Load Input Fastqs') for i in input_json ]
 
-    _runPipeline(DAG().add_(inputs),workflow)
+    _runPipeline(DAG(ignore_stage_name_collisions=True).
+                 add_(inputs),
+                 workflow)
 
 
 def bam(workflow,input_bam,input_bam_list,capture,**kwargs):
@@ -77,7 +79,7 @@ def bam(workflow,input_bam,input_bam_list,capture,**kwargs):
     if input_bam:
         input_bams.append(input_bam.name)
 
-    dag = DAG()
+    dag = DAG(ignore_stage_name_collisions=True)
     Bam2Fastq(workflow,dag,wga_settings,input_bams)
     _runPipeline(dag,workflow)
 

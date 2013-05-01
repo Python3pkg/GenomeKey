@@ -1,5 +1,5 @@
 from genomekey.tools import gatk, picard, bwa, misc
-from cosmos.contrib.ezflow.dag import add_,map_,reduce_,split_,reduceSplit_,combine_,sequence_,branch_,apply_
+from cosmos.contrib.ezflow.dag import add_,map_,reduce_,split_,reduce_split_,combine_,sequence_,branch_,apply_
 from genomekey.wga_settings import settings
 
 # Split Tags
@@ -15,6 +15,7 @@ map_and_align = sequence_(
     map_(picard.CLEAN_SAM),
 )
 
+#Input parallelized by sample_name/library/platform/platform_unit/chunk
 sort_and_mark_duplicates = sequence_(
     map_(picard.SORT_BAM),
     map_(picard.INDEX_BAM, 'Index Cleaned BAMs'),
@@ -22,6 +23,7 @@ sort_and_mark_duplicates = sequence_(
     map_(picard.INDEX_BAM, 'Index Deduped')
 )
 
+#Input parallelized by sample_name
 preprocess_alignment = sequence_(
     apply_(
         reduce_(['sample_name'], picard.CollectMultipleMetrics),
@@ -34,19 +36,18 @@ preprocess_alignment = sequence_(
     map_(gatk.IR),
 )
 
-
+#Input parallelized by sample_name/interval
 call_variants = sequence_(
     combine_(
         sequence_(
-            split_([glm], gatk.UnifiedGenotyper,tag={'input_vcf':'UnifiedGenotyper'}),
-            reduce_(['input_vcf','glm'], gatk.CV, 'Combine into SNP and INDEL vcfs'),
-            map_(gatk.VQSR)
-        ),sequence_(
             map_(gatk.HaplotypeCaller,tag={'input_vcf':'HaplotypeCaller'}),
-            reduce_(['input_vcf','glm'], gatk.CV, 'Combine into SNP and INDEL vcfs'),
-            split_([glm],gatk.VQSR),
+        ),
+        sequence_(
+            split_([glm], gatk.UnifiedGenotyper),
+            reduce_([], gatk.CV, 'Combine UG Results into Raw vcfs',tag={'input_vcf':'UnifiedGenotyper'}),
         )
     ),
+    reduce_split_(['input_vcf'],[glm],gatk.VQSR),
     map_(gatk.Apply_VQSR),
-    reduce_(['input_vcf'], gatk.CV, "Combine into Master vcfs")
+    reduce_(['input_vcf'], gatk.CV, "Combine into Recalibrated Master HC and UG vcfs")
 )

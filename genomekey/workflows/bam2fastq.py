@@ -4,7 +4,7 @@ __author__ = 'erik'
 Convert a Bam to Fastq
 """
 
-from cosmos.contrib.ezflow.dag import DAG, add_,map_,reduce_,split_,reduceSplit_,combine_,sequence_,branch_
+from cosmos.contrib.ezflow.dag import DAG, add_,map_,reduce_,split_,reduce_split_,combine_,sequence_,branch_,configure,add_run
 from cosmos.contrib.ezflow.tool import INPUT,Tool
 from cosmos.Workflow.models import TaskFile
 from genomekey.tools import picard,samtools,genomekey_scripts
@@ -35,31 +35,11 @@ def _inputbam2rgids(input_bam):
 
     return [ tags['ID'] for tags in RG ]
 
-def Bam2Fastq(workflow, dag, settings, input_bams):
-    dag.ignore_stage_name_collisions=True
-    if len(input_bams) == 0:
-        raise WorkflowException, 'At least 1 BAM input required'
-    dag.sequence_(
-        combine_(*[
-            sequence_(
-                add_([ INPUT(input_bam, tags={'input':os.path.basename(input_bam)})],stage_name="Load Input Bams"),
-                split_([('rgid',_inputbam2rgids(input_bam))],samtools.FilterBamByRG)
-            )
-            for input_bam in input_bams
-        ]),
-        map_(picard.REVERTSAM),
-        map_(picard.SAM2FASTQ),
-        split_([('pair',[1,2])],genomekey_scripts.SplitFastq)
-    )
-
-    # I have to run the workflow here, because there's no way to tell how many files SplitFastq will output until
-    # the workflow has executed
-    dag.configure(settings)
-    dag.add_to_workflow(workflow)
-    workflow.run(finish=False)
-
-    # Load Fastq Chunks for processing
-    add_s = []
+def _splitfastq2inputs(dag):
+    """
+    Assumes dag's active tools are from SplitFastq.  Traverses their output for the fastq files, and
+    yields new INPUTs properly annotated with dags, and children of their right SplitFastq parent.
+    """
     for split_fastq_tool in dag.active_tools:
         tags = split_fastq_tool.tags.copy()
 
@@ -85,8 +65,23 @@ def Bam2Fastq(workflow, dag, settings, input_bams):
 
             i = INPUT(name='fastq.gz',path=fastq_path,tags=tags2,stage_name='Load Input Fastqs')
             dag.add_edge(split_fastq_tool,i)
-            add_s.append(add_([i]))
-    dag.combine_(*add_s)
+            yield i
 
-    dag.ignore_stage_name_collisions=False
+def Bam2Fastq(workflow, dag, settings, input_bams):
+    if len(input_bams) == 0:
+        raise WorkflowException, 'At least 1 BAM input required'
+    dag.sequence_(
+        combine_(*[
+            sequence_(
+                add_([ INPUT(input_bam, tags={'input':os.path.basename(input_bam)})],stage_name="Load Input Bams"),
+                split_([('rgid',_inputbam2rgids(input_bam))],samtools.FilterBamByRG)
+            )
+            for input_bam in input_bams
+        ]),
+        map_(picard.REVERTSAM),
+        map_(picard.SAM2FASTQ),
+        split_([('pair',[1,2])],genomekey_scripts.SplitFastq),
+        configure(settings),
+        add_run(workflow,finish=False),
+    ).add_(list(_splitfastq2inputs(dag)))
     return dag
