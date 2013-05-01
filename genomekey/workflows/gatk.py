@@ -1,37 +1,52 @@
 from genomekey.tools import gatk, picard, bwa, misc
+from cosmos.contrib.ezflow.dag import add_,map_,reduce_,split_,reduceSplit_,combine_,sequence_,branch_,apply_
+from genomekey.wga_settings import settings
 
-def GATK_Best_Practices(dag,wga_settings,parameters):
-    """
-    maps GATK best practices to dag's active_tools
-    """
+# Split Tags
+intervals = ('interval',range(1,23) + ['X','Y']) #if not settings['test'] else ('interval',[20])
+glm = ('glm',['SNP','INDEL'])
 
-    # Split Tags
-    intervals = ('interval',range(1,23)+['X','Y']) if not wga_settings['test'] else ('interval',[20])
-    glm = ('glm',['SNP','INDEL'])
+map_and_align = sequence_(
+    apply_(
+        reduce_(['sample_name'], misc.FastQC),
+        reduce_(['sample_name','library','platform','platform_unit','chunk'],bwa.MEM)
+    ),
+    map_(picard.AddOrReplaceReadGroups),
+    map_(picard.CLEAN_SAM),
+)
 
-    (dag.
-        reduce(['sample_name','library','platform','platform_unit','chunk'],bwa.MEM).
-        map(picard.AddOrReplaceReadGroups).
-        map(picard.CLEAN_SAM).
-        map(picard.SORT_BAM).
-        map(picard.INDEX_BAM, 'Index Cleaned BAMs').
-        reduce(['sample_name'], picard.MARK_DUPES).
-        map(picard.INDEX_BAM, 'Index Deduped').
-        split([intervals], gatk.BQSR).
-        reduce(['sample_name'], gatk.BQSRGatherer).
-     branch([gatk.BQSR.name]). # note: back at sample_name/interval level
-        map(gatk.ApplyBQSR).
-        map(gatk.RTC).
-        map(gatk.IR).
-        reduce(['interval'], gatk.ReduceReads).
-        split([glm], gatk.UG).
-        reduce(['glm'], gatk.CV, 'Combine into SNP and INDEL vcfs').
-        map(gatk.VQSR).
-        map(gatk.Apply_VQSR).
-        reduce([], gatk.CV, "Combine into Master vcf").
-     branch(['Load Input Fastqs']).reduce(['sample_name'], misc.FastQC).
-     branch([picard.MARK_DUPES.name]).reduce(['sample_name'], picard.CollectMultipleMetrics).
-     branch(["Combine into Master vcf"])
+sort_and_mark_duplicates = sequence_(
+    map_(picard.SORT_BAM),
+    map_(picard.INDEX_BAM, 'Index Cleaned BAMs'),
+    reduce_(['sample_name'], picard.MARK_DUPES),
+    map_(picard.INDEX_BAM, 'Index Deduped')
+)
 
-    )
-    dag.configure(wga_settings,parameters)
+preprocess_alignment = sequence_(
+    apply_(
+        reduce_(['sample_name'], picard.CollectMultipleMetrics),
+        split_([intervals], gatk.BQSR)
+    ),
+    reduce_(['sample_name'], gatk.BQSRGatherer),
+    branch_([gatk.BQSR.name]),
+    map_(gatk.ApplyBQSR),
+    map_(gatk.RealignerTargetCreator),
+    map_(gatk.IR),
+)
+
+
+call_variants = sequence_(
+    combine_(
+        sequence_(
+            split_([glm], gatk.UnifiedGenotyper,tag={'input_vcf':'UnifiedGenotyper'}),
+            reduce_(['input_vcf','glm'], gatk.CV, 'Combine into SNP and INDEL vcfs'),
+            map_(gatk.VQSR)
+        ),sequence_(
+            map_(gatk.HaplotypeCaller,tag={'input_vcf':'HaplotypeCaller'}),
+            reduce_(['input_vcf','glm'], gatk.CV, 'Combine into SNP and INDEL vcfs'),
+            split_([glm],gatk.VQSR),
+        )
+    ),
+    map_(gatk.Apply_VQSR),
+    reduce_(['input_vcf'], gatk.CV, "Combine into Master vcfs")
+)

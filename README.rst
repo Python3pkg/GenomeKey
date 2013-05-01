@@ -69,15 +69,14 @@ From FASTQ
 
 .. note::
     I have GenomeKey set to launch you into an ipdb post mortem debugging session on any exceptions.  That behavior is
-    set in bin/genomekey.
-
-    To quit type 'q' then enter
+    set in bin/genomekey.  To quit enter **q** then enter.
 
 Testing
 ========
 
--test will inform genomekey you are running a test dataset.  drmaa_native_specification() will be adjusted
-accordingly automatically for Orchestra, so that requests are sent to the mini queue with a cpu_requirement of 1
+**-test** will inform GenomeKey you are running a test dataset.  It will only analyse chr20, and
+drmaa_native_specification() will be adjusted accordingly automatically for Orchestra, so that requests are sent to
+the mini queue with a cpu_requirement of 1
 
 .. code-block:: bash
 

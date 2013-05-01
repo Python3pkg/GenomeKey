@@ -83,7 +83,7 @@ class REVERTSAM(Picard):
     outputs = ['bam']
     mem_req = 12*1024
     cpu_req=2
-    succeed_on_failure = False
+    #succeed_on_failure = False
 
     extra_java_args =' -XX:ParallelGCThreads={0}'.format(cpu_req+1)
 
@@ -103,7 +103,7 @@ class SAM2FASTQ_byrg(Picard):
     outputs = ['dir']
     # time_req = 180
     mem_req = 12*1024
-    succeed_on_failure = True
+    #succeed_on_failure = True
 
     jar = 'SamToFastq.jar'
 

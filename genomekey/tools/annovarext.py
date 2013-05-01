@@ -29,12 +29,12 @@ class Vcf2Anno_in(Tool):
     def cmd(self,i,s,p):
         return "annovarext vcf2anno '{i[vcf][0]}' > $OUT.anno_in"
 
-class Anno(Tool):
+class Annotate(Tool):
     name = "Annotate"
     inputs = ['anno_in']
     outputs = ['dir']
     forward_input=True
-    time_req = 10
+    time_req = 20
     mem_req = 8*1024
 
     def cmd(self,i,s,p):
