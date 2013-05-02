@@ -81,3 +81,8 @@ the mini queue with a cpu_requirement of 1
 .. code-block:: bash
 
     $ genomekey -test -n 'Test GK' bam -il genomekey/test/bams.list
+
+Issues
+======
+
+* If there are unpaired reads when converting a BAM to FASTQ, they're not used in the re-alignment

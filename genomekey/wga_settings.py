@@ -20,6 +20,7 @@ wga_settings = {
     'Picard_dir': opj(tools_dir, 'picard-tools-1.78'),
     'bwa_path': opj(tools_dir, 'bwa-0.7.4/bwa'),
     'fastqc_path': opj(tools_dir, 'FastQC-0.10.1/fastqc'),
+    'bamUtil_path': opj(tools_dir, 'bamUtil/bin/bam'),
     'bqsr_gatherer_path': opj(tools_dir,'BQSRGathererMain'),
     'bwa_reference_fasta_path': opj(WGA_path, 'bwa_reference/human_g1k_v37.fasta'),
     'samtools_path': opj(tools_dir, 'samtools-0.1.18/samtools'),

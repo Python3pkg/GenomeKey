@@ -1,4 +1,4 @@
-from genomekey.tools import gatk, picard, bwa, misc
+from genomekey.tools import gatk, picard, bwa, misc, bamUtil
 from cosmos.contrib.ezflow.dag import add_,map_,reduce_,split_,reduce_split_,combine_,sequence_,branch_,apply_
 from genomekey.workflows.annotate import massive_annotation
 
