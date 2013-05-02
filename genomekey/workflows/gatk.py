@@ -1,4 +1,4 @@
-from genomekey.tools import gatk, picard, bwa, misc, bamUtil
+from genomekey.tools import gatk, picard, bwa, misc, bamUtil,pipes
 from cosmos.contrib.ezflow.dag import add_,map_,reduce_,split_,reduce_split_,combine_,sequence_,branch_,apply_
 from genomekey.workflows.annotate import massive_annotation
 
@@ -14,10 +14,12 @@ glm = ('glm',['SNP','INDEL'])
 alignment = sequence_(
     apply_(
         reduce_(['sample_name','library'], misc.FastQC),
-        reduce_(['sample_name','library','platform','platform_unit','chunk'],bwa.MEM)
+        reduce_(['sample_name','library','platform','platform_unit','chunk'],pipes.AlignAndClean)
     ),
-    map_(picard.AddOrReplaceReadGroups),
-    map_(picard.CLEAN_SAM),
+    #map_(picard.AddOrReplaceReadGroups),
+    #map_(picard.CLEAN_SAM),
+    #map_(picard.SORT_BAM),
+    #map_(picard.INDEX_BAM, 'Index Cleaned BAMs'),
 )
 
 
@@ -29,10 +31,7 @@ alignment = sequence_(
 ##############################################
 
 sort_and_mark_duplicates = sequence_(
-    map_(picard.SORT_BAM),
-    map_(picard.INDEX_BAM, 'Index Cleaned BAMs'),
     reduce_(['sample_name'], picard.MARK_DUPES),
-    map_(picard.INDEX_BAM, 'Index Deduped')
 )
 
 

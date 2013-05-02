@@ -7,6 +7,7 @@ from cosmos.contrib.ezflow.dag import DAG,add_,configure,add_run, map_
 from cosmos.contrib.ezflow.tool import INPUT
 from cosmos.Workflow.cli import CLI
 
+from genomekey import utils
 from genomekey.workflows.gatk import ThePipeline
 from genomekey.workflows.annotate import massive_annotation
 from genomekey.workflows.bam2fastq import Bam2Fastq

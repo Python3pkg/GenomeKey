@@ -7,7 +7,7 @@ Convert a Bam to Fastq
 from cosmos.contrib.ezflow.dag import DAG, add_,map_,reduce_,split_,reduce_split_,combine_,sequence_,branch_,configure,add_run
 from cosmos.contrib.ezflow.tool import INPUT,Tool
 from cosmos.Workflow.models import TaskFile
-from genomekey.tools import picard,samtools,genomekey_scripts,bamUtil
+from genomekey.tools import picard,samtools,genomekey_scripts,bamUtil,pipes
 from genomekey import log
 import os
 import re
@@ -45,7 +45,7 @@ def _splitfastq2inputs(dag):
 
         # Get The RG info and place into a dictionary for tags
         # note: FilterBamByRG's output bam has the right RG information
-        filterbambyrg_tool = split_fastq_tool.parent.parent.parent
+        filterbambyrg_tool = split_fastq_tool.parent.parent
         bam_path = TaskFile.objects.get(id=filterbambyrg_tool.get_output('bam').id).path
         RGs = pysam.Samfile(bam_path,'rb').header['RG']
 
@@ -75,12 +75,10 @@ def Bam2Fastq(workflow, dag, settings, input_bams):
         combine_(*[
             sequence_(
                 add_([ INPUT(input_bam, tags={'input':os.path.basename(input_bam)})],stage_name="Load Input Bams"),
-                split_([('rgid',_inputbam2rgids(input_bam))],samtools.FilterBamByRG)
+                split_([('rgid',_inputbam2rgids(input_bam))],pipes.FilterBamByRG_To_FastQ)
             )
             for input_bam in input_bams
         ]),
-        map_(picard.REVERTSAM),
-        map_(bamUtil.Bam2FastQ),
         split_([('pair',[1,2])],genomekey_scripts.SplitFastq),
         configure(settings),
         add_run(workflow,finish=False),

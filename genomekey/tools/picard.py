@@ -1,5 +1,6 @@
 from cosmos.contrib.ezflow.tool import Tool
 import os
+opj = os.path.join
 
 def list2input(l):
     return " ".join(map(lambda x: 'INPUT='+str(x),l))
@@ -12,13 +13,18 @@ class Picard(Tool):
     extra_java_args=''
 
     @property
-    def bin(self):
-        return 'java{self.extra_java_args} -Xmx{mem_req}m -Djava.io.tmpdir={s[tmp_dir]} -Dsnappy.loader.verbosity=true -jar {jar}'.format(
+    def picard_bin(self):
+        return 'java{self.extra_java_args} -Xmx{mem_req}m -Djava.io.tmpdir={s[tmp_dir]} -Dsnappy.loader.verbosity=true'.format(
             self=self,
             mem_req=int(self.mem_req*.8),
-            s=self.settings,
-            jar=os.path.join(self.settings['Picard_dir'],self.jar),
+            s=self.settings
             )
+
+    @property
+    def bin(self):
+        return self.picard_bin+' -jar {0}'.format(
+            os.path.join(self.settings['Picard_dir'],self.jar)
+        )
 
 class CollectMultipleMetrics(Picard):
     name = "Collect Multiple Metrics"
@@ -210,6 +216,7 @@ class MARK_DUPES(Picard):
             O=$OUT.bam
             METRICS_FILE=$OUT.metrics
             ASSUME_SORTED=True
+            CREATE_INDEX=True
         """, {'inputs':list2input(i['bam'])}
 
 class INDEX_BAM(Picard):
