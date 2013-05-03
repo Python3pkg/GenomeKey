@@ -31,6 +31,10 @@ Configuration
 After Cosmos is properly configured, edit GenomeKey/genomekey/wga_settings.py and make sure
 it is pointing to the correct paths to the GATK bundle, reference genome, and binaries.
 
+Genomekey requires a WGA folder.  I currently have it configured on orchestra.  Note that GenomeKey configures
+AnnovarExtensions using WGA/annovarext_data/config.ini which may need to be edited if you are using a different install
+of the WGA folder.
+
 Usage
 ======
 

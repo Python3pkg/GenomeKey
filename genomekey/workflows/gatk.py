@@ -31,7 +31,7 @@ alignment = sequence_(
 ##############################################
 
 sort_and_mark_duplicates = sequence_(
-    reduce_(['sample_name'], picard.MARK_DUPES),
+    reduce_(['sample_name'], picard.MarkDuplicates),
 )
 
 
@@ -64,12 +64,12 @@ call_variants = sequence_(
         ),
         sequence_(
             split_([glm], gatk.UnifiedGenotyper),
-            reduce_([], gatk.CV, 'Combine UG Results into Raw vcfs',tag={'input_vcf':'UnifiedGenotyper'}),
+            reduce_([], gatk.CombineVariants, 'Combine UG Results into Raw vcfs',tag={'input_vcf':'UnifiedGenotyper'}),
         )
     ),
     reduce_split_(['input_vcf'],[glm],gatk.VQSR),
     map_(gatk.Apply_VQSR),
-    reduce_(['input_vcf'], gatk.CV, "Combine into Recalibrated Master HC and UG vcfs")
+    reduce_(['input_vcf'], gatk.CombineVariants, "Combine into Recalibrated Master HC and UG vcfs")
 )
 
 ##############################################

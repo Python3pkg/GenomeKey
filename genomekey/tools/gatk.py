@@ -1,5 +1,5 @@
 from cosmos.contrib.ezflow.tool import Tool
-from genomekey import wga_settings
+from cosmos.Workflow.models import TaskFile
 
 def list2input(l):
     return "-I " +" -I ".join(map(lambda x: str(x),l))
@@ -216,12 +216,12 @@ class UnifiedGenotyper(GATK):
             'inputs' : list2input(i['bam']) 
         }
     
-class CV(GATK):
+class CombineVariants(GATK):
     name = "Combine Variants"
     mem_req = 3*1024
     
     inputs = ['vcf']
-    outputs = ['vcf']
+    outputs =[ TaskFile(name='vcf', persist=True)]
     
     default_params = {
       'genotypeMergeOptions':'UNSORTED'       
@@ -309,7 +309,7 @@ class Apply_VQSR(GATK):
     mem_req = 4*1024
     
     inputs = ['vcf','recal','tranches']
-    outputs = ['vcf']
+    outputs = [TaskFile(name='vcf',persist=True)]
     
     def cmd(self,i,s,p):
         if p['glm'] == 'SNP': 

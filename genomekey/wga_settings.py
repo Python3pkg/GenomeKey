@@ -1,8 +1,9 @@
 import os
 from cosmos import session
 from cosmos.config import settings
-
+import sys
 opj = os.path.join
+
 
 if settings['server_name'] == 'orchestra2':
     WGA_path = '/groups/lpm/erik/WGA'
@@ -12,8 +13,13 @@ elif settings['server_name'] == 'orchestra':
     WGA_path = '/groups/cbi/WGA'
     resource_bundle_path = opj(WGA_path, 'bundle/2.3/b37/')
     tools_dir = opj(WGA_path, 'tools')
-    extern_tools_dir = opj(tools_dir,'extern/')
-    
+
+os.environ['ANNOVAREXT_DATA']=opj(WGA_path,'annovarext_data')
+av_path = opj(tools_dir,'AnnovarExtensions/')
+sys.path.append(av_path)
+os.environ['PYTHONPATH'] = av_path+':'+os.environ.get('PYTHONPATH','')
+extern_tools_dir = opj(tools_dir,'extern/')
+
 wga_settings = {
     'tmp_dir': settings['working_directory'],
     'GATK_path': opj(extern_tools_dir, 'GenomeAnalysisTK-2.4-9-g532efad/GenomeAnalysisTK.jar'),
@@ -25,6 +31,7 @@ wga_settings = {
     'bqsr_gatherer_path': opj(tools_dir,'BQSRGathererMain'),
     'bwa_reference_fasta_path': opj(WGA_path, 'bwa_reference/human_g1k_v37.fasta'),
     'samtools_path': opj(extern_tools_dir, 'samtools-0.1.18/samtools'),
+    'annovarext_path':opj(tools_dir,'AnnovarExtensions/bin/annovarext'),
     'get_drmaa_native_specification': session.default_get_drmaa_native_specification,
 
     'resource_bundle_path': resource_bundle_path,

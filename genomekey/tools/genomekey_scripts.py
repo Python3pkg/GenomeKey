@@ -1,8 +1,8 @@
-from cosmos.contrib.ezflow.tool import Tool
+from cosmos import Tool, TaskFile
 
 class SplitFastq(Tool):
     inputs = ['1.fastq.gz','2.fastq.gz']
-    outputs = ['dir']
+    outputs = [TaskFile(name='dir',persist=True)]
     time_req = 12*60
     mem_req = 1000
 
