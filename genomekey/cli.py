@@ -109,7 +109,7 @@ def anno(workflow,input_file,input_file_list,file_format='vcf',**kwargs):
     print >> sys.stderr, 'annotating {0}'.format(', '.join(input_files))
 
     DAG().sequence_(
-        add_([ INPUT(input_file,tags={'input_vcf':i}) for i,input_file in enumerate(input_files) ]),
+        add_([ INPUT(input_file,tags={'vcf':i}) for i,input_file in enumerate(input_files) ]),
         massive_annotation,
         configure(wga_settings),
         add_run(workflow)

@@ -6,80 +6,46 @@ from genomekey.workflows.annotate import massive_annotation
 intervals = ('interval',range(1,23) + ['X','Y']) #if not settings['test'] else ('interval',[20])
 glm = ('glm',['SNP','INDEL'])
 
-##############################################
-# Map
-#   Input must be correctly tagged
-##############################################
-
-alignment = sequence_(
+align_to_reference = sequence_(
     apply_(
         reduce_(['sample_name','library'], misc.FastQC),
         reduce_(['sample_name','library','platform','platform_unit','chunk'],pipes.AlignAndClean)
     ),
-    #map_(picard.AddOrReplaceReadGroups),
-    #map_(picard.CLEAN_SAM),
-    #map_(picard.SORT_BAM),
-    #map_(picard.INDEX_BAM, 'Index Cleaned BAMs'),
 )
-
-
-##############################################
-# Mark Duplicates
-#   Input parallelized by
-#   sample_name/library/platform
-#   /platform_unit/chunk
-##############################################
-
-sort_and_mark_duplicates = sequence_(
-    reduce_(['sample_name'], picard.MarkDuplicates),
-)
-
-
-##############################################
-# PreProcess Alignment
-#   Input parallelized by sample_name
-##############################################
 
 preprocess_alignment = sequence_(
+    reduce_(['sample_name'], picard.MarkDuplicates),
     apply_(
-        reduce_(['sample_name'], picard.CollectMultipleMetrics),
-        split_([intervals], gatk.BQSR)
+        map_(picard.CollectMultipleMetrics),
+        split_([intervals],gatk.RealignerTargetCreator),
     ),
-    reduce_(['sample_name'], gatk.BQSRGatherer),
-    branch_([gatk.BQSR.name]),
-    map_(gatk.ApplyBQSR),
-    map_(gatk.RealignerTargetCreator),
     map_(gatk.IR),
+    map_(gatk.BQSR),
+    apply_(
+        reduce_(['sample_name'], gatk.BQSRGatherer),
+        map_(gatk.ApplyBQSR) #this is weird and I add BQSRGatherer as a parent with a hack inside ApplyBQSR.cmd
+    )
 )
-
-##############################################
-# Call Variants
-#   Input parallelized by sample_name/interval
-##############################################
 
 call_variants = sequence_(
     combine_(
         sequence_(
-            map_(gatk.HaplotypeCaller,tag={'input_vcf':'HaplotypeCaller'}),
+            reduce_split_([],[intervals,glm],gatk.HaplotypeCaller,tag={'vcf':'HaplotypeCaller'}),
+            reduce_([], gatk.CombineVariants, 'Combine HaplotypeCaller Raw vcfs',tag={'vcf':'UnifiedGenotyper'})
         ),
         sequence_(
-            split_([glm], gatk.UnifiedGenotyper),
-            reduce_([], gatk.CombineVariants, 'Combine UG Results into Raw vcfs',tag={'input_vcf':'UnifiedGenotyper'}),
+            reduce_split_([],[intervals,glm], gatk.UnifiedGenotyper),
+            reduce_([], gatk.CombineVariants, 'Combine UnifiedGenotyper Raw vcfs',tag={'vcf':'UnifiedGenotyper'}),
         )
     ),
-    reduce_split_(['input_vcf'],[glm],gatk.VQSR),
+    reduce_split_(['vcf'],[glm],gatk.VQSR),
     map_(gatk.Apply_VQSR),
-    reduce_(['input_vcf'], gatk.CombineVariants, "Combine into Recalibrated Master HC and UG vcfs")
+    reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs")
 )
 
-##############################################
-# The Pipeline
-#   Combine all subworkflows
-##############################################
 
 ThePipeline = sequence_(
-    alignment,
-    sort_and_mark_duplicates,
+    align_to_reference,
     preprocess_alignment,
     call_variants,
     massive_annotation

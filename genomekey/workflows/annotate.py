@@ -14,7 +14,7 @@ def get_db_names():
 massive_annotation = sequence_(
     map_(annovarext.Vcf2Anno_in),
     split_( [('build',['hg19']),('dbname',get_db_names()) ], annovarext.Annotate ),
-    reduce_(['input_vcf'],annovarext.MergeAnnotations)
+    reduce_(['vcf'],annovarext.MergeAnnotations)
 )
 
 
