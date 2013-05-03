@@ -13,6 +13,6 @@ setup(name='GenomeKey',
       packages=find_packages(),
       scripts=['bin/genomekey'],
       install_requires=[
-          'cosmos','pysam'
+         'pysam'
       ]
 )

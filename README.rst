@@ -31,6 +31,10 @@ Configuration
 After Cosmos is properly configured, edit GenomeKey/genomekey/wga_settings.py and make sure
 it is pointing to the correct paths to the GATK bundle, reference genome, and binaries.
 
+Genomekey requires a WGA folder.  I currently have it configured on orchestra.  Note that GenomeKey configures
+AnnovarExtensions using WGA/annovarext_data/config.ini which may need to be edited if you are using a different install
+of the WGA folder.
+
 Usage
 ======
 
@@ -69,17 +73,20 @@ From FASTQ
 
 .. note::
     I have GenomeKey set to launch you into an ipdb post mortem debugging session on any exceptions.  That behavior is
-    set in bin/genomekey.
-
-    To quit type 'q' then enter
+    set in bin/genomekey.  To quit enter **q** then enter.
 
 Testing
 ========
 
--test will inform genomekey you are running a test dataset.  It will only analyse chr20, and
+**-test** will inform GenomeKey you are running a test dataset.  It will only analyse chr20, and
 drmaa_native_specification() will be adjusted accordingly automatically for Orchestra, so that requests are sent to
 the mini queue with a cpu_requirement of 1
 
 .. code-block:: bash
 
     $ genomekey -test bam -n 'Test GK' -il genomekey/test/bams.list
+
+Issues
+======
+
+* If there are unpaired reads when converting a BAM to FASTQ, they're not used in the re-alignment

@@ -1,5 +1,8 @@
 from cosmos.contrib.ezflow.tool import Tool
+from cosmos.Workflow.models import TaskFile
+
 import os
+opj = os.path.join
 
 def list2input(l):
     return " ".join(map(lambda x: 'INPUT='+str(x),l))
@@ -12,13 +15,18 @@ class Picard(Tool):
     extra_java_args=''
 
     @property
-    def bin(self):
-        return 'java{self.extra_java_args} -Xmx{mem_req}m -Djava.io.tmpdir={s[tmp_dir]} -Dsnappy.loader.verbosity=true -jar {jar}'.format(
+    def picard_bin(self):
+        return 'java{self.extra_java_args} -Xmx{mem_req}m -Djava.io.tmpdir={s[tmp_dir]} -Dsnappy.loader.verbosity=true'.format(
             self=self,
             mem_req=int(self.mem_req*.8),
-            s=self.settings,
-            jar=os.path.join(self.settings['Picard_dir'],self.jar),
+            s=self.settings
             )
+
+    @property
+    def bin(self):
+        return self.picard_bin+' -jar {0}'.format(
+            os.path.join(self.settings['Picard_dir'],self.jar)
+        )
 
 class CollectMultipleMetrics(Picard):
     name = "Collect Multiple Metrics"
@@ -83,7 +91,7 @@ class REVERTSAM(Picard):
     outputs = ['bam']
     mem_req = 12*1024
     cpu_req=2
-    succeed_on_failure = False
+    #succeed_on_failure = False
 
     extra_java_args =' -XX:ParallelGCThreads={0}'.format(cpu_req+1)
 
@@ -103,7 +111,7 @@ class SAM2FASTQ_byrg(Picard):
     outputs = ['dir']
     # time_req = 180
     mem_req = 12*1024
-    succeed_on_failure = True
+    #succeed_on_failure = True
 
     jar = 'SamToFastq.jar'
 
@@ -194,12 +202,12 @@ class SORT_BAM(Picard):
         """
 
 
-class MARK_DUPES(Picard):
+class MarkDuplicates(Picard):
     name = "Mark Duplicates"
     mem_req = 4*1024
     time_req = 16*60
     inputs = ['bam']
-    outputs = ['bam','metrics']
+    outputs = [TaskFile(name='bam',persist=True),TaskFile(name='metrics',persist=True)]
         
     jar = 'MarkDuplicates.jar'
     
@@ -210,6 +218,7 @@ class MARK_DUPES(Picard):
             O=$OUT.bam
             METRICS_FILE=$OUT.metrics
             ASSUME_SORTED=True
+            CREATE_INDEX=True
         """, {'inputs':list2input(i['bam'])}
 
 class INDEX_BAM(Picard):

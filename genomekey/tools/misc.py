@@ -10,10 +10,11 @@ class FastQC(Tool):
 
     def cmd(self,i,s,p):
         return r"""
+            zcat {inputs} |
             perl {s[fastqc_path]}
             -t {self.cpu_req}
             -o $OUT.dir
-            {inputs}
+            /dev/stdin
             """, {
                 'inputs':' '.join(map(str,i['fastq.gz']))
             }

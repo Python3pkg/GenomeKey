@@ -1,5 +1,5 @@
 from cosmos.contrib.ezflow.tool import Tool
-from genomekey import wga_settings
+from cosmos.Workflow.models import TaskFile
 
 def list2input(l):
     return "-I " +" -I ".join(map(lambda x: str(x),l))
@@ -30,7 +30,7 @@ class BQSRGatherer(Tool):
             'input_recals': ' '.join(map(str,i['recal']))
         }
 
-class RTC(GATK):
+class RealignerTargetCreator(GATK):
     name = "Indel Realigner Target Creator"
     mem_req = 8*1024
     #cpu_req = 4
@@ -153,7 +153,37 @@ class ReduceReads(GATK):
             'inputs' : list2input(i['bam'])
         }
 
-class UG(GATK):
+class HaplotypeCaller(GATK):
+    name = "Haplotype Caller"
+    mem_req = 5.5*1024
+    cpu_req = 1
+    inputs = ['bam']
+    outputs = ['vcf']
+    time_req = 180
+
+    def cmd(self,i,s,p):
+        return r"""
+            {self.bin}
+            -T HaplotypeCaller
+            -R {s[reference_fasta_path]}
+            --dbsnp {s[dbsnp_path]}
+            {inputs}
+            -o $OUT.vcf
+            -A Coverage
+            -A AlleleBalance
+            -A AlleleBalanceBySample
+            -A DepthPerAlleleBySample
+            -A HaplotypeScore
+            -A InbreedingCoeff
+            -A QualByDepth
+            -A FisherStrand
+            -A MappingQualityRankSumTest
+            -L {p[interval]}
+        """, {
+            'inputs' : list2input(i['bam'])
+        }
+
+class UnifiedGenotyper(GATK):
     name = "Unified Genotyper"
     mem_req = 5.5*1024
     cpu_req = 2
@@ -186,12 +216,12 @@ class UG(GATK):
             'inputs' : list2input(i['bam']) 
         }
     
-class CV(GATK):
+class CombineVariants(GATK):
     name = "Combine Variants"
     mem_req = 3*1024
     
     inputs = ['vcf']
-    outputs = ['vcf']
+    outputs =[ TaskFile(name='vcf', persist=True)]
     
     default_params = {
       'genotypeMergeOptions':'UNSORTED'       
@@ -234,9 +264,11 @@ class VQSR(GATK):
 
     def cmd(self,i,s,p):
         annotations = ['MQRankSum','ReadPosRankSum','FS']
-        if s['capture']:
+        if not s['capture']:
            annotations.append('DP')
-        if self.parameters['inbreeding_coeff']:
+        if p['glm'] == 'SNP':
+            annotations.append('QD')
+        if p['inbreeding_coeff']:
             annotations.append('InbreedingCoeff')
 
         if p['glm'] == 'SNP':
@@ -277,7 +309,7 @@ class Apply_VQSR(GATK):
     mem_req = 4*1024
     
     inputs = ['vcf','recal','tranches']
-    outputs = ['vcf']
+    outputs = [TaskFile(name='vcf',persist=True)]
     
     def cmd(self,i,s,p):
         if p['glm'] == 'SNP': 

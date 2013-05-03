@@ -1,32 +1,20 @@
-from cosmos.contrib.ezflow.dag import DAG, Map, Reduce, Split, ReduceSplit, Add
+from cosmos.contrib.ezflow.dag import add_,map_,reduce_,split_,reduce_split_,combine_,sequence_,branch_
 from subprocess import Popen,PIPE
-from genomekey.tools import annotation
+from genomekey.tools import annovarext
+from genomekey.wga_settings import wga_settings
 import sys
 
 def get_db_names():
-    cmd = 'annovarext listdbs'
+    cmd = '{0} listdbs'.format(wga_settings['annovarext_path'])
     dbs = Popen(cmd.split(' '),stdout=PIPE).communicate()[0]
     if len(dbs) < 10:
-        raise Exception, "could not list databases"
+        raise Exception, "could not list databases, command was {0}".format(cmd)
     return [ db for db in dbs.split('\n') if db != '' ]
 
+massive_annotation = sequence_(
+    map_(annovarext.Vcf2Anno_in),
+    split_( [('build',['hg19']),('dbname',get_db_names()) ], annovarext.Annotate ),
+    reduce_(['input_vcf'],annovarext.MergeAnnotations)
+)
 
-def AnnovarExtensions(dag,file_format,multi_input=True):
-    """
-    Annotates with all databases in annovar extensions
-    """
-    if not file_format in ['vcf','tsv']:
-        print >> sys.stderr, 'file_format "{0}" not supported'.format(file_format)
-        sys.exit(1)
-
-    if file_format == 'vcf':
-        dag |Map| annotation.Vcf2Anno_in
-
-    (dag
-      .split( [('build',['hg19']),('dbname',get_db_names()) ], annotation.Anno )
-      .reduce(['input'] if multi_input else [],annotation.MergeAnnotations)
-    )
-
-def DownDBs(dag):
-    dag.add([ annotation.DownDB(tags={'build':'hg19','dbname':db}) for db in get_db_names() ])
 

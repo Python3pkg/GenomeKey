@@ -1,37 +1,86 @@
-from genomekey.tools import gatk, picard, bwa, misc
+from genomekey.tools import gatk, picard, bwa, misc, bamUtil,pipes
+from cosmos.contrib.ezflow.dag import add_,map_,reduce_,split_,reduce_split_,combine_,sequence_,branch_,apply_
+from genomekey.workflows.annotate import massive_annotation
 
-def GATK_Best_Practices(dag,wga_settings,parameters):
-    """
-    maps GATK best practices to dag's active_tools
-    """
+# Split Tags
+intervals = ('interval',range(1,23) + ['X','Y']) #if not settings['test'] else ('interval',[20])
+glm = ('glm',['SNP','INDEL'])
 
-    # Split Tags
-    intervals = ('interval',range(1,23)+['X','Y']) if not wga_settings['test'] else ('interval',[20])
-    glm = ('glm',['SNP','INDEL'])
+##############################################
+# Map
+#   Input must be correctly tagged
+##############################################
 
-    (dag.
-        reduce(['sample_name','library','platform','platform_unit','chunk'],bwa.MEM).
-        map(picard.AddOrReplaceReadGroups).
-        map(picard.CLEAN_SAM).
-        map(picard.SORT_BAM).
-        map(picard.INDEX_BAM, 'Index Cleaned BAMs').
-        reduce(['sample_name'], picard.MARK_DUPES).
-        map(picard.INDEX_BAM, 'Index Deduped').
-        split([intervals], gatk.BQSR).
-        reduce(['sample_name'], gatk.BQSRGatherer).
-     branch([gatk.BQSR.name]). # note: back at sample_name/interval level
-        map(gatk.ApplyBQSR).
-        map(gatk.RTC).
-        map(gatk.IR).
-        reduce(['interval'], gatk.ReduceReads).
-        split([glm], gatk.UG).
-        reduce(['glm'], gatk.CV, 'Combine into SNP and INDEL vcfs').
-        map(gatk.VQSR).
-        map(gatk.Apply_VQSR).
-        reduce([], gatk.CV, "Combine into Master vcf").
-     branch(['Load Input Fastqs']).reduce(['sample_name'], misc.FastQC).
-     branch([picard.MARK_DUPES.name]).reduce(['sample_name'], picard.CollectMultipleMetrics).
-     branch(["Combine into Master vcf"])
+alignment = sequence_(
+    apply_(
+        reduce_(['sample_name','library'], misc.FastQC),
+        reduce_(['sample_name','library','platform','platform_unit','chunk'],pipes.AlignAndClean)
+    ),
+    #map_(picard.AddOrReplaceReadGroups),
+    #map_(picard.CLEAN_SAM),
+    #map_(picard.SORT_BAM),
+    #map_(picard.INDEX_BAM, 'Index Cleaned BAMs'),
+)
 
-    )
-    dag.configure(wga_settings,parameters)
+
+##############################################
+# Mark Duplicates
+#   Input parallelized by
+#   sample_name/library/platform
+#   /platform_unit/chunk
+##############################################
+
+sort_and_mark_duplicates = sequence_(
+    reduce_(['sample_name'], picard.MarkDuplicates),
+)
+
+
+##############################################
+# PreProcess Alignment
+#   Input parallelized by sample_name
+##############################################
+
+preprocess_alignment = sequence_(
+    apply_(
+        reduce_(['sample_name'], picard.CollectMultipleMetrics),
+        split_([intervals], gatk.BQSR)
+    ),
+    reduce_(['sample_name'], gatk.BQSRGatherer),
+    branch_([gatk.BQSR.name]),
+    map_(gatk.ApplyBQSR),
+    map_(gatk.RealignerTargetCreator),
+    map_(gatk.IR),
+)
+
+##############################################
+# Call Variants
+#   Input parallelized by sample_name/interval
+##############################################
+
+call_variants = sequence_(
+    combine_(
+        sequence_(
+            map_(gatk.HaplotypeCaller,tag={'input_vcf':'HaplotypeCaller'}),
+        ),
+        sequence_(
+            split_([glm], gatk.UnifiedGenotyper),
+            reduce_([], gatk.CombineVariants, 'Combine UG Results into Raw vcfs',tag={'input_vcf':'UnifiedGenotyper'}),
+        )
+    ),
+    reduce_split_(['input_vcf'],[glm],gatk.VQSR),
+    map_(gatk.Apply_VQSR),
+    reduce_(['input_vcf'], gatk.CombineVariants, "Combine into Recalibrated Master HC and UG vcfs")
+)
+
+##############################################
+# The Pipeline
+#   Combine all subworkflows
+##############################################
+
+ThePipeline = sequence_(
+    alignment,
+    sort_and_mark_duplicates,
+    preprocess_alignment,
+    call_variants,
+    massive_annotation
+)
