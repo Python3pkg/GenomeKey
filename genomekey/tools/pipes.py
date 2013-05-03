@@ -3,7 +3,7 @@ import os
 opj = os.path.join
 
 class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
-    name = "Extract ReadGroup from BAM and Convert to FastQ"
+    name = "Split BAM by ReadGroup - RevertSam - Bam2FastQ"
     inputs = ['bam']
     outputs = ['1.fastq.gz','2.fastq.gz','unpaired.fastq.gz']
     time_req = 12*60
@@ -12,20 +12,22 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
     def cmd(self,i,s,p):
         return r"""
             set -o pipefail &&
-            {s[samtools_path]} view -h -b -r {p[rgid]} {i[bam][0]}
+            {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]}
             |
-              {self.bin}
-              INPUT=/dev/stdin
-              OUTPUT=/dev/stdout
-              VALIDATION_STRINGENCY=SILENT
-              MAX_RECORDS_IN_RAM=4000000
-              COMPRESSION_LEVEL=0
-              |
-                {s[bamUtil_path]} bam2FastQ
-                --in -.ubam
-                --firstOut $OUT.1.fastq.gz
-                --secondOut $OUT.2.fastq.gz
-                --unpairedOut $OUT.unpaired.fastq.gz
+            {self.bin}
+            INPUT=/dev/stdin
+            OUTPUT=/dev/stdout
+            VALIDATION_STRINGENCY=SILENT
+            MAX_RECORDS_IN_RAM=4000000
+            COMPRESSION_LEVEL=0
+            |
+            {s[bamUtil_path]} bam2FastQ
+            --in -.ubam
+            --firstOut $OUT.1.fastq.gz
+            --secondOut $OUT.2.fastq.gz
+            --unpairedOut $OUT.unpaired.fastq.gz
+            |
+
         """
 
 class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):
