@@ -3,7 +3,7 @@ import os
 opj = os.path.join
 
 class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
-    name = "Split BAM by ReadGroup - RevertSam - Bam2FastQ"
+    name = "Extract ReadGroup from BAM and Convert to FastQ"
     inputs = ['bam']
     outputs = ['1.fastq.gz','2.fastq.gz','unpaired.fastq.gz']
     time_req = 12*60
@@ -26,8 +26,6 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
             --firstOut $OUT.1.fastq.gz
             --secondOut $OUT.2.fastq.gz
             --unpairedOut $OUT.unpaired.fastq.gz
-            |
-
         """
 
 class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):
