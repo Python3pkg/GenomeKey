@@ -22,7 +22,7 @@ extern_tools_dir = opj(tools_dir,'extern/')
 
 wga_settings = {
     'tmp_dir': settings['working_directory'],
-    'GATK_path': opj(extern_tools_dir, 'GenomeAnalysisTK-2.4-9-g532efad/GenomeAnalysisTK.jar'),
+    'GATK_path': opj(extern_tools_dir, 'GenomeAnalysisTK-2.5-2-gf57256b/GenomeAnalysisTK.jar'),
     'queue_path': opj(extern_tools_dir,'Queue-2.4-9-g532efad/Queue.jar'), #necessary for BQSRGatherer.java
     'Picard_dir': opj(extern_tools_dir, 'picard-tools-1.78'),
     'bwa_path': opj(extern_tools_dir, 'bwa-0.7.4/bwa'),
@@ -32,6 +32,7 @@ wga_settings = {
     'bwa_reference_fasta_path': opj(WGA_path, 'bwa_reference/human_g1k_v37.fasta'),
     'samtools_path': opj(extern_tools_dir, 'samtools-0.1.18/samtools'),
     'annovarext_path':opj(tools_dir,'AnnovarExtensions/bin/annovarext'),
+    'fastqstats_path':opj(extern_tools_dir,'ea-utils.1.1.2-537/fastq-stats'),
     'get_drmaa_native_specification': session.default_get_drmaa_native_specification,
 
     'resource_bundle_path': resource_bundle_path,

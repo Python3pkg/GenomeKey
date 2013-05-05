@@ -18,3 +18,20 @@ class FastQC(Tool):
             """, {
                 'inputs':' '.join(map(str,i['fastq.gz']))
             }
+
+class FastqStats(Tool):
+    name = "FastqStats"
+    mem_req = 8*1024
+    cpu_req = 1 #>1 is causing error messages
+    time_req = 60*12
+    inputs = ['fastq.gz']
+    outputs = ['qstats','stats']
+
+    def cmd(self,i,s,p):
+        return r"""
+            zcat {inputs}
+            |
+            {s[fastqstats_path]} -D -b $OUT.qstats > $OUT.stats
+            """, {
+                'inputs':' '.join(map(str,i['fastq.gz']))
+            }

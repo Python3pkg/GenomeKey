@@ -4,7 +4,7 @@ __author__ = 'erik'
 Convert a Bam to Fastq
 """
 
-from cosmos.contrib.ezflow.dag import DAG, add_,map_,reduce_,split_,reduce_split_,combine_,sequence_,branch_,configure,add_run
+from cosmos.contrib.ezflow.dag import DAG, add_,map_,reduce_,split_,reduce_split_,sequence_,branch_,configure,add_run
 from cosmos.contrib.ezflow.tool import INPUT,Tool
 from cosmos.Workflow.models import TaskFile
 from genomekey.tools import picard,samtools,genomekey_scripts,bamUtil,pipes
@@ -72,13 +72,13 @@ def Bam2Fastq(workflow, dag, settings, input_bams):
     if len(input_bams) == 0:
         raise WorkflowException, 'At least 1 BAM input required'
     dag.sequence_(
-        combine_(*[
+        sequence_(*[
             sequence_(
                 add_([ INPUT(input_bam, tags={'input':os.path.basename(input_bam)})],stage_name="Load Input Bams"),
                 split_([('rgid',_inputbam2rgids(input_bam))],pipes.FilterBamByRG_To_FastQ)
             )
             for input_bam in input_bams
-        ]),
+        ],combine=True),
         split_([('pair',[1,2])],genomekey_scripts.SplitFastq),
         configure(settings),
         add_run(workflow,finish=False),

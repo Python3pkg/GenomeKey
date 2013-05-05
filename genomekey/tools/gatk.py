@@ -12,7 +12,7 @@ class GATK(Tool):
     def bin(self):
         return 'java -Xmx{mem_req}m -Djava.io.tmpdir={s[tmp_dir]} -jar {s[GATK_path]}'.format(
             self=self,s=self.settings,
-            mem_req=int(self.mem_req*.8)
+            mem_req=int(self.mem_req*.9)
         )
 
 class BQSRGatherer(Tool):
@@ -135,11 +135,11 @@ class ApplyBQSR(GATK):
 
 class ReduceReads(GATK):
     name = "Reduce Reads"
-    mem_req = 5*1024
+    mem_req = 30*1024
     cpu_req = 1
     inputs = ['bam']
-    outputs = ['bam']
-    time_req = 180
+    outputs = [TaskFile(name='bam',persist=True)]
+    time_req = 12*60
 
     def cmd(self,i,s,p):
         return r"""
@@ -148,7 +148,7 @@ class ReduceReads(GATK):
            -R {s[reference_fasta_path]}
             {inputs}
            -o $OUT.bam
-            -L {p[interval]}
+           -L {p[interval]}
         """, {
             'inputs' : list2input(i['bam'])
         }

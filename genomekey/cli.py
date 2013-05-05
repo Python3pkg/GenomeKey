@@ -2,18 +2,17 @@ import argparse
 import json
 import sys
 import glob, os
-
+from wga_settings import wga_settings
 from cosmos.contrib.ezflow.dag import DAG,add_,configure,add_run, map_
 from cosmos.contrib.ezflow.tool import INPUT
 from cosmos.Workflow.cli import CLI
 
 from genomekey import utils
-from genomekey.workflows.gatk import ThePipeline
+from genomekey.workflows.pipeline import Pipeline
 from genomekey.workflows.annotate import massive_annotation
 from genomekey.workflows.bam2fastq import Bam2Fastq
 from genomekey.tools import annovarext
 from genomekey.tools import unix
-from wga_settings import wga_settings
 from cosmos import session
 
 session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']
@@ -41,12 +40,13 @@ def json_(workflow,input_dict,capture,**kwargs):
     ]
     """
     wga_settings['capture'] = capture
+
     input_json = json.load(open(input_dict,'r'))
     inputs = [ INPUT(name='fastq.gz',path=i['path'],fmt='fastq.gz',tags=i,stage_name='Load Input Fastqs') for i in input_json ]
 
     DAG(ignore_stage_name_collisions=True).sequence_(
          add_(inputs),
-         ThePipeline,
+         Pipeline(),
          configure(wga_settings),
          add_run(workflow)
     )
@@ -76,7 +76,7 @@ def bam(workflow,input_bam,input_bam_list,capture,**kwargs):
     dag = DAG(ignore_stage_name_collisions=True)
     Bam2Fastq(workflow,dag,wga_settings,input_bams)
     dag.sequence_(
-         ThePipeline,
+         Pipeline(),
          configure(wga_settings),
          add_run(workflow)
     )
@@ -135,7 +135,6 @@ def gunzip(workflow,input_dir,**kwargs):
 ###############################
 # CLI Configuration
 ###############################
-
 
 def main():
     from argparse import RawTextHelpFormatter
