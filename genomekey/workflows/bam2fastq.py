@@ -45,8 +45,8 @@ def _splitfastq2inputs(dag):
 
         # Get The RG info and place into a dictionary for tags
         # note: FilterBamByRG's output bam has the right RG information
-        filterbambyrg_tool = split_fastq_tool.parent.parent
-        bam_path = TaskFile.objects.get(id=filterbambyrg_tool.get_output('bam').id).path
+        input_tool = split_fastq_tool.parent.parent
+        bam_path = TaskFile.objects.get(id=input_tool.get_output('bam').id).path
         RGs = pysam.Samfile(bam_path,'rb').header['RG']
 
         # FilterBamByRG does not remove the non-filtered RGs from the new header
@@ -72,13 +72,16 @@ def Bam2Fastq(workflow, dag, settings, input_bams):
     if len(input_bams) == 0:
         raise WorkflowException, 'At least 1 BAM input required'
     dag.sequence_(
-        sequence_(*[
-            sequence_(
-                add_([ INPUT(input_bam, tags={'input':os.path.basename(input_bam)})],stage_name="Load Input Bams"),
-                split_([('rgid',_inputbam2rgids(input_bam))],pipes.FilterBamByRG_To_FastQ)
-            )
-            for input_bam in input_bams
-        ],combine=True),
+        sequence_(
+            *[
+                sequence_(
+                    add_([ INPUT(input_bam, tags={'input':os.path.basename(input_bam)})],stage_name="Load Input Bams"),
+                    split_([('rgid',_inputbam2rgids(input_bam))],pipes.FilterBamByRG_To_FastQ)
+                )
+                for input_bam in input_bams
+            ],
+            combine=True
+        ),
         split_([('pair',[1,2])],genomekey_scripts.SplitFastq),
         configure(settings),
         add_run(workflow,finish=False),

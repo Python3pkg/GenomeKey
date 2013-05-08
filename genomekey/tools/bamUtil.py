@@ -6,6 +6,7 @@ class Bam2FastQ(Tool):
     inputs = ['bam']
     outputs = ['1.fastq.gz','2.fastq.gz','unpaired.fastq.gz']
     time_req = 12*60
+    persist=True
     mem_req = 5*1024
 
     def cmd(self,i,s,p):

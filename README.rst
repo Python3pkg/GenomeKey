@@ -25,15 +25,19 @@ Install
 
     add2virtualenv /path/to/GenomeKey
 
+5) pip install spockpy pysam ordereddict
+
+
 Configuration
 =============
 
 After Cosmos is properly configured, edit GenomeKey/genomekey/wga_settings.py and make sure
 it is pointing to the correct paths to the GATK bundle, reference genome, and binaries.
 
-Genomekey requires a WGA folder.  I currently have it configured on orchestra.  Note that GenomeKey configures
+Genomekey requires a WGA folder.  I currently have it configured on orchestra in /scratch/esg21/WGA.
+Note that GenomeKey configures
 AnnovarExtensions using WGA/annovarext_data/config.ini which may need to be edited if you are using a different install
-of the WGA folder.
+of the WGA folder (for ex, you copied it to AWS)
 
 Usage
 ======

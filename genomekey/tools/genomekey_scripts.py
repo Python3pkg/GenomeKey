@@ -5,6 +5,7 @@ class SplitFastq(Tool):
     outputs = [TaskFile(name='dir',persist=True)]
     time_req = 12*60
     mem_req = 1000
+    persist=True
 
     def cmd(self,i,s,p):
         input = i['1.fastq.gz'][0] if p['pair'] == 1 else i['2.fastq.gz'][0]

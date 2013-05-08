@@ -22,10 +22,11 @@ class BQSRGatherer(Tool):
     inputs = ['bam','recal']
     outputs = ['recal']
     forward_input = True
+    persist=True
 
     def cmd(self,i, s, p):
         return r"""
-            java -cp "{s[queue_path]}:{s[bqsr_gatherer_path]} BQSRGathererMain $OUT.recal {input_recals}"
+            java -cp "{s[queue_path]}:{s[bqsr_gatherer_path]}" BQSRGathererMain $OUT.recal {input_recals}
         """, {
             'input_recals': ' '.join(map(str,i['recal']))
         }
@@ -38,6 +39,7 @@ class RealignerTargetCreator(GATK):
     inputs = ['bam']
     outputs = ['intervals']
     forward_input = True
+    persist=True
     
     def cmd(self,i,s,p):
         return r"""
@@ -79,6 +81,7 @@ class BQSR(GATK):
     mem_req = 9*1024
     inputs = ['bam']
     outputs = ['recal']
+    persist=True
     forward_input = True
 
     def cmd(self,i,s,p):
@@ -138,7 +141,8 @@ class ReduceReads(GATK):
     mem_req = 30*1024
     cpu_req = 1
     inputs = ['bam']
-    outputs = [TaskFile(name='bam',persist=True)]
+    outputs = ['bam']
+    reduce_reads=True
     time_req = 12*60
 
     def cmd(self,i,s,p):
@@ -159,7 +163,7 @@ class HaplotypeCaller(GATK):
     cpu_req = 1
     inputs = ['bam']
     outputs = ['vcf']
-    time_req = 180
+    time_req = 12*60
 
     def cmd(self,i,s,p):
         return r"""
@@ -185,11 +189,11 @@ class HaplotypeCaller(GATK):
 
 class UnifiedGenotyper(GATK):
     name = "Unified Genotyper"
-    mem_req = 5.5*1024
-    cpu_req = 2
+    mem_req = 6.5*1024
+    cpu_req = 6
     inputs = ['bam']
     outputs = ['vcf']
-    time_req = 180
+    time_req = 12*60
     
     def cmd(self,i,s,p):
         return r"""
@@ -219,9 +223,11 @@ class UnifiedGenotyper(GATK):
 class CombineVariants(GATK):
     name = "Combine Variants"
     mem_req = 3*1024
+    time_req = 12*60
     
     inputs = ['vcf']
-    outputs =[ TaskFile(name='vcf', persist=True)]
+    outputs = ['vcf']
+    persist = True
     
     default_params = {
       'genotypeMergeOptions':'UNSORTED'       
@@ -249,8 +255,10 @@ class CombineVariants(GATK):
 class VQSR(GATK):
     name = "Variant Quality Score Recalibration"
     mem_req = 4*1024
+    time_req = 12*60
     inputs = ['vcf']
     outputs = ['recal','tranches','R']
+    persist=True
     
     forward_input = True
     
@@ -283,6 +291,7 @@ class VQSR(GATK):
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
             -an {an}
             -mode SNP
+            --maxGaussians 4 -percentBad 0.01 -minNumBad 1000
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
@@ -307,6 +316,8 @@ class VQSR(GATK):
 class Apply_VQSR(GATK):
     name = "Apply VQSR"
     mem_req = 4*1024
+    time_req = 12*60
+    persist=True
     
     inputs = ['vcf','recal','tranches']
     outputs = [TaskFile(name='vcf',persist=True)]

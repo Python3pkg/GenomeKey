@@ -68,7 +68,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='SplitFastqs')
     parser.add_argument('input_fastq',type=str,help='')
     parser.add_argument('output_dir',type=str,help='')
-    parser.add_argument('-c','--chunksize',type=int,help='Number of reads per fastq chunk, default is 1 million',default=4000000)
+    parser.add_argument('-c','--chunksize',type=int,help='Number of reads per fastq chunk, default is 1 million',default=8000000)
     parser.add_argument('-b','--buffersize',type=int,help='Number of reads to keep in RAM, default is 100k',default=100000)
     parsed_args = parser.parse_args()
     kwargs = dict(parsed_args._get_kwargs())

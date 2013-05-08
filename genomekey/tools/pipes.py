@@ -32,7 +32,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
     name = "BWA Alignment and Cleaning"
     mem_req = 10*1024
     cpu_req = 1
-    time_req = 120
+    time_req = 12*60
     inputs = ['fastq.gz']
     outputs = ['bam']
 

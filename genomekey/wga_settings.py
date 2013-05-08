@@ -4,15 +4,14 @@ from cosmos.config import settings
 import sys
 opj = os.path.join
 
+if settings['server_name'] == 'starcluster':
+    WGA_path = '/gluster/gv0/WGA'
+else:
+    WGA_path = '/scratch/esg21/WGA'
 
-if settings['server_name'] == 'orchestra2':
-    WGA_path = '/groups/lpm/erik/WGA'
-    resource_bundle_path = opj(WGA_path, 'bundle/2.3/b37/')
-    tools_dir = opj(WGA_path, 'tools')
-elif settings['server_name'] == 'orchestra':
-    WGA_path = '/groups/cbi/WGA'
-    resource_bundle_path = opj(WGA_path, 'bundle/2.3/b37/')
-    tools_dir = opj(WGA_path, 'tools')
+
+resource_bundle_path = opj(WGA_path, 'bundle/2.3/b37/')
+tools_dir = opj(WGA_path, 'tools')
 
 os.environ['ANNOVAREXT_DATA']=opj(WGA_path,'annovarext_data')
 av_path = opj(tools_dir,'AnnovarExtensions/')
