@@ -7,7 +7,7 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
     inputs = ['bam']
     outputs = ['1.fastq.gz','2.fastq.gz','unpaired.fastq.gz']
     time_req = 12*60
-    mem_req = 8*1024
+    mem_req = 7*1024
 
     def cmd(self,i,s,p):
         return r"""
@@ -30,7 +30,7 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
 
 class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):
     name = "BWA Alignment and Cleaning"
-    mem_req = 10*1024
+    mem_req = 8*1024
     cpu_req = 1
     time_req = 12*60
     inputs = ['fastq.gz']

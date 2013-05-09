@@ -21,7 +21,7 @@ class FastQC(Tool):
 
 class FastqStats(Tool):
     name = "FastqStats"
-    mem_req = 8*1024
+    mem_req = 1*1024
     cpu_req = 1 #>1 is causing error messages
     time_req = 60*12
     inputs = ['fastq.gz']

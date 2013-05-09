@@ -1,5 +1,6 @@
 from cosmos.contrib.ezflow.tool import Tool
 from cosmos.Workflow.models import TaskFile
+import os
 
 def list2input(l):
     return "-I " +" -I ".join(map(lambda x: str(x),l))
@@ -26,9 +27,14 @@ class BQSRGatherer(Tool):
 
     def cmd(self,i, s, p):
         return r"""
-            java -cp "{s[queue_path]}:{s[bqsr_gatherer_path]}" BQSRGathererMain $OUT.recal {input_recals}
+            java -Dlog4j.configuration="file://{log4j_props}"
+            -cp "{s[queue_path]}:{s[bqsr_gatherer_path]}"
+            BQSRGathererMain
+            $OUT.recal
+            {input_recals}
         """, {
-            'input_recals': ' '.join(map(str,i['recal']))
+            'input_recals': ' '.join(map(str,i['recal'])),
+            'log4j_props': os.path.join(s['bqsr_gatherer_path'],'log4j.properties')
         }
 
 class RealignerTargetCreator(GATK):
@@ -255,6 +261,7 @@ class CombineVariants(GATK):
 class VQSR(GATK):
     name = "Variant Quality Score Recalibration"
     mem_req = 4*1024
+    cpu_req = 6
     time_req = 12*60
     inputs = ['vcf']
     outputs = ['recal','tranches','R']
@@ -269,13 +276,14 @@ class VQSR(GATK):
     # missing from bundle:
     # -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1000G_phase1_highconfidence_path]}
 
+    # might want to set different values for capture vs whole genome of
+    # i don't understand vqsr well enough yet
+    # --maxGaussians 4 -percentBad 0.01 -minNumBad 1000
 
     def cmd(self,i,s,p):
-        annotations = ['MQRankSum','ReadPosRankSum','FS']
+        annotations = ['MQRankSum','ReadPosRankSum','FS','HaplotypeScore']
         if not s['capture']:
            annotations.append('DP')
-        if p['glm'] == 'SNP':
-            annotations.append('QD')
         if p['inbreeding_coeff']:
             annotations.append('InbreedingCoeff')
 
@@ -285,16 +293,17 @@ class VQSR(GATK):
             {self.bin}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
+            --maxGaussians 6
             -input {i[vcf][0]}
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0 {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
             -an {an}
             -mode SNP
-            --maxGaussians 4 -percentBad 0.01 -minNumBad 1000
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
+            -nt {self.cpu_req}
             """
         elif p['glm'] == 'INDEL':
             cmd = r"""
