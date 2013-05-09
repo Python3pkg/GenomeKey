@@ -4,7 +4,7 @@ from cosmos.config import settings
 import sys
 opj = os.path.join
 
-if settings['server_name'] == 'starcluster':
+if settings['server_name'] == 'SCE':
     WGA_path = '/gluster/gv0/WGA'
 else:
     WGA_path = '/scratch/esg21/WGA'
@@ -78,5 +78,22 @@ if settings['server_name'] in ['orchestra', 'orchestra2']:
             return s
         else:
             raise Exception('DRM not supported')
+
+    wga_settings['get_drmaa_native_specification'] = get_drmaa_native_specification
+
+if settings['server_name'] == 'SCE':
+    def get_drmaa_native_specification(jobAttempt):
+        task = jobAttempt.task
+        DRM = settings['DRM']
+
+        cpu_req = task.cpu_requirement
+        mem_req = task.memory_requirement
+        time_req = task.time_requirement
+        queue = task.workflow.default_queue
+
+        if DRM == 'GE':
+            return '-l spock_mem={mem_req}M,num_proc={cpu_req}'.format(
+                mem_req=mem_req*1.5,
+                cpu_req=cpu_req)
 
     wga_settings['get_drmaa_native_specification'] = get_drmaa_native_specification
