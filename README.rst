@@ -85,7 +85,7 @@ Testing
 **-test** will inform GenomeKey you are running a test dataset.  It will only analyse chr20, and
 drmaa_native_specification() will be adjusted accordingly automatically for Orchestra, so that requests are sent to
 the mini queue with a cpu_requirement of 1.  GenomeKey comes with some test data, so you can just
-run this from the GenomeKey directory.
+run this from the GenomeKey directory:
 
 .. code-block:: bash
 
