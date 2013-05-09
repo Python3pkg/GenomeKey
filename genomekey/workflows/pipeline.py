@@ -45,7 +45,7 @@ def Pipeline():
         return sequence_(
             align_to_reference,
             preprocess_alignment,
-            # reduce_split_([],[intervals],gatk.ReduceReads),
+            #reduce_split_([],[intervals],gatk.ReduceReads),
             call_variants,
             massive_annotation
         )
