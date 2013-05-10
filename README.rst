@@ -11,11 +11,9 @@ Components include:
 * VarDB - Variant Database Warehouse.  Integration coming soon.
 
 
-.. note::
-
-    See the `GenomeKey Wiki <https://github.com/ComputationalBiomedicine/GenomeKey/wiki>`_ page for more details,
-    which David Tulga has generously started.  We are using RST so that at some point we can make sphinx documentation
-    easily, if we like.
+Also make sure to checkout the `GenomeKey Wiki <https://github.com/ComputationalBiomedicine/GenomeKey/wiki>`_ page for more details,
+which David Tulga has generously started.  We are using RST so that at some point we can make sphinx documentation
+easily, if we like.
 
 Install
 =======
