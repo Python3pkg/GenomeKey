@@ -19,7 +19,7 @@ class GATK(Tool):
 class BQSRGatherer(Tool):
     name="BQSR Gatherer"
     time_req=60
-    mem_req=5*1024
+    mem_req=3*1024
     inputs = ['bam','recal']
     outputs = ['recal']
     forward_input = True
@@ -232,7 +232,7 @@ class CombineVariants(GATK):
     time_req = 12*60
     
     inputs = ['vcf']
-    outputs = ['vcf']
+    outputs = [TaskFile(name='vcf',basename='master.vcf')]
     persist = True
     
     default_params = {
