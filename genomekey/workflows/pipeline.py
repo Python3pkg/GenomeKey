@@ -4,10 +4,15 @@ from genomekey.workflows.annotate import massive_annotation
 from genomekey.wga_settings import wga_settings
 
 def Pipeline():
-    capture = wga_settings['capture']
+    is_capture = wga_settings['capture']
+    testing = wga_settings['test']
 
     # Split Tags
-    intervals = ('interval',range(1,23) + ['X', 'Y']) if not wga_settings['test'] else ('interval', [20])
+    if testing:
+        intervals = ('interval', [20])
+    else:
+        intervals = ('interval',range(1,23) + ['X', 'Y'])
+
     glm = ('glm', ['SNP', 'INDEL'])
 
     align_to_reference = sequence_(
@@ -21,7 +26,7 @@ def Pipeline():
         reduce_(['sample_name'], picard.MarkDuplicates),
         apply_(
             map_(picard.CollectMultipleMetrics),
-            split_([intervals],gatk.RealignerTargetCreator)
+            split_([intervals],gatk.RealignerTargetCreator) if not is_capture or testing else map_(gatk.RealignerTargetCreator)
         ),
         map_(gatk.IR),
         map_(gatk.BQSR),
@@ -32,7 +37,6 @@ def Pipeline():
     )
 
     call_variants = sequence_(
-        reduce_split_(['sample_name'],[intervals],gatk.ReduceReads),
         apply_(
             # reduce_(['interval'],gatk.HaplotypeCaller,tag={'vcf':'HaplotypeCaller'}),
             reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
@@ -44,7 +48,7 @@ def Pipeline():
         reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs")
     )
 
-    if capture:
+    if is_capture:
         return sequence_(
             align_to_reference,
             preprocess_alignment,
@@ -55,6 +59,7 @@ def Pipeline():
         return sequence_(
             align_to_reference,
             preprocess_alignment,
+            reduce_split_(['sample_name'],[intervals],gatk.ReduceReads),
             call_variants,
             massive_annotation
         )
