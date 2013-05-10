@@ -141,6 +141,7 @@ def main():
     parser = argparse.ArgumentParser(description='WGA')
     parser.add_argument('-test',action='store_true',default=False,help='signifies this as a test run')
     parser.add_argument('-test2',action='store_true',default=False,help='signifies this as a test2 run')
+    parser.add_argument('-cp','-cProfile',type=str,default=None,help='output cprofile information to a file')
     subparsers = parser.add_subparsers(title="Commands", metavar="<command>")
 
     json_sp = subparsers.add_parser('json',help="Input is FASTQs, encoded as a json file",description=json_.__doc__,formatter_class=RawTextHelpFormatter)
@@ -179,7 +180,12 @@ def main():
     wga_settings['test'] = kwargs['test']
     wga_settings['test2'] = kwargs['test2']
 
-    kwargs['func'](wf,**kwargs)
+    cp_path = kwargs.pop('cProfile',None)
+    if cp_path:
+        import cProfile
+        cProfile.run("kwargs['func'](wf,**kwargs)",cp_path)
+    else:
+        kwargs['func'](wf,**kwargs)
 
 if __name__ == '__main__':
     main()

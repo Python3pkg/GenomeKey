@@ -18,8 +18,8 @@ class GATK(Tool):
 
 class BQSRGatherer(Tool):
     name="BQSR Gatherer"
-    time_req=60
-    mem_req=5*1024
+    time_req=10
+    mem_req=3*1024
     inputs = ['bam','recal']
     outputs = ['recal']
     forward_input = True
@@ -178,6 +178,7 @@ class HaplotypeCaller(GATK):
             -R {s[reference_fasta_path]}
             --dbsnp {s[dbsnp_path]}
             {inputs}
+            -minPruning 3
             -o $OUT.vcf
             -A Coverage
             -A AlleleBalance
@@ -232,7 +233,7 @@ class CombineVariants(GATK):
     time_req = 12*60
     
     inputs = ['vcf']
-    outputs = ['vcf']
+    outputs = [TaskFile(name='vcf',basename='master.vcf')]
     persist = True
     
     default_params = {

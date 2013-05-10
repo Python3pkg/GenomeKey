@@ -24,7 +24,7 @@ class Vcf2Anno_in(Tool):
     inputs = ['vcf']
     outputs = ['anno_in']
     forward_input=True
-    time_req = 10
+    time_req = 12*60
 
     def cmd(self,i,s,p):
         return "{s[annovarext_path]} vcf2anno '{i[vcf][0]}' > $OUT.anno_in"
@@ -34,7 +34,7 @@ class Annotate(Tool):
     inputs = ['anno_in']
     outputs = ['dir']
     forward_input=True
-    time_req = 20
+    time_req = 12*60
     mem_req = 8*1024
 
     def cmd(self,i,s,p):
@@ -45,7 +45,7 @@ class MergeAnnotations(Tool):
     inputs = ['anno_in','dir']
     outputs = ['dir']
     mem_req = 40*1024
-    time_req = 120
+    time_req = 12*60
     forward_input=True
     
     def cmd(self,i,s,p):

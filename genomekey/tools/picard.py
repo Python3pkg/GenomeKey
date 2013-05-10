@@ -33,7 +33,7 @@ class CollectMultipleMetrics(Picard):
     inputs = ['bam']
     outputs = ['metrics']
     # time_req = 4*60
-    mem_req = 6*1024
+    mem_req = 3*1024
 
     jar = 'CollectMultipleMetrics.jar'
 
@@ -207,7 +207,9 @@ class MarkDuplicates(Picard):
     mem_req = 4*1024
     time_req = 20*60
     inputs = ['bam']
-    outputs = [TaskFile(name='bam',persist=True),TaskFile(name='metrics',persist=True)]
+    outputs = [TaskFile(name='bam',basename='markdupes.bam'),
+               TaskFile(name='metrics',basename='markdupes.metrics')]
+    persist=True
         
     jar = 'MarkDuplicates.jar'
     
