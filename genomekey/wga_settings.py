@@ -71,6 +71,9 @@ if settings['server_name'] in ['orchestra', 'orchestra2']:
 
         if DRM == 'LSF':
             s = '-R "rusage[mem={0}] span[hosts=1]" -n {1} -J {2}'.format(mem_req/cpu_req, cpu_req,jobAttempt.task.workflow.name.replace(' ','_'))
+            if wga_settings['lustre']:
+                queue = 'tonellato'
+                s = '-R "rusage[mem={0}] span[hosts=1] select[lustre]" -n {1} -J {2}'.format(mem_req/cpu_req, cpu_req,jobAttempt.task.workflow.name.replace(' ','_'))
             if time_req:
                 s += ' -W 0:{0}'.format(time_req)
             if queue:

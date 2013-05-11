@@ -52,7 +52,7 @@ def json_(workflow,input_dict,capture,**kwargs):
     )
 
 
-def bam(workflow,input_bam,input_bam_list,capture,**kwargs):
+def bam(workflow,input_bam,input_bam_list,capture,pedigree_file,**kwargs):
     """
     Input file is a bam with properly annotated readgroups.
 
@@ -68,6 +68,7 @@ def bam(workflow,input_bam,input_bam_list,capture,**kwargs):
 
     """
     wga_settings['capture'] = capture
+    wga_settings['pedigree'] = pedigree_file.name if pedigree_file else None
 
     input_bams = input_bam_list.read().strip().split('\n') if input_bam_list else []
     if input_bam:
@@ -142,6 +143,7 @@ def main():
     parser.add_argument('-test',action='store_true',default=False,help='signifies this as a test run')
     parser.add_argument('-test2',action='store_true',default=False,help='signifies this as a test2 run')
     parser.add_argument('-cp','-cProfile',type=str,default=None,help='output cprofile information to a file')
+    parser.add_argument('-lustre',action='store_true',default=False,help='')
     subparsers = parser.add_subparsers(title="Commands", metavar="<command>")
 
     json_sp = subparsers.add_parser('json',help="Input is FASTQs, encoded as a json file",description=json_.__doc__,formatter_class=RawTextHelpFormatter)
@@ -156,6 +158,7 @@ def main():
     CLI.add_workflow_args(bam_sp)
     bam_sp.add_argument('-i','--input_bam',type=file,help='A path to a BAM with RGs properly annotated')
     bam_sp.add_argument('-il','--input_bam_list',type=file,help='A path to a file containing a list of paths to BAMs, separated by newlines')
+    bam_sp.add_argument('-ped','--pedigree_file',type=file,help='A Pedigree File to pass to all GATK tools')
     bam_sp.add_argument('-capture','--capture',action="store_true",default=False,help='Signifies that a capture technology was used.  Currently'
                                                                                        'all this does is remove -an DP to VQSR')
     bam_sp.set_defaults(func=bam)
@@ -179,6 +182,7 @@ def main():
     wf,kwargs = CLI.parse_args(parser)
     wga_settings['test'] = kwargs['test']
     wga_settings['test2'] = kwargs['test2']
+    wga_settings['lustre'] = kwargs['lustre']
 
     cp_path = kwargs.pop('cProfile',None)
     if cp_path:

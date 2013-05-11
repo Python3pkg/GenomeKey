@@ -38,7 +38,12 @@ def Pipeline():
 
     call_variants = sequence_(
         apply_(
-            # reduce_(['interval'],gatk.HaplotypeCaller,tag={'vcf':'HaplotypeCaller'}),
+            reduce_split_([],[intervals,glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
+            combine=True
+        ) if is_capture
+        else
+        apply_(
+            reduce_(['interval'],gatk.HaplotypeCaller,tag={'vcf':'HaplotypeCaller'}),
             reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
             combine=True
         ),

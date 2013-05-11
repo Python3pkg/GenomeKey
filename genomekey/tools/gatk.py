@@ -5,6 +5,28 @@ import os
 def list2input(l):
     return "-I " +" -I ".join(map(lambda x: str(x),l))
 
+def get_interval(param_dict):
+    """
+    :param param_dict: parameter dictionary
+    :return: '' if param_dict does not have 'interval' in it, otherwise -L p['interval']
+    """
+    if 'interval' in param_dict:
+        return '-L {0}'.format(param_dict['interval'])
+    else:
+        return ''
+
+
+def get_pedigree(settings_dict):
+    """
+    :param settings_dict: parameter dictionary
+    :return: '' if settings_dict does not have 'interval' in it, otherwise -L p['interval']
+    """
+    ped_path = settings_dict['pedigree']
+    if ped_path:
+        return ' --pedigree {0}'.format(ped_path)
+    else:
+        return ''
+
 class GATK(Tool):
     time_req = 12*60
     mem_req = 5*1024
@@ -15,6 +37,11 @@ class GATK(Tool):
             self=self,s=self.settings,
             mem_req=int(self.mem_req*.9)
         )
+
+    def post_cmd(self,cmd_str,format_dict):
+        new_cmd_str = cmd_str + ' ' + get_pedigree(format_dict['s'])
+        #import ipdb; ipdb.set_trace()
+        return new_cmd_str,format_dict
 
 class BQSRGatherer(Tool):
     name="BQSR Gatherer"
@@ -57,8 +84,8 @@ class RealignerTargetCreator(GATK):
             --known {s[indels_1000g_phase1_path]}
             --known {s[mills_path]}
             -nt {self.cpu_req}
-            -L {p[interval]}
-        """
+            {interval}
+        """,{'interval':get_interval(p)}
     
 class IR(GATK):
     name = "Indel Realigner"
@@ -77,8 +104,8 @@ class IR(GATK):
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
-            -L {p[interval]}
-        """
+            {interval}
+        """,{'interval':get_interval(p)}
     
 class BQSR(GATK):
     name = "Base Quality Score Recalibration"
@@ -125,8 +152,8 @@ class ApplyBQSR(GATK):
 
     def cmd(self,i,s,p):
         if not self.added_edge:
-            #TODO fix this hack.  Also there might be duplicate edges being added, which doesn't matter but is ugly.
-            #TODO this forces ApplyBQSR to expect a ReduceBQSR
+            #TODO fix this hack.  Also there might be duplicate edges being added on reload which doesn't matter but is ugly.
+            #TODO this also forces ApplyBQSR to expect a ReduceBQSR
             bqsrG_tool = self.dag.get_tools_by([BQSRGatherer.name],tags={'sample_name':self.tags['sample_name']})[0]
             self.dag.G.add_edge(bqsrG_tool, self)
             self.added_edge = True
@@ -139,7 +166,7 @@ class ApplyBQSR(GATK):
             -o $OUT.bam
             -BQSR {i[recal][0]}
         """, {
-            'inputs' : list2input(i['bam'])  
+            'inputs' : list2input(i['bam'])
         }
 
 class ReduceReads(GATK):
@@ -158,9 +185,10 @@ class ReduceReads(GATK):
            -R {s[reference_fasta_path]}
             {inputs}
            -o $OUT.bam
-           -L {p[interval]}
+           {interval}
         """, {
-            'inputs' : list2input(i['bam'])
+            'inputs' : list2input(i['bam']),
+            'interval': get_interval(p)
         }
 
 class HaplotypeCaller(GATK):
@@ -224,7 +252,7 @@ class UnifiedGenotyper(GATK):
             -L {p[interval]}
             -nt {self.cpu_req}
         """, {
-            'inputs' : list2input(i['bam']) 
+            'inputs' : list2input(i['bam'])
         }
     
 class CombineVariants(GATK):
