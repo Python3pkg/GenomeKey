@@ -5,7 +5,8 @@ import glob, os
 from wga_settings import wga_settings
 from cosmos.contrib.ezflow.dag import DAG,add_,configure,add_run, map_
 from cosmos.contrib.ezflow.tool import INPUT
-from cosmos.Workflow.cli import CLI
+from cosmos.Workflow import cli
+from cosmos.config import settings
 
 from genomekey import utils
 from genomekey.workflows.pipeline import Pipeline
@@ -142,20 +143,21 @@ def main():
     parser = argparse.ArgumentParser(description='WGA')
     parser.add_argument('-test',action='store_true',default=False,help='signifies this as a test run')
     parser.add_argument('-test2',action='store_true',default=False,help='signifies this as a test2 run')
-    parser.add_argument('-cp','-cProfile',type=str,default=None,help='output cprofile information to a file')
-    parser.add_argument('-lustre',action='store_true',default=False,help='')
+    parser.add_argument('-cp','--cProfile',type=str,default=None,help='output cprofile information to a file')
+    parser.add_argument('-lustre',action='store_true',default=False,help='submits to erik\'s special orchestra cluster')
+    parser.add_argument('-tmp','--temp_directory',type=str,help='Specify a wga_settings[tmp_dir].  Defaults to cosmos.ini working_directory')
     subparsers = parser.add_subparsers(title="Commands", metavar="<command>")
 
     json_sp = subparsers.add_parser('json',help="Input is FASTQs, encoded as a json file",description=json_.__doc__,formatter_class=RawTextHelpFormatter)
 
     json_sp.set_defaults(func=json_)
-    CLI.add_workflow_args(json_sp)
+    cli.add_workflow_args(json_sp)
     json_sp.add_argument('-i','--input_dict',type=str,help='Inputs, see script comments for format.',required=True)
     json_sp.add_argument('-capture','--capture',action="store_true",default=False,help='Signifies that a capture technology was used.  Currently'
                                                                                        'all this does is remove -an DP to VQSR')
 
     bam_sp = subparsers.add_parser('bam',help="Input is a BAM or list of BAMs",description=bam.__doc__,formatter_class=RawTextHelpFormatter)
-    CLI.add_workflow_args(bam_sp)
+    cli.add_workflow_args(bam_sp)
     bam_sp.add_argument('-i','--input_bam',type=file,help='A path to a BAM with RGs properly annotated')
     bam_sp.add_argument('-il','--input_bam_list',type=file,help='A path to a file containing a list of paths to BAMs, separated by newlines')
     bam_sp.add_argument('-ped','--pedigree_file',type=file,help='A Pedigree File to pass to all GATK tools')
@@ -164,25 +166,26 @@ def main():
     bam_sp.set_defaults(func=bam)
 
     downdbs_sp = subparsers.add_parser('downdbs',help=downdbs.__doc__)
-    CLI.add_workflow_args(downdbs_sp)
+    cli.add_workflow_args(downdbs_sp)
     downdbs_sp.set_defaults(func=downdbs)
 
     anno_sp = subparsers.add_parser('anno',help="Annotate",description=anno.__doc__,formatter_class=RawTextHelpFormatter)
-    CLI.add_workflow_args(anno_sp)
+    cli.add_workflow_args(anno_sp)
     anno_sp.add_argument('-f','--file_format',type=str,default='vcf',help='vcf or tsv.  If tsv: Input file is already a tsv file with ID as the 5th column')
     anno_sp.add_argument('-i','--input_file',type=file,help='An input file')
     anno_sp.add_argument('-il','--input_file_list',type=file,help="A file with a list of input_files, separated by newlines")
     anno_sp.set_defaults(func=anno)
 
     sp = subparsers.add_parser('gunzip',help="Gunzips all files in a dir",description=gunzip.__doc__,formatter_class=RawTextHelpFormatter)
-    CLI.add_workflow_args(sp)
+    cli.add_workflow_args(sp)
     sp.add_argument('input_dir',type=str,help='An input directory')
     sp.set_defaults(func=gunzip)
 
-    wf,kwargs = CLI.parse_args(parser)
+    wf,kwargs = cli.parse_args(parser)
     wga_settings['test'] = kwargs['test']
     wga_settings['test2'] = kwargs['test2']
     wga_settings['lustre'] = kwargs['lustre']
+    wga_settings['tmp_dir'] = kwargs.get('temp_directory', settings['working_directory'])
 
     cp_path = kwargs.pop('cProfile',None)
     if cp_path:

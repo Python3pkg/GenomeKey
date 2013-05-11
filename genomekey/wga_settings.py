@@ -20,7 +20,6 @@ os.environ['PYTHONPATH'] = av_path+':'+os.environ.get('PYTHONPATH','')
 extern_tools_dir = opj(tools_dir,'extern/')
 
 wga_settings = {
-    'tmp_dir': settings['working_directory'],
     'GATK_source_path': opj(WGA_path,'gatk-protected'),
     'GATK_path': opj(extern_tools_dir, 'GenomeAnalysisTK-2.5-2-gf57256b/GenomeAnalysisTK.jar'),
     'queue_path': opj(extern_tools_dir,'Queue-2.4-9-g532efad/Queue.jar'), #necessary for BQSRGatherer.java
