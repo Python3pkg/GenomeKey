@@ -188,7 +188,7 @@ def main():
     wga_settings['tmp_dir'] = kwargs.get('temp_directory', settings['working_directory'])
 
     cp_path = kwargs.pop('cProfile',None)
-    if cp_path:
+    if False and cp_path:
         import cProfile
         cProfile.run("kwargs['func'](wf,**kwargs)",cp_path)
     else:
