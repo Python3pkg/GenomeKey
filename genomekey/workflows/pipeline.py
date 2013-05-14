@@ -26,9 +26,9 @@ def Pipeline():
         reduce_(['sample_name'], picard.MarkDuplicates),
         apply_(
             map_(picard.CollectMultipleMetrics),
-            split_([intervals],gatk.RealignerTargetCreator) if not is_capture or testing else map_(gatk.RealignerTargetCreator)
+            split_([intervals],gatk.RealignerTargetCreator) #if not is_capture or testing else map_(gatk.RealignerTargetCreator)
         ),
-        map_(gatk.IR),
+        map_(gatk.IndelRealigner),
         map_(gatk.BQSR),
         apply_(
             reduce_(['sample_name'], gatk.BQSRGatherer),
@@ -37,11 +37,11 @@ def Pipeline():
     )
 
     call_variants = sequence_(
-        apply_(
-            reduce_split_([],[intervals,glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
-            combine=True
-        ) if is_capture
-        else
+        # apply_(
+        #     reduce_split_([],[intervals,glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
+        #     combine=True
+        # ) if is_capture
+        # else
         apply_(
             #reduce_(['interval'],gatk.HaplotypeCaller,tag={'vcf':'HaplotypeCaller'}),
             reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),

@@ -2,28 +2,18 @@ import argparse
 import json
 import sys
 import glob, os
-from wga_settings import wga_settings
 from cosmos.contrib.ezflow.dag import DAG,add_,configure,add_run, map_
 from cosmos.contrib.ezflow.tool import INPUT
 from cosmos.Workflow import cli
 from cosmos.config import settings
-
-from genomekey import utils
-from genomekey.workflows.pipeline import Pipeline
-from genomekey.workflows.annotate import massive_annotation
-from genomekey.workflows.bam2fastq import Bam2Fastq
-from genomekey.tools import annovarext
-from genomekey.tools import unix
 from cosmos import session
-
-session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']
 
 ###############################
 # Alignment and Variant Calling
 ###############################
 
 
-def json_(workflow,input_dict,capture,**kwargs):
+def json_(workflow,input_dict,**kwargs):
     """
     Input file is a json of the following format:
 
@@ -40,7 +30,6 @@ def json_(workflow,input_dict,capture,**kwargs):
         {..}
     ]
     """
-    wga_settings['capture'] = capture
 
     input_json = json.load(open(input_dict,'r'))
     inputs = [ INPUT(name='fastq.gz',path=i['path'],fmt='fastq.gz',tags=i,stage_name='Load Input Fastqs') for i in input_json ]
@@ -53,11 +42,11 @@ def json_(workflow,input_dict,capture,**kwargs):
     )
 
 
-def bam(workflow,input_bam,input_bam_list,capture,pedigree_file,**kwargs):
+def bam(workflow,input_bam,input_bam_list,**kwargs):
     """
     Input file is a bam with properly annotated readgroups.
 
-    *** Note that this workflow assumes the bam header is ******
+    *** Note that this workflow assumes the bam header is    ***
     *** also properly annotated with the correct readgroups! ***
 
     Example usage:
@@ -68,8 +57,7 @@ def bam(workflow,input_bam,input_bam_list,capture,pedigree_file,**kwargs):
     $ genomekey bam -n 'Bam to VCF 2' -li /tmp/bam.list
 
     """
-    wga_settings['capture'] = capture
-    wga_settings['pedigree'] = pedigree_file.name if pedigree_file else None
+    # capture and pedigree_file are used in main()
 
     input_bams = input_bam_list.read().strip().split('\n') if input_bam_list else []
     if input_bam:
@@ -152,7 +140,8 @@ def main():
 
     json_sp.set_defaults(func=json_)
     cli.add_workflow_args(json_sp)
-    json_sp.add_argument('-i','--input_dict',type=str,help='Inputs, see script comments for format.',required=True)
+    json_sp.add_argument('-il','--input_dict',type=str,help='Inputs, see script comments for format.',required=True)
+    json_sp.add_argument('-ped','--pedigree_file',type=file,help='A Pedigree File to pass to all GATK tools')
     json_sp.add_argument('-capture','--capture',action="store_true",default=False,help='Signifies that a capture technology was used.  Currently'
                                                                                        'all this does is remove -an DP to VQSR')
 
@@ -186,6 +175,9 @@ def main():
     wga_settings['test2'] = kwargs['test2']
     wga_settings['lustre'] = kwargs['lustre']
     wga_settings['tmp_dir'] = kwargs.get('temp_directory', settings['working_directory'])
+    wga_settings['capture'] = kwargs.get('capture',None)
+    ped_file = kwargs.get('pedigree',None)
+    wga_settings['pedigree'] = ped_file.name if ped_file else None
 
     cp_path = kwargs.pop('cProfile',None)
     if False and cp_path:
@@ -196,3 +188,13 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+from genomekey.workflows.pipeline import Pipeline
+from genomekey.workflows.annotate import massive_annotation
+from genomekey.workflows.bam2fastq import Bam2Fastq
+from genomekey.tools import annovarext
+from genomekey.tools import unix
+from genomekey.wga_settings import wga_settings
+
+session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']

@@ -1,6 +1,9 @@
 from cosmos.contrib.ezflow.tool import Tool
 from cosmos.Workflow.models import TaskFile
+from cosmos.session import settings as cosmos_settings
 import os
+
+
 
 def list2input(l):
     return "-I " +" -I ".join(map(lambda x: str(x),l))
@@ -15,6 +18,18 @@ def get_interval(param_dict):
     else:
         return ''
 
+def get_sleep(settings_dict):
+    """
+    Some tools can't be submitted to short because orchestra gets mad if they finish before 10 minutes.
+
+    This is especially troublesome because some jobs for exome analysis take about 10 minutes.  It is a catch-22,
+    if you submit to the mini queue, the jobs that take longer than 10 minutes get killed, if you submit to the short
+    queue, your jobs finish too quickly and your jobs get automatically suspended!
+
+    :param settings_dict:
+    :return: a sleep command
+    """
+    return ' && sleep 480' if settings_dict['capture'] and cosmos_settings['server_name'] == 'orchestra' else ''
 
 def get_pedigree(settings_dict):
     """
@@ -85,9 +100,11 @@ class RealignerTargetCreator(GATK):
             --known {s[mills_path]}
             -nt {self.cpu_req}
             {interval}
-        """,{'interval':get_interval(p)}
+            {sleep}
+        """,{'interval':get_interval(p),
+             'sleep': get_sleep(s)}
     
-class IR(GATK):
+class IndelRealigner(GATK):
     name = "Indel Realigner"
     mem_req = 8*1024
     inputs = ['bam','intervals']
@@ -104,8 +121,9 @@ class IR(GATK):
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
-            {interval}
-        """,{'interval':get_interval(p)}
+            {interval} {sleep}
+        """,{'interval':get_interval(p),
+             'sleep': get_sleep(s)}
     
 class BQSR(GATK):
     name = "Base Quality Score Recalibration"
@@ -132,9 +150,11 @@ class BQSR(GATK):
             -cov CycleCovariate
             -cov ContextCovariate
             -nct {nct}
+            {sleep}
         """, {
             'inputs' : list2input(i['bam']),
-            'nct': self.cpu_req +1
+            'nct': self.cpu_req +1,
+             'sleep': get_sleep(s)
           }
     
 class ApplyBQSR(GATK):
@@ -165,8 +185,10 @@ class ApplyBQSR(GATK):
             {inputs}
             -o $OUT.bam
             -BQSR {i[recal][0]}
+            {sleep}
         """, {
-            'inputs' : list2input(i['bam'])
+            'inputs' : list2input(i['bam']),
+             'sleep': get_sleep(s)
         }
 
 class ReduceReads(GATK):

@@ -50,6 +50,9 @@ if settings['server_name'] in ['orchestra', 'orchestra2']:
         task = jobAttempt.task
         DRM = settings['DRM']
 
+        # did other attempts fail?
+        is_reattempt = task.jobAttempts.count() > 1
+
         cpu_req = task.cpu_requirement
         mem_req = task.memory_requirement
         time_req = task.time_requirement
@@ -98,7 +101,7 @@ if settings['server_name'] == 'SCE':
 
         if DRM == 'GE':
             return '-l spock_mem={mem_req}M,num_proc={cpu_req}'.format(
-                mem_req=mem_req*1.5,
+                mem_req=mem_req,
                 cpu_req=cpu_req)
 
     wga_settings['get_drmaa_native_specification'] = get_drmaa_native_specification
