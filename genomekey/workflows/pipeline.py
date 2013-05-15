@@ -7,7 +7,7 @@ def Pipeline():
     is_capture = wga_settings['capture']
     testing = wga_settings['test']
 
-    # Split Tags
+    # split_ tuples
     if testing:
         intervals = ('interval', [20])
     else:

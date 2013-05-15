@@ -345,7 +345,7 @@ class VQSR(GATK):
             annotations.append('InbreedingCoeff')
 
         if p['glm'] == 'SNP':
-            annotations.append('QD','HaplotypeScore')
+            annotations.extend(['QD','HaplotypeScore'])
             cmd = r"""
             {self.bin}
             -T VariantRecalibrator
