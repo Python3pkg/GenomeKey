@@ -189,7 +189,6 @@ def main():
 if __name__ == '__main__':
     main()
 
-
 from genomekey.workflows.pipeline import Pipeline
 from genomekey.workflows.annotate import massive_annotation
 from genomekey.workflows.bam2fastq import Bam2Fastq

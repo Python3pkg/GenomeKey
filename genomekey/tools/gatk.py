@@ -310,6 +310,19 @@ class CombineVariants(GATK):
         }
     
 class VQSR(GATK):
+    """
+    VQSR
+
+    100G_phase1_highconfidence is missing from bundle, but referenced in VQSR faq:
+    -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1000G_phase1_highconfidence_path]}
+
+    Might want to set different values for capture vs whole genome of
+    i don't understand vqsr well enough yet
+    --maxGaussians 4 -percentBad 0.01 -minNumBad 1000
+
+    Note that HaplotypeScore is no longer applicable to indels
+    see http://gatkforums.broadinstitute.org/discussion/2463/unified-genotyper-no-haplotype-score-annotated-for-indels
+    """
     name = "Variant Quality Score Recalibration"
     mem_req = 4*1024
     cpu_req = 6
@@ -324,22 +337,15 @@ class VQSR(GATK):
       'inbreeding_coeff' : False
     }
 
-    # missing from bundle:
-    # -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1000G_phase1_highconfidence_path]}
-
-    # might want to set different values for capture vs whole genome of
-    # i don't understand vqsr well enough yet
-    # --maxGaussians 4 -percentBad 0.01 -minNumBad 1000
-
     def cmd(self,i,s,p):
-        annotations = ['MQRankSum','ReadPosRankSum','FS','HaplotypeScore']
+        annotations = ['MQRankSum','ReadPosRankSum','FS',]
         if not s['capture']:
            annotations.append('DP')
         if p['inbreeding_coeff']:
             annotations.append('InbreedingCoeff')
 
         if p['glm'] == 'SNP':
-            annotations.append('QD')
+            annotations.append('QD','HaplotypeScore')
             cmd = r"""
             {self.bin}
             -T VariantRecalibrator
