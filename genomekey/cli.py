@@ -131,7 +131,7 @@ def main():
     parser = argparse.ArgumentParser(description='WGA')
     parser.add_argument('-test',action='store_true',default=False,help='signifies this as a test run')
     parser.add_argument('-test2',action='store_true',default=False,help='signifies this as a test2 run')
-    parser.add_argument('-cp','--cProfile',type=str,default=None,help='output cprofile information to a file')
+    # parser.add_argument('-cp','--cProfile',type=str,default=None,help='output cprofile information to a file')
     parser.add_argument('-lustre',action='store_true',default=False,help='submits to erik\'s special orchestra cluster')
     parser.add_argument('-tmp','--temp_directory',type=str,help='Specify a wga_settings[tmp_dir].  Defaults to cosmos.ini working_directory')
     subparsers = parser.add_subparsers(title="Commands", metavar="<command>")
@@ -179,12 +179,12 @@ def main():
     ped_file = kwargs.get('pedigree',None)
     wga_settings['pedigree'] = ped_file.name if ped_file else None
 
-    cp_path = kwargs.pop('cProfile',None)
-    if False and cp_path:
-        import cProfile
-        cProfile.run("kwargs['func'](wf,**kwargs)",cp_path)
-    else:
-        kwargs['func'](wf,**kwargs)
+    # cp_path = kwargs.pop('cProfile',None)
+    # if False and cp_path:
+    #     import cProfile
+    #     cProfile.run("kwargs['func'](wf,**kwargs)",cp_path)
+    # else:
+    kwargs['func'](wf,**kwargs)
 
 if __name__ == '__main__':
     main()
