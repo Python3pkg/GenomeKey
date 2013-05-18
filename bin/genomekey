@@ -4,5 +4,4 @@ from genomekey import cli
 import ipdb
 
 with ipdb.launch_ipdb_on_exception():
-    import cProfile
-    cProfile.run('cli.main()','/home/esg21/cprofile.stats')
+    cli.main()
