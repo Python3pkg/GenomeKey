@@ -2,6 +2,7 @@ import argparse
 import json
 import sys
 import glob, os
+import pprint
 from cosmos.contrib.ezflow.dag import DAG,add_,configure,add_run, map_
 from cosmos.contrib.ezflow.tool import INPUT
 from cosmos.Workflow import cli
@@ -129,11 +130,11 @@ def gunzip(workflow,input_dir,**kwargs):
 def main():
     from argparse import RawTextHelpFormatter
     parser = argparse.ArgumentParser(description='WGA')
-    parser.add_argument('-test',action='store_true',default=False,help='signifies this as a test run')
-    parser.add_argument('-test2',action='store_true',default=False,help='signifies this as a test2 run')
+    parser.add_argument('-test',action='store_true',default=False,help='Signifies this as a test run')
     # parser.add_argument('-cp','--cProfile',type=str,default=None,help='output cprofile information to a file')
     parser.add_argument('-lustre',action='store_true',default=False,help='submits to erik\'s special orchestra cluster')
-    parser.add_argument('-tmp','--temp_directory',type=str,help='Specify a wga_settings[tmp_dir].  Defaults to cosmos.ini working_directory')
+    parser.add_argument('-tmp','--temp_directory',type=str,default=settings['working_directory'],
+                        help='Specify a wga_settings[tmp_dir].  Defaults to working_directory specified in cosmos.ini')
     subparsers = parser.add_subparsers(title="Commands", metavar="<command>")
 
     json_sp = subparsers.add_parser('json',help="Input is FASTQs, encoded as a json file",description=json_.__doc__,formatter_class=RawTextHelpFormatter)
@@ -172,12 +173,13 @@ def main():
 
     wf,kwargs = cli.parse_args(parser)
     wga_settings['test'] = kwargs['test']
-    wga_settings['test2'] = kwargs['test2']
     wga_settings['lustre'] = kwargs['lustre']
-    wga_settings['tmp_dir'] = kwargs.get('temp_directory', settings['working_directory'])
+    wga_settings['tmp_dir'] = kwargs.get('temp_directory')
     wga_settings['capture'] = kwargs.get('capture',None)
     ped_file = kwargs.get('pedigree',None)
     wga_settings['pedigree'] = ped_file.name if ped_file else None
+
+    wf.log.info('wga_settings =\n{0}'.format(pprint.pformat(wga_settings,indent=2)))
 
     # cp_path = kwargs.pop('cProfile',None)
     # if False and cp_path:
