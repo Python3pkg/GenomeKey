@@ -36,13 +36,17 @@ Install
 Configuration
 =============
 
-After Cosmos is properly configured, edit GenomeKey/genomekey/wga_settings.py and make sure
-it is pointing to the correct paths to the GATK bundle, reference genome, and binaries.
+If you're running things on Orchestra or AWS, GenomeKey does not need any configuration, and the rest of this
+section is only for educational purposes.
 
-Genomekey requires a WGA folder.  I currently have it configured on orchestra in /scratch/esg21/WGA.
-Note that GenomeKey configures
-AnnovarExtensions using WGA/annovarext_data/config.ini which may need to be edited if you are using a different install
-of the WGA folder (for ex, you copied it to AWS)
+GenomeKey is configured in ``GenomeKey/genomekey/wga_settings.py`` where it points to the correct paths to the
+GATK bundle, reference genome, and binaries.  It chooses these paths based on the ``cosmos.ini`` ``server_name``
+setting.  If ``server_name`` is set to ``orchestra``, it will point to ``/scratch/esg21/WGA`` where all the files such as
+annotation databases and binaries for GATK, BWA, AnnovarExtensions, etc. are located.
+
+AnnovarExtensions is configured in WGA/annovarext_data/config.ini which may need to be edited if you are using an
+installation of
+of the WGA folder that is not ``/scratch/esg21/WGA`` (for ex, you copied it to AWS)
 
 Usage
 ======
