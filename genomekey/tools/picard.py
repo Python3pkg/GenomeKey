@@ -204,7 +204,7 @@ class SORT_BAM(Picard):
 
 class MarkDuplicates(Picard):
     name = "Mark Duplicates"
-    mem_req = 4*1024
+    mem_req = 6*1024
     time_req = 20*60
     inputs = ['bam']
     outputs = [TaskFile(name='bam',basename='markdupes.bam'),

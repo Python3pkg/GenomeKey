@@ -31,8 +31,8 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
 
 class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):
     name = "BWA Alignment and Cleaning"
-    mem_req = 8*1024
-    cpu_req = 1
+    mem_req = 10*1024
+    cpu_req = 4
     time_req = 12*60
     inputs = ['fastq.gz']
     outputs = ['bam']
@@ -45,6 +45,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             set -o pipefail &&
             {s[bwa_path]} mem
             -M
+            -t {self.cpu_req}
             -R "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}\tPU:{p[platform_unit]}"
             {s[bwa_reference_fasta_path]}
             {i[fastq.gz][0]}

@@ -35,7 +35,7 @@ class Annotate(Tool):
     outputs = ['dir']
     forward_input=True
     time_req = 12*60
-    mem_req = 8*1024
+    mem_req = 12*1024
 
     def cmd(self,i,s,p):
         return '{s[annovarext_path]} anno {p[build]} {p[dbname]} {i[anno_in][0]} $OUT.dir'
