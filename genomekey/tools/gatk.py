@@ -324,7 +324,7 @@ class VQSR(GATK):
     see http://gatkforums.broadinstitute.org/discussion/2463/unified-genotyper-no-haplotype-score-annotated-for-indels
     """
     name = "Variant Quality Score Recalibration"
-    mem_req = 4*1024
+    mem_req = 8*1024
     cpu_req = 6
     time_req = 12*60
     inputs = ['vcf']
@@ -381,7 +381,7 @@ class VQSR(GATK):
     
 class Apply_VQSR(GATK):
     name = "Apply VQSR"
-    mem_req = 4*1024
+    mem_req = 8*1024
     time_req = 12*60
     persist=True
     
