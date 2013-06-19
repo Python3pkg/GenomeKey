@@ -1,4 +1,4 @@
-from cosmos.contrib.ezflow.dag import add_,map_,reduce_,split_,reduce_split_,sequence_,branch_
+from cosmos.lib.ezflow.dag import add_,map_,reduce_,split_,reduce_split_,sequence_,branch_
 from subprocess import Popen,PIPE
 from genomekey.tools import annovarext
 from genomekey.wga_settings import wga_settings

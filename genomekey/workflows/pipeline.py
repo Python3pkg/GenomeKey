@@ -1,5 +1,5 @@
 from genomekey.tools import gatk, picard, bwa, misc, bamUtil,pipes
-from cosmos.contrib.ezflow.dag import add_, map_, reduce_, split_, reduce_split_, sequence_, apply_
+from cosmos.lib.ezflow.dag import add_, map_, reduce_, split_, reduce_split_, sequence_, apply_
 from genomekey.workflows.annotate import massive_annotation
 from genomekey.wga_settings import wga_settings
 

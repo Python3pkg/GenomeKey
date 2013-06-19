@@ -1,4 +1,4 @@
-from cosmos.contrib.ezflow.tool import Tool
+from cosmos.lib.ezflow.tool import Tool
 
 class FastQC(Tool):
     name = "FastQC"

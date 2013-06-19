@@ -4,8 +4,8 @@ __author__ = 'erik'
 Convert a Bam to Fastq
 """
 
-from cosmos.contrib.ezflow.dag import DAG, add_,map_,reduce_,split_,reduce_split_,sequence_,branch_,configure,add_run
-from cosmos.contrib.ezflow.tool import INPUT,Tool
+from cosmos.lib.ezflow.dag import DAG, add_,map_,reduce_,split_,reduce_split_,sequence_,branch_,configure,add_run
+from cosmos.lib.ezflow.tool import INPUT,Tool
 from cosmos.Workflow.models import TaskFile
 from genomekey.tools import picard,samtools,genomekey_scripts,bamUtil,pipes
 from genomekey import log

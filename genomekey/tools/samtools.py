@@ -1,4 +1,4 @@
-from cosmos.contrib.ezflow.tool import Tool
+from cosmos.lib.ezflow.tool import Tool
 
 class FilterBamByRG(Tool):
     # name = "Filter Bam By RG"
