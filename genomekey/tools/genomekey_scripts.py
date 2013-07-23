@@ -1,4 +1,5 @@
-from cosmos.i import Tool, TaskFile
+from cosmos.Workflow.models import TaskFile
+from cosmos.lib.ezflow.tool import Tool
 
 class SplitFastq(Tool):
     inputs = ['1.fastq.gz','2.fastq.gz']
