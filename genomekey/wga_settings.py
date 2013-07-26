@@ -9,7 +9,11 @@ from cosmos.config import settings
 
 opj = os.path.join
 
-WGA_path = '/scratch/WGA/WGA'
+if settings['server_name'] == 'orchestra':
+    WGA_path = '/scratch/WGA/WGA'
+else:
+    WGA_path = '/gluster/gv0/WGA'    # assuming AWS SCE
+    
 
 resource = opj(WGA_path, 'bundle/current')   # 2.3/b37
 tools    = opj(WGA_path, 'tools')
@@ -27,7 +31,7 @@ wga_settings = {
     'fastqstats_path'                 : opj(tools,    'fastq-stats'),      
     'GATK_path'                       : opj(tools,    'gatk.jar'),
     'Picard_dir'                      : opj(tools,    'picard'),  
-    'queue_path'                      : opj(tools,    'queue.jar'),        # /Queue-2.4.9-g532efad/Queue.jar, necessary for BQSRGatherer.java
+    'queue_path'                      : opj(tools,    'queue.jar'), # /Queue-2.4.9-g532efad/Queue.jar, necessary for BQSRGatherer.java
     'samtools_path'                   : opj(tools,    'samtools'),         
 
     'resource_bundle_path'            : resource,
@@ -65,15 +69,18 @@ def get_drmaa_native_specification(jobAttempt):
     mem_req  = task.memory_requirement
     time_req = task.time_requirement
     queue    = task.workflow.default_queue
-    
-    if wga_settings['test'] == True:
-        if jobAttempt.task.stage.name != 'Unified_Genotyper':
-            time_req=10
-            cpu_req=1
+
+    # orchestra-specific option
+    if settings['server_name'] == 'orchestra':
+        if wga_settings['test'] == True:
+            if jobAttempt.task.stage.name != 'Unified_Genotyper':
+                time_req=10
+                cpu_req=1
             
-    if   time_req <= 10:        queue = 'mini'
-    elif time_req <= 12 * 60:   queue = 'short'
-    else:                       queue = 'long'
+        if   time_req <= 10:        queue = 'mini'
+        elif time_req <= 12 * 60:   queue = 'short'
+        else:                       queue = 'long'
+
                             
     if DRM == 'LSF':
         s = '-R "rusage[mem={0}] span[hosts=1]" -n {1}'.format(mem_req/cpu_req, cpu_req)
@@ -82,6 +89,8 @@ def get_drmaa_native_specification(jobAttempt):
         if time_req:  s += ' -W 0:{0}'.format(time_req)
         if queue:     s += '   -q {0}'.format(queue)
         return s
+    elif DRM == 'GE':
+        return '-l spock_mem={mem_req}M,num_proc={cpu_req}'.format(mem_req=mem_req, cpu_req=cpu_req)
     else:
         raise Exception('DRM not supported')
 
