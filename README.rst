@@ -20,7 +20,7 @@ Install
 
 1) Install Cosmos using virtualenvwrapper
 
-2) Clone git@github.com:egafni/GenomeKey.git
+2) Clone git@github.com:JaeYJung/GenomeKey.git
 
 3) Activate Cosmos virtualenv
 
