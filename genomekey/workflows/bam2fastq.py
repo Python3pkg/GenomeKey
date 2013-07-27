@@ -20,20 +20,19 @@ import pysam
 class BamException(Exception):pass
 class WorkflowException(Exception):pass
 
-def _inputbam2rgids(input_bam):
+def _getRgids(input_bam):
     """
     Returns the rgids in an input file
     :param input_bam: (file)
     :return: (list) a list of rgids
     """
-    if input_bam[-3:] == 'bam':
-        RG = pysam.Samfile(input_bam,'rb').header['RG']
-    elif input_bam[-3:] == 'sam':
-        RG = pysam.Samfile(input_bam,'r').header['RG']
+    if   input_bam[-3:] == 'bam': RG = pysam.Samfile(input_bam,'rb').header['RG']
+    elif input_bam[-3:] == 'sam': RG = pysam.Samfile(input_bam,'r' ).header['RG']
     else:
         raise TypeError, 'input file is not a bam or sam'
 
     return [ tags['ID'] for tags in RG ]
+
 
 def _splitfastq2inputs(dag):
     """
@@ -63,27 +62,22 @@ def _splitfastq2inputs(dag):
             tags2 = tags.copy()
             tags2['chunk'] = re.search("(\d+)\.fastq",f).group(1)
 
-            i = INPUT(name='fastq.gz',path=fastq_path,tags=tags2,stage_name='Load Input Fastqs')
+            i = INPUT(name='fastq.gz',path=fastq_path,tags=tags2,stage_name='Load FASTQs')
             dag.add_edge(split_fastq_tool,i)
             yield i
 
 
-def Bam2Fastq(workflow, dag, settings, input_bams):
-    if len(input_bams) == 0:
-        raise WorkflowException, 'At least 1 BAM input required'
-    dag.sequence_(
-        sequence_(
-            *[
-                sequence_(
-                    add_([ INPUT(input_bam, tags={'input':os.path.basename(input_bam)})],stage_name="Load Input Bams"),
-                    split_([('rgid',_inputbam2rgids(input_bam))],pipes.FilterBamByRG_To_FastQ)
-                )
-                for input_bam in input_bams
-            ],
-            combine=True
-        ),
-        split_([('pair',[1,2])],genomekey_scripts.SplitFastq),
-        configure(settings),
-        add_run(workflow,finish=False),
-    ).add_(list(_splitfastq2inputs(dag)))
-    return dag
+opb  = os.path.basename
+seq_ = sequence_
+
+def Bam2Fastq(workflow, dag, settings, bams):
+
+    # Set "Load Input" and "Split Bams" stages and run
+    bam_seq = seq_( *[ seq_( add_([ INPUT(b, tags={'bam': opb(b)})], stage_name="Load BAMs"), split_([('rgid', _getRgids(b))], pipes.FilterBamByRG_To_FastQ) ) for b in bams], combine=True)
+    dag.sequence_(bam_seq, configure(settings), add_run(workflow, finish=False))
+
+    # Set "Split Fastq" stage and run
+    dag.sequence_(split_([('pair',[1,2])], genomekey_scripts.SplitFastq), configure(settings), add_run(workflow, finish=False))
+
+    # Set "Load Fastq" stage and run
+    dag.sequence_(add_(list(_splitfastq2inputs(dag))), configure(settings), add_run(workflow, finish=False))

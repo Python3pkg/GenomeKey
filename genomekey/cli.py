@@ -64,6 +64,9 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
     if input_bam:
         input_bams.append(input_bam.name)
 
+    if len(input_bams) == 0:
+        raise WorkflowException, 'At least 1 BAM input required'
+
     dag = DAG(ignore_stage_name_collisions=True)
     Bam2Fastq(workflow,dag,wga_settings,input_bams)
     dag.sequence_(
