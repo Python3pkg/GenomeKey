@@ -5,14 +5,14 @@ import os
 opj = os.path.join
 
 def list2input(l):
-    return " ".join(map(lambda x: 'INPUT='+str(x),l))
+    return " ".join(map(lambda x: 'INPUT='+str(x)+'\n', l))
 
 
 class Picard(Tool):
-    time_req = 12*60
-    mem_req = 3*1024
-    cpu_req=1
-    extra_java_args=''
+    time_req        = 12*60
+    mem_req         = 3*1024
+    cpu_req         = 1
+    extra_java_args = ''
 
     @property
     def picard_bin(self):
@@ -24,13 +24,34 @@ class Picard(Tool):
 
     @property
     def bin(self):
-        return self.picard_bin+' -jar {0}'.format(
-            os.path.join(self.settings['Picard_dir'],self.jar)
-        )
+        return self.picard_bin+' -jar {0}'.format(opj(self.settings['Picard_dir'], self.jar))
+
+class MarkDuplicates(Picard):
+    name     = "Mark Duplicates"
+    mem_req  = 6*1024
+    time_req = 20*60
+    inputs   = ['bam']
+    outputs  = [TaskFile(name='bam',basename='markdupes.bam'), TaskFile(name='metrics',basename='markdupes.metrics')]
+    persist  = True
+        
+    jar = 'MarkDuplicates.jar'
+    
+    def cmd(self,i,s,p):
+        return r"""
+            {self.bin}
+            OUTPUT=$OUT.bam
+            METRICS_FILE=$OUT.metrics
+            ASSUME_SORTED=True
+            CREATE_INDEX=True
+            COMPRESSION_LEVEL=0
+            MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=4000
+            {inputs}
+        """, {'inputs': list2input(i['bam'])}
+
 
 class CollectMultipleMetrics(Picard):
-    name = "Collect Multiple Metrics"
-    inputs = ['bam']
+    name    = "Collect Multiple Metrics"
+    inputs  = ['bam']
     outputs = ['metrics']
     # time_req = 4*60
     mem_req = 3*1024
@@ -41,8 +62,8 @@ class CollectMultipleMetrics(Picard):
         return r"""
             {self.bin}
             REFERENCE_SEQUENCE={s[reference_fasta_path]}
-            INPUT={i[bam][0]}
             OUTPUT=$OUT.metrics
+            INPUT={i[bam][0]}
         """
 
 class AddOrReplaceReadGroups(Picard):
@@ -202,26 +223,6 @@ class SORT_BAM(Picard):
         """
 
 
-class MarkDuplicates(Picard):
-    name = "Mark Duplicates"
-    mem_req = 6*1024
-    time_req = 20*60
-    inputs = ['bam']
-    outputs = [TaskFile(name='bam',basename='markdupes.bam'),
-               TaskFile(name='metrics',basename='markdupes.metrics')]
-    persist=True
-        
-    jar = 'MarkDuplicates.jar'
-    
-    def cmd(self,i,s,p):
-        return r"""
-            {self.bin}
-            {inputs}
-            O=$OUT.bam
-            METRICS_FILE=$OUT.metrics
-            ASSUME_SORTED=True
-            CREATE_INDEX=True
-        """, {'inputs':list2input(i['bam'])}
 
 class INDEX_BAM(Picard):
     name = "Index Bam Files"

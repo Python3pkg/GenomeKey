@@ -78,16 +78,17 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             COMPRESSION_LEVEL=0
             |
             {self.picard_bin} -jar {CleanSam}
-            I=/dev/stdin
-            O=/dev/stdout
+            INPUT=/dev/stdin
+            OUTPUT=/dev/stdout
             VALIDATION_STRINGENCY=SILENT
             COMPRESSION_LEVEL=0
             |
             {self.picard_bin} -jar {SortSam}
-            I=/dev/stdin
-            O=$OUT.bam
+            INPUT=/dev/stdin
+            OUTPUT=$OUT.bam
             SORT_ORDER=coordinate
             CREATE_INDEX=True
+            COMPRESSION_LEVEL=0
             """, dict (
             AddOrReplaceReadGroups=opj(s['Picard_dir'],'AddOrReplaceReadGroups.jar'),
             CleanSam=opj(s['Picard_dir'],'CleanSam.jar'),
