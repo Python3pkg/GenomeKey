@@ -2,31 +2,47 @@ from . import picard, bamUtil, samtools,bwa
 import os
 opj = os.path.join
 
+
 class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
-    name = "Extract ReadGroup from BAM and Convert to FastQ"
+    name = "BAM to FASTQ"
     inputs = ['bam']
-    outputs = ['1.fastq.gz','2.fastq.gz','unpaired.fastq.gz']
+    outputs = ['1.fastq','2.fastq']
     time_req = 12*60
     mem_req = 7*1024
     cpu_req=2
 
+    # def cmd(self,i,s,p):
+    #     return r"""
+    #         set -o pipefail &&
+    #         {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]}
+    #         |
+    #         {self.bin}
+    #         INPUT=/dev/stdin
+    #         OUTPUT=/dev/stdout
+    #         VALIDATION_STRINGENCY=SILENT
+    #         MAX_RECORDS_IN_RAM=4000000
+    #         COMPRESSION_LEVEL=0
+    #         |
+    #         {s[bamUtil_path]} bam2FastQ
+    #         --in -.ubam
+    #         --firstOut $OUT.1.fastq.gz
+    #         --secondOut $OUT.2.fastq.gz
+    #         --unpairedOut $OUT.unpaired.fastq.gz
+    #     """
     def cmd(self,i,s,p):
         return r"""
             set -o pipefail &&
             {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]}
             |
-            {self.bin}
-            INPUT=/dev/stdin
-            OUTPUT=/dev/stdout
+            {self.bin} INPUT=/dev/stdin OUTPUT=/dev/stdout
             VALIDATION_STRINGENCY=SILENT
             MAX_RECORDS_IN_RAM=4000000
             COMPRESSION_LEVEL=0
             |
-            {s[bamUtil_path]} bam2FastQ
-            --in -.ubam
-            --firstOut $OUT.1.fastq.gz
-            --secondOut $OUT.2.fastq.gz
-            --unpairedOut $OUT.unpaired.fastq.gz
+            {s[bamUtil_path]} bam2FastQ --params --in -.ubam
+            --firstOut    $OUT.1.fastq
+            --secondOut   $OUT.2.fastq
+            --unpairedOut /dev/null
         """
 
 class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):

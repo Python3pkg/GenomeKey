@@ -27,7 +27,7 @@ def main(input_fastq,output_dir,chunksize,buffersize):
     if input_fastq.endswith('.gz'):
         infile = gzip.open(input_fastq)
     else:
-        infile = open(input_fastq,'r')
+        infile = open(input_fastq, 'r')
     output_prefix = os.path.basename(input_fastq)
     output_prefix = re.search("(.+?)(_001)*\.(fastq|fq)(\.gz)*",output_prefix).group(1)
 
