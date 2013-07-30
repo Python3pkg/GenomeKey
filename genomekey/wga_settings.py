@@ -10,7 +10,7 @@ from cosmos.config import settings
 opj = os.path.join
 
 if settings['server_name'] == 'orchestra':
-    WGA_path = '/scratch/WGA/WGA'
+    WGA_path = '/groups/cbi/WGA'
 else:
     WGA_path = '/gluster/gv0/WGA'    # assuming AWS SCE
     
@@ -19,9 +19,10 @@ resource = opj(WGA_path, 'bundle/current')   # 2.3/b37
 tools    = opj(WGA_path, 'tools')
 
 wga_settings = {
+    'java'                            : opj(tools, 'java'),
     'tmp_dir'                         : settings['working_directory'],
 
-    'GATK_source_path'                : opj(tools, 'gatk'),
+#   'GATK_source_path'                : opj(tools, 'gatk'),
 
     'annovarext_path'                 : opj(tools,    'annovarext'),       
     'bamUtil_path'                    : opj(tools,    'bamUtil'),              
@@ -31,7 +32,7 @@ wga_settings = {
     'fastqstats_path'                 : opj(tools,    'fastq-stats'),      
     'GATK_path'                       : opj(tools,    'gatk.jar'),
     'Picard_dir'                      : opj(tools,    'picard'),  
-    'queue_path'                      : opj(tools,    'queue.jar'), # /Queue-2.4.9-g532efad/Queue.jar, necessary for BQSRGatherer.java
+    'queue_path'                      : opj(tools,    'queue.jar'), # needed for BQSRGatherer.java
     'samtools_path'                   : opj(tools,    'samtools'),         
 
     'resource_bundle_path'            : resource,
@@ -49,7 +50,6 @@ wga_settings = {
 
     'get_drmaa_native_specification'  : session.default_get_drmaa_native_specification
 }
-
 
 os.environ['ANNOVAREXT_DATA'] = opj(WGA_path,'annovarext_data')
 av_path = opj(tools,'AnnovarExtensions/')

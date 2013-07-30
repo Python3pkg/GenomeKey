@@ -17,7 +17,7 @@ def Pipeline():
 
     align_to_reference = sequence_(
         apply_(
-            reduce_(['sample_name', 'library'], misc.FastqStats),
+#           reduce_(['sample_name', 'library'], misc.FastqStats),
             reduce_(['sample_name', 'library', 'platform', 'platform_unit', 'chunk'], pipes.AlignAndClean)
         ),
     )
@@ -25,7 +25,7 @@ def Pipeline():
     preprocess_alignment = sequence_(
         reduce_(['sample_name'], picard.MarkDuplicates),
         apply_(
-            map_(picard.CollectMultipleMetrics),
+#           map_(picard.CollectMultipleMetrics),
             split_([intervals],gatk.RealignerTargetCreator) #if not is_capture or testing else map_(gatk.RealignerTargetCreator)
         ),
         map_(gatk.IndelRealigner),

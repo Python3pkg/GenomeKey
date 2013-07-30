@@ -48,10 +48,7 @@ class GATK(Tool):
 
     @property
     def bin(self):
-        return 'java -Xmx{mem_req}m -Djava.io.tmpdir={s[tmp_dir]} -jar {s[GATK_path]}'.format(
-            self=self,s=self.settings,
-            mem_req=int(self.mem_req*.9)
-        )
+        return '{s[java]} -Xmx{M}m -Djava.io.tmpdir={s[tmp_dir]} -jar {s[GATK_path]}'.format(self=self, s=self.settings, M=int(self.mem_req*.9))
 
     def post_cmd(self,cmd_str,format_dict):
         new_cmd_str = cmd_str + ' ' + get_pedigree(format_dict['s'])
@@ -69,13 +66,13 @@ class BQSRGatherer(Tool):
 
     def cmd(self,i, s, p):
         return r"""
-            java -Dlog4j.configuration="file://{log4j_props}"
+            "{s[java]}" -Dlog4j.configuration="file://{log4j_props}"
             -cp "{s[queue_path]}:{s[bqsr_gatherer_path]}"
             BQSRGathererMain
             $OUT.recal
             {input_recals}
         """, {
-            'input_recals': ' '.join(map(str,i['recal'])),
+            'input_recals': '\n'.join(map(str,i['recal'])),
             'log4j_props': os.path.join(s['bqsr_gatherer_path'],'log4j.properties')
         }
 
