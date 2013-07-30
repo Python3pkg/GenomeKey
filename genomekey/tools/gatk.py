@@ -203,9 +203,9 @@ class ReduceReads(GATK):
            -T ReduceReads           
            -R {s[reference_fasta_path]}
            --dont_compress_read_names
-           --downample_coverage 0
-           --known {s[indels_1000g_phase1_path]}
-           --known {s[mills_path]}
+           --downsample_coverage 0
+           -known {s[indels_1000g_phase1_path]}
+           -known {s[mills_path]}
            -o $OUT.bam
            {interval}
            {inputs}           
