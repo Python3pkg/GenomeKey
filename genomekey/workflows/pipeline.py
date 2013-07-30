@@ -31,7 +31,7 @@ def Pipeline():
         map_(gatk.IndelRealigner),
         map_(gatk.BQSR),
         apply_(
-            reduce_(['sample_name'], gatk.BQSRGatherer),
+#            reduce_(['sample_name'], gatk.BQSRGatherer),
             map_(gatk.ApplyBQSR) #TODO I add BQSRGatherer as a parent with a hack inside ApplyBQSR.cmd
         )
     )

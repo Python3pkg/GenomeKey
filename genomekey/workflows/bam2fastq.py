@@ -72,12 +72,12 @@ seq_ = sequence_
 
 def Bam2Fastq(workflow, dag, settings, bams):
 
-    # Set "Load BAMs" and "BAMs to FASTQs" stages and run
+    # Set "Load BAMs" and "BAMs to FASTQs"
     bam_seq = seq_( *[ seq_( add_([ INPUT(b, tags={'bam': opb(b)})], stage_name="Load BAMs"), split_([('rgid', _getRgids(b))], pipes.FilterBamByRG_To_FastQ) ) for b in bams], combine=True)
-    dag.sequence_(bam_seq, configure(settings), add_run(workflow, finish=False))
 
-    # Set "Split FASTQs" stage and run
-    dag.sequence_(split_([('pair',[1,2])], genomekey_scripts.SplitFastq), configure(settings), add_run(workflow, finish=False))
+    # Add "Split FASTQs" stage and run
+    dag.sequence_(bam_seq, split_([('pair',[1,2])], genomekey_scripts.SplitFastq), configure(settings), add_run(workflow, finish=False))
 
     # Set "Load FASTQs" stage and run
     dag.sequence_(add_(list(_splitfastq2inputs(dag))), configure(settings), add_run(workflow, finish=False))
+

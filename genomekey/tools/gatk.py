@@ -6,7 +6,7 @@ import os
 
 
 def list2input(l):
-    return "-I " +" -I ".join(map(lambda x: str(x),l))
+    return "-I " +"\n-I ".join(map(lambda x: str(x),l))
 
 def get_interval(param_dict):
     """
@@ -14,7 +14,7 @@ def get_interval(param_dict):
     :return: '' if param_dict does not have 'interval' in it, otherwise -L p['interval']
     """
     if 'interval' in param_dict:
-        return '-L {0}'.format(param_dict['interval'])
+        return '--intervals {0}'.format(param_dict['interval'])
     else:
         return ''
 
@@ -95,7 +95,7 @@ class RealignerTargetCreator(GATK):
             -o $OUT.intervals
             --known {s[indels_1000g_phase1_path]}
             --known {s[mills_path]}
-            -nt {self.cpu_req}
+            --num_threads {self.cpu_req}
             {interval}
             {sleep}
         """,{'interval':get_interval(p),
@@ -168,12 +168,12 @@ class ApplyBQSR(GATK):
     added_edge = False
 
     def cmd(self,i,s,p):
-        if not self.added_edge:
+        #if not self.added_edge:
             #TODO fix this hack.  Also there might be duplicate edges being added on reload which doesn't matter but is ugly.
             #TODO this also forces ApplyBQSR to expect a ReduceBQSR
-            bqsrG_tool = self.dag.get_tools_by([BQSRGatherer.name],tags={'sample_name':self.tags['sample_name']})[0]
-            self.dag.G.add_edge(bqsrG_tool, self)
-            self.added_edge = True
+            #bqsrG_tool = self.dag.get_tools_by([BQSRGatherer.name],tags={'sample_name':self.tags['sample_name']})[0]
+            #self.dag.G.add_edge(bqsrG_tool, self)
+            #self.added_edge = True
 
         return r"""
             {self.bin}
@@ -200,11 +200,15 @@ class ReduceReads(GATK):
     def cmd(self,i,s,p):
         return r"""
            {self.bin}
-           -T ReduceReads
+           -T ReduceReads           
            -R {s[reference_fasta_path]}
-            {inputs}
+           --dont_compress_read_names
+           --downample_coverage 0
+           --known {s[indels_1000g_phase1_path]}
+           --known {s[mills_path]}
            -o $OUT.bam
            {interval}
+           {inputs}           
         """, {
             'inputs' : list2input(i['bam']),
             'interval': get_interval(p)
