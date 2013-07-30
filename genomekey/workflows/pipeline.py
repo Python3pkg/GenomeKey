@@ -23,7 +23,7 @@ def Pipeline():
     )
 
     preprocess_alignment = sequence_(
-        reduce_(['sample_name'], picard.MarkDuplicates),
+        reduce_(['sample_name', 'library'], picard.MarkDuplicates),
         apply_(
 #           map_(picard.CollectMultipleMetrics),
             split_([intervals],gatk.RealignerTargetCreator) #if not is_capture or testing else map_(gatk.RealignerTargetCreator)

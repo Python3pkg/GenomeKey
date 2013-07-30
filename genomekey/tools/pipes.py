@@ -1,8 +1,7 @@
 from . import picard, bamUtil, samtools,bwa
 import os
 opj = os.path.join
-
-
+    
 class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
     name = "BAM to FASTQ"
     inputs = ['bam']
