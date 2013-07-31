@@ -3,15 +3,17 @@ __author__ = 'erik'
 """
 Convert a Bam to Fastq
 """
-
-from cosmos.lib.ezflow.dag import DAG, add_,map_,reduce_,split_,reduce_split_,sequence_,branch_,configure,add_run
-from cosmos.lib.ezflow.tool import INPUT,Tool
-from cosmos.Workflow.models import TaskFile
-from genomekey.tools import picard,samtools,genomekey_scripts,bamUtil,pipes
-from genomekey import log
 import os
 import re
 import pysam
+
+from cosmos.lib.ezflow.dag  import DAG, add_,map_,reduce_,split_,reduce_split_,sequence_,branch_,configure,add_run
+from cosmos.lib.ezflow.tool import INPUT,Tool
+from cosmos.Workflow.models import TaskFile
+
+from genomekey.tools import picard,samtools,genomekey_scripts,bamUtil,pipes
+from genomekey import log
+
 
 ####################
 # Tools
@@ -45,8 +47,8 @@ def _splitfastq2inputs(dag):
         # Get The RG info and place into a dictionary for tags
         # note: FilterBamByRG's output bam has the right RG information
         input_tool = split_fastq_tool.parent.parent
-        bam_path = TaskFile.objects.get(id=input_tool.get_output('bam').id).path
-        RGs = pysam.Samfile(bam_path,'rb').header['RG']
+        bam_path   = TaskFile.objects.get(id=input_tool.get_output('bam').id).path
+        RGs        = pysam.Samfile(bam_path,'rb').header['RG']
 
         # FilterBamByRG does not remove the non-filtered RGs from the new header
         RG = [ d for d in RGs if d['ID'] == split_fastq_tool.tags['rgid']][0]
@@ -58,8 +60,8 @@ def _splitfastq2inputs(dag):
         # Add fastq chucks as input files
         fastq_output_dir = TaskFile.objects.get(id=split_fastq_tool.get_output('dir').id).path
         for f in os.listdir(fastq_output_dir):
-            fastq_path = os.path.join(fastq_output_dir,f)
-            tags2 = tags.copy()
+            fastq_path     = os.path.join(fastq_output_dir,f)
+            tags2          = tags.copy()
             tags2['chunk'] = re.search("(\d+)\.fastq",f).group(1)
 
             i = INPUT(name='fastq.gz',path=fastq_path,tags=tags2,stage_name='Load FASTQ')
