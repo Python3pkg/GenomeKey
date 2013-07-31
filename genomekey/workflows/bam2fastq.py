@@ -50,9 +50,9 @@ def _splitfastq2inputs(dag):
 
         # FilterBamByRG does not remove the non-filtered RGs from the new header
         RG = [ d for d in RGs if d['ID'] == split_fastq_tool.tags['rgid']][0]
-        tags['sample_name'] = RG['SM']
-        tags['library'] = RG['LB']
-        tags['platform'] = RG['PL']
+        tags['sample_name']   = RG['SM']
+        tags['library']       = RG['LB']
+        tags['platform']      = RG['PL']
         tags['platform_unit'] = RG.get('PU', RG['ID']) # use 'ID' if 'PU' does not exist
 
         # Add fastq chucks as input files
