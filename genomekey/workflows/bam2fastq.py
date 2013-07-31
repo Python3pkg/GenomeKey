@@ -62,7 +62,7 @@ def _splitfastq2inputs(dag):
             tags2 = tags.copy()
             tags2['chunk'] = re.search("(\d+)\.fastq",f).group(1)
 
-            i = INPUT(name='fastq.gz',path=fastq_path,tags=tags2,stage_name='Load FASTQs')
+            i = INPUT(name='fastq.gz',path=fastq_path,tags=tags2,stage_name='Load FASTQ')
             dag.add_edge(split_fastq_tool,i)
             yield i
 
@@ -72,12 +72,11 @@ seq_ = sequence_
 
 def Bam2Fastq(workflow, dag, settings, bams):
 
-    # Set "Load BAMs" and "BAMs to FASTQs"
+    # Set "Load BAM" and "BAMs to FASTQs"
     bam_seq = seq_( *[ seq_( add_([ INPUT(b, tags={'bam': opb(b)})], stage_name="Load BAMs"), split_([('rgid', _getRgids(b))], pipes.FilterBamByRG_To_FastQ) ) for b in bams], combine=True)
 
-    # Add "Split FASTQs" stage and run
+    # Add "Split FASTQ" stage and run
     dag.sequence_(bam_seq, split_([('pair',[1,2])], genomekey_scripts.SplitFastq), configure(settings), add_run(workflow, finish=False))
 
-    # Set "Load FASTQs" stage and run
-    dag.sequence_(add_(list(_splitfastq2inputs(dag))), configure(settings), add_run(workflow, finish=False))
-
+    # Set "Load FASTQ" stage
+    dag.sequence_(add_(list(_splitfastq2inputs(dag))))
