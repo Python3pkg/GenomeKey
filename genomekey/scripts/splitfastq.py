@@ -22,7 +22,6 @@ def splitFastq(input_fastq,output_dir,chunksize,buffersize):
     """
     Chunks a large fastq file into smaller pieces.
     """
-    chunk = 0
     log.info('Opening {0}'.format(input_fastq))
 
     ## output file type will be decided based on input format
@@ -33,10 +32,10 @@ def splitFastq(input_fastq,output_dir,chunksize,buffersize):
         infile  = open(input_fastq, 'r')
         outType = '.fastq'
 
-    output_prefix = os.path.basename(input_fastq)
-    output_prefix = re.search("(.+?)(_001)*\.(fastq|fq)(\.gz)*",output_prefix).group(1)
+    output_prefix = re.search("(.+?)(_001)*\.(fastq|fq)(\.gz)*", os.path.basename(input_fastq)).group(1)
 
     #write chunks
+    chunk = 0
     while True:
         chunk += 1
 
@@ -75,8 +74,8 @@ if __name__ == '__main__':
 
     parser.add_argument('input_fastq'      , type=str, help='')
     parser.add_argument('output_dir'       , type=str, help='')
-    parser.add_argument('-c','--chunksize' , type=int, help='Number of reads per fastq chunk, default is 1.5 million', default=15000000)
-    parser.add_argument('-b','--buffersize', type=int, help='Number of reads to keep in RAM, default is 1M',           default= 1000000)
+    parser.add_argument('-c','--chunksize' , type=int, help='Number of reads per fastq chunk, default is 60M', default=15000000)
+    parser.add_argument('-b','--buffersize', type=int, help='Number of reads to keep in RAM,  default is  4M', default= 1000000)
 
     parsed_args = parser.parse_args()
     kwargs      = dict(parsed_args._get_kwargs())
