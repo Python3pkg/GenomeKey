@@ -26,17 +26,18 @@ def splitFastq(input_fastq,output_dir,chunksize,buffersize):
 
     ## output file type will be decided based on input format
     if input_fastq.endswith('.gz'):
-        infile  = gzip.open(input_fastq)
+        infile  = gzip.open(input_fastq, 'rb')
         outType = '.fastq.gz'
     else:
-        infile  = open(input_fastq, 'r')
+        infile  =      open(input_fastq, 'rb')
         outType = '.fastq'
 
     output_prefix = re.search("(.+?)(_001)*\.(fastq|fq)(\.gz)*", os.path.basename(input_fastq)).group(1)
 
     #write chunks
     chunk = 0
-    while True:
+    eof   = False
+    while not eof:
         chunk += 1
 
         # generate output paths
@@ -45,26 +46,28 @@ def splitFastq(input_fastq,output_dir,chunksize,buffersize):
         
         if os.path.exists(output_path) and not confirm('{0} already exists!  Are you sure you want to overwrite the file?'.format(output_path), timeout=0): return
 
-        log.info('Reading {0} lines and writing to: {1}'.format(chunksize*4,output_path))
+        log.info('Reading {0} lines and writing to: {1}'.format(chunksize, output_path))
         if  outType == 'fastq.gz': outfile = gzip.open(output_path,'wb')
         else:                      outfile =      open(output_path,'wb')
         
         #Read/Write
-        total_read=0
-        while total_read < chunksize*4:
-            data = list(islice(infile,buffersize*4)) #read data
-            if len(data) == 0:
-                log.info('Done')
-                return
-
+        total_read = 0
+        while total_read < chunksize and not eof:
+            data    = list(islice(infile, buffersize)) # read data
+            dataLen = len(data)
+            if dataLen != buffersize: eof = True       # last chunk of input file or 0
+            if dataLen == 0: break
+            
             # Write what was read
             outfile.writelines(data)
-            log.info('wrote {0} lines'.format(len(data)))
+            log.info('wrote {0} lines'.format(dataLen))
+            total_read += dataLen # might not be the same as bufferesize
             del(data)
-            total_read += buffersize*4
+
         outfile.close()
             
     infile.close()
+    log.info('Done')
 
 
 if __name__ == '__main__':
@@ -74,8 +77,10 @@ if __name__ == '__main__':
 
     parser.add_argument('input_fastq'      , type=str, help='')
     parser.add_argument('output_dir'       , type=str, help='')
-    parser.add_argument('-c','--chunksize' , type=int, help='Number of reads per fastq chunk, default is 60M', default=15000000)
-    parser.add_argument('-b','--buffersize', type=int, help='Number of reads to keep in RAM,  default is  4M', default= 1000000)
+
+    # Default chunk option will make about 10 split files from a given RG/Paired fastq of a full WG BAM.
+    parser.add_argument('-c','--chunksize' , type=int, help='Number of reads per fastq chunk, default is 60M', default=60000000)
+    parser.add_argument('-b','--buffersize', type=int, help='Number of reads to keep in RAM,  default is  4M', default= 4000000)
 
     parsed_args = parser.parse_args()
     kwargs      = dict(parsed_args._get_kwargs())
