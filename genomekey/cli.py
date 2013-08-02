@@ -74,6 +74,8 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
          configure(wga_settings),
          add_run(workflow)
     )
+    
+
 
 ###############################
 # Annotation
@@ -85,10 +87,11 @@ def downdbs(workflow,**kwargs):
     Download all annotation databases
     """
     DAG().sequence_(
-        add_([ annovarext.DownDB(tags={'build':'hg19','dbname':db}) for db in annovarext.get_db_names() ]),
+        add_([ annovarext.DownDB(tags={'build':'hg19','dbname':db}) for db in get_db_names() ]),
         configure(wga_settings),
-        add_run(workflow)
-    )
+    ).add_to_workflow(workflow)
+
+    workflow.run(terminate_on_fail=False)
 
 
 def anno(workflow,input_file,input_file_list,file_format='vcf',**kwargs):
@@ -195,7 +198,7 @@ if __name__ == '__main__':
     main()
 
 from genomekey.workflows.pipeline import Pipeline
-from genomekey.workflows.annotate import massive_annotation
+from genomekey.workflows.annotate import massive_annotation, get_db_names
 from genomekey.workflows.bam2fastq import Bam2Fastq
 from genomekey.tools import annovarext
 from genomekey.tools import unix
