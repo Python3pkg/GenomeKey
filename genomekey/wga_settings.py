@@ -26,10 +26,10 @@ wga_settings = {
 
     'annovarext_path'                 : opj(tools,    'annovarext'),       
     'bamUtil_path'                    : opj(tools,    'bamUtil'),              
-    'bqsr_gatherer_path'              : opj(tools,    'BQSRGathererMain'),
+#   'bqsr_gatherer_path'              : opj(tools,    'BQSRGathererMain'),
     'bwa_path'                        : opj(tools,    'bwa'),              
-    'fastqc_path'                     : opj(tools,    'fastqc'),           
-    'fastqstats_path'                 : opj(tools,    'fastq-stats'),      
+#   'fastqc_path'                     : opj(tools,    'fastqc'),           
+#   'fastqstats_path'                 : opj(tools,    'fastq-stats'),      
     'GATK_path'                       : opj(tools,    'gatk.jar'),
     'Picard_dir'                      : opj(tools,    'picard'),  
     'queue_path'                      : opj(tools,    'queue.jar'), # needed for BQSRGatherer.java
@@ -37,12 +37,10 @@ wga_settings = {
 
     'resource_bundle_path'            : resource,
     'reference_fasta_path'            : opj(resource, 'human_g1k_v37.fasta'),
-    'bwa_reference_fasta_path'        : opj(resource, 'human_g1k_v37.fasta'),
 
-    'dbsnp_path'                      : opj(resource, 'dbsnp_137.b37.vcf'),
+    'dbsnp_path'                      : opj(resource, 'dbsnp_137.b37.excluding_sites_after_129'),
     'hapmap_path'                     : opj(resource, 'hapmap_3.3.b37.vcf'),
     'omni_path'                       : opj(resource, '1000G_omni2.5.b37.vcf'),
-    '1000G_phase1_highconfidence_path': opj(resource, '1000G_phase1.snps.high_confidence.vcf'),
     'mills_path'                      : opj(resource, 'Mills_and_1000G_gold_standard.indels.b37.vcf'),
     'indels_1000g_phase1_path'        : opj(resource, '1000G_phase1.indels.b37.vcf'),
 

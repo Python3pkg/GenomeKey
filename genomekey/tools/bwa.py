@@ -18,7 +18,7 @@ class MEM(Tool):
             {s[bwa_path]} mem
             -M
             -R "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}\tPU:{p[platform_unit]}"
-            {s[bwa_reference_fasta_path]}
+            {s[reference_fasta_path]}
             {i[fastq.gz][0]}
             {i[fastq.gz][1]}
             > $OUT.sam
@@ -39,7 +39,7 @@ class MEM(Tool):
 #         """
 #         Expects tags: chunk, library, sample_name, platform, platform_unit, pair
 #         """
-#         return '{s[bwa_path]} aln -q {p[q]} -t {self.cpu_req} {s[bwa_reference_fasta_path]} {i[fastq.gz][0]} > $OUT.sai'
+#         return '{s[bwa_path]} aln -q {p[q]} -t {self.cpu_req} {s[reference_fasta_path]} {i[fastq.gz][0]} > $OUT.sai'
 #
 # class SAMPE(Tool):
 #     name = "Paired End Mapping"
@@ -58,7 +58,7 @@ class MEM(Tool):
 #             {s[bwa_path]} sampe
 #             -f $OUT.sam
 #             -r "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}"
-#             {s[bwa_reference_fasta_path]}
+#             {s[reference_fasta_path]}
 #             {i[sai][0]}
 #             {i[sai][1]}
 #             {i[fastq.gz][0]}

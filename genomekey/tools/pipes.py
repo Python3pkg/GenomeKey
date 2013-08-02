@@ -62,7 +62,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             -M
             -t {self.cpu_req}
             -R "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}\tPU:{p[platform_unit]}"
-            {s[bwa_reference_fasta_path]}
+            {s[reference_fasta_path]}
             {i[fastq.gz][0]}
             {i[fastq.gz][1]}
             |
