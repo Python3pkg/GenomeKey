@@ -314,9 +314,6 @@ class VQSR(GATK):
     """
     VQSR
 
-    100G_phase1_highconfidence is missing from bundle, but referenced in VQSR faq:
-    -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1000G_phase1_highconfidence_path]}
-
     Might want to set different values for capture vs whole genome of
     i don't understand vqsr well enough yet
     --maxGaussians 4 -percentBad 0.01 -minNumBad 1000
