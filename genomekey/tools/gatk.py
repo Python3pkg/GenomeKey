@@ -118,6 +118,7 @@ class IndelRealigner(GATK):
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
+            -compress 0
             {interval} {sleep}
         """,{'interval':get_interval(p),
              'sleep': get_sleep(s)}
@@ -181,6 +182,7 @@ class ApplyBQSR(GATK):
             -R {s[reference_fasta_path]}
             {inputs}
             -o $OUT.bam
+            -compress 0
             -BQSR {i[recal][0]}
             {sleep}
         """, {
