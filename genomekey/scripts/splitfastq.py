@@ -78,8 +78,8 @@ if __name__ == '__main__':
     parser.add_argument('input_fastq'      , type=str, help='')
     parser.add_argument('output_dir'       , type=str, help='')
 
-    # Default chunk option will make about 10 split files from a given RG/Paired fastq of a full WG BAM.
-    parser.add_argument('-c','--chunksize' , type=int, help='Number of reads per fastq chunk, default is 60M', default=60000000)
+    # Default chunk option will make about 10 split files from a given RG/Paired fastq of a full WG BAM.                
+    parser.add_argument('-c','--chunksize' , type=int, help='Number of reads per fastq chunk, default is 32M', default=32000000) # keep with Erik's original setting
     parser.add_argument('-b','--buffersize', type=int, help='Number of reads to keep in RAM,  default is  4M', default= 4000000)
 
     parsed_args = parser.parse_args()
