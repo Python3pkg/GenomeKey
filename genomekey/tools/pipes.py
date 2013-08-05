@@ -49,7 +49,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
     mem_req = 10*1024
     cpu_req = 4
     time_req = 12*60
-    inputs = ['fastq.gz']
+    inputs = ['fastq']
     outputs = ['bam']
 
     def cmd(self,i,s,p):
@@ -59,12 +59,13 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
         return r"""
             set -o pipefail &&
             {s[bwa_path]} mem
+            -v 3                # verbose for all normal messages
             -M
             -t {self.cpu_req}
             -R "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}\tPU:{p[platform_unit]}"
             {s[reference_fasta_path]}
-            {i[fastq.gz][0]}
-            {i[fastq.gz][1]}
+            {i[fastq][0]}
+            {i[fastq][1]}
             |
             {self.picard_bin} -jar {AddOrReplaceReadGroups}
             INPUT=/dev/stdin
@@ -89,7 +90,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
             """, dict (
-            AddOrReplaceReadGroups=opj(s['Picard_dir'],'AddOrReplaceReadGroups.jar'),
-            CleanSam=opj(s['Picard_dir'],'CleanSam.jar'),
-            SortSam=opj(s['Picard_dir'],'SortSam.jar')
+            AddOrReplaceReadGroups = opj(s['Picard_dir'],'AddOrReplaceReadGroups.jar'),
+            CleanSam               = opj(s['Picard_dir'],'CleanSam.jar'),
+            SortSam                = opj(s['Picard_dir'],'SortSam.jar')
         )
