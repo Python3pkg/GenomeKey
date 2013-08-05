@@ -12,7 +12,7 @@ opj = os.path.join
 if settings['server_name'] == 'orchestra':
     WGA_path = '/groups/cbi/WGA'
 else:
-    WGA_path = '/gluster/gv0/WGA'    # assuming AWS SCE
+    WGA_path = '/WGA'    # assuming AWS SCE
     
 
 resource = opj(WGA_path, 'bundle/current')   # 2.3/b37
