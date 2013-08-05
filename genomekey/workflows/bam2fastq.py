@@ -64,7 +64,7 @@ def _splitfastq2inputs(dag):
             tags2          = tags.copy()
             tags2['chunk'] = re.search("(\d+)\.fastq",f).group(1)
 
-            i = INPUT(name='fastq.gz',path=fastq_path,tags=tags2,stage_name='Load FASTQ')
+            i = INPUT(name='fastq',path=fastq_path,tags=tags2,stage_name='Load FASTQ')
             dag.add_edge(split_fastq_tool,i)
             yield i
 
