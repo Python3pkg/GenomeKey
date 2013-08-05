@@ -13,7 +13,7 @@ class Picard(Tool):
     mem_req         = 3*1024
     cpu_req         = 1
     extra_java_args = ''
-
+    
     @property
     def picard_bin(self):
         return 'java{self.extra_java_args} -Xmx{mem_req}m -Djava.io.tmpdir={s[tmp_dir]} -Dsnappy.loader.verbosity=true'.format(
@@ -28,7 +28,7 @@ class Picard(Tool):
 
 class MarkDuplicates(Picard):
     name     = "Mark Duplicates"
-    mem_req  = 6*1024
+    mem_req  = 8*1024
     time_req = 20*60
     inputs   = ['bam']
     outputs  = [TaskFile(name='bam',basename='markdupes.bam'), TaskFile(name='metrics',basename='markdupes.metrics')]
@@ -44,6 +44,7 @@ class MarkDuplicates(Picard):
             ASSUME_SORTED=True
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
+            MAX_RECORDS_IN_RAM=4000000    # default:500000
             {inputs}
         """, {'inputs': list2input(i['bam'])}
 
@@ -86,26 +87,6 @@ class AddOrReplaceReadGroups(Picard):
             RGPU={p[platform_unit]}
         """
 
-
-
-class FIXMATE(Picard):
-    name = "Fix Mate Information"
-    inputs = ['bam']
-    outputs = ['bam']
-    # time_req = 4*60
-    mem_req = 3*1024
-
-    jar = 'FixMateInformation.jar'
-
-    def cmd(self,i,s,p):
-        return r"""
-            {self.bin}
-            INPUT={i[bam][0]}
-            OUTPUT=$OUT.bam
-            VALIDATION_STRINGENCY=LENIENT
-        """
-
-
 class REVERTSAM(Picard):
     inputs = ['bam']
     outputs = ['bam']
@@ -126,114 +107,130 @@ class REVERTSAM(Picard):
             MAX_RECORDS_IN_RAM=4000000
         """
 
-class SAM2FASTQ_byrg(Picard):
-    inputs = ['bam']
-    outputs = ['dir']
-    # time_req = 180
-    mem_req = 12*1024
-    #succeed_on_failure = True
+# class FIXMATE(Picard):
+#     name = "Fix Mate Information"
+#     inputs = ['bam']
+#     outputs = ['bam']
+#     # time_req = 4*60
+#     mem_req = 3*1024
 
-    jar = 'SamToFastq.jar'
+#     jar = 'FixMateInformation.jar'
 
-    def cmd(self,i,s,p):
-        return r"""
-            {self.bin}
-            INPUT={i[bam][0]}
-            OUTPUT_DIR=$OUT.dir
-            OUTPUT_PER_RG=true
-            VALIDATION_STRINGENCY=LENIENT
-        """
+#     def cmd(self,i,s,p):
+#         return r"""
+#             {self.bin}
+#             INPUT={i[bam][0]}
+#             OUTPUT=$OUT.bam
+#             VALIDATION_STRINGENCY=LENIENT
+#         """
 
+# class SAM2FASTQ_byrg(Picard):
+#     inputs = ['bam']
+#     outputs = ['dir']
+#     # time_req = 180
+#     mem_req = 12*1024
+#     #succeed_on_failure = True
 
-class SAM2FASTQ(Picard):
-    """
-    Assumes sorted
-    """
-    inputs = ['bam']
-    outputs = ['1.fastq','2.fastq']
-    mem_req = 3*1024
-    succeed_on_failure = True
+#     jar = 'SamToFastq.jar'
 
-    jar = 'SamToFastq.jar'
-
-    def cmd(self,i,s,p):
-        import re
-        return r"""
-            {self.bin}
-            INPUT={i[bam][0]}
-            FASTQ=$OUT.1.fastq
-            SECOND_END_FASTQ=$OUT.2.fastq
-            VALIDATION_STRINGENCY=SILENT
-        """
+#     def cmd(self,i,s,p):
+#         return r"""
+#             {self.bin}
+#             INPUT={i[bam][0]}
+#             OUTPUT_DIR=$OUT.dir
+#             OUTPUT_PER_RG=true
+#             VALIDATION_STRINGENCY=LENIENT
+#         """
 
 
-class MERGE_SAMS(Picard):
-    name = "Merge Sam Files"
-    mem_req = 3*1024
-    inputs = ['bam']
-    outputs = ['bam']
-    default_params = { 'assume_sorted': False}
+# class SAM2FASTQ(Picard):
+#     """
+#     Assumes sorted
+#     """
+#     inputs = ['bam']
+#     outputs = ['1.fastq','2.fastq']
+#     mem_req = 3*1024
+#     succeed_on_failure = True
+
+#     jar = 'SamToFastq.jar'
+
+#     def cmd(self,i,s,p):
+#         import re
+#         return r"""
+#             {self.bin}
+#             INPUT={i[bam][0]}
+#             FASTQ=$OUT.1.fastq
+#             SECOND_END_FASTQ=$OUT.2.fastq
+#             VALIDATION_STRINGENCY=SILENT
+#         """
+
+# class MERGE_SAMS(Picard):
+#     name = "Merge Sam Files"
+#     mem_req = 3*1024
+#     inputs = ['bam']
+#     outputs = ['bam']
+#     default_params = { 'assume_sorted': False}
     
-    jar = 'MergeSamFiles.jar'
+#     jar = 'MergeSamFiles.jar'
     
     
-    def cmd(self,i,s,p):
-        return r"""
-            {self.bin}
-            {inputs}
-            OUTPUT=$OUT.bam
-            SORT_ORDER=coordinate
-            MERGE_SEQUENCE_DICTIONARIES=True
-            ASSUME_SORTED={p[assume_sorted]}
-        """, {
-        'inputs' : "\n".join(["INPUT={0}".format(n) for n in i['bam']])
-        }
+#     def cmd(self,i,s,p):
+#         return r"""
+#             {self.bin}
+#             {inputs}
+#             OUTPUT=$OUT.bam
+#             SORT_ORDER=coordinate
+#             MERGE_SEQUENCE_DICTIONARIES=True
+#             ASSUME_SORTED={p[assume_sorted]}
+#         """, {
+#         'inputs' : "\n".join(["INPUT={0}".format(n) for n in i['bam']])
+#         }
                 
-class CLEAN_SAM(Picard):
-    name = "Clean Sams"
-    mem_req = 4*1024
-    inputs = ['bam']
-    outputs = ['bam']
+# class CLEAN_SAM(Picard):
+#     name = "Clean Sams"
+#     mem_req = 4*1024
+#     inputs = ['bam']
+#     outputs = ['bam']
         
-    jar = 'CleanSam.jar'
+#     jar = 'CleanSam.jar'
     
-    def cmd(self,i,s,p):
-        return r"""
-            {self.bin}
-            I={i[bam][0]}
-            O=$OUT.bam
-            VALIDATION_STRINGENCY=SILENT
-        """
+#     def cmd(self,i,s,p):
+#         return r"""
+#             {self.bin}
+#             I={i[bam][0]}
+#             O=$OUT.bam
+#             VALIDATION_STRINGENCY=SILENT
+#         """
 
-class SORT_BAM(Picard):
-    name = "Sort BAM"
-    mem_req = 4*1024
-    inputs = ['bam']
-    outputs = ['bam']
+# class SORT_BAM(Picard):
+#     name = "Sort BAM"
+#     mem_req = 4*1024
+#     inputs = ['bam']
+#     outputs = ['bam']
 
-    jar = 'SortSam.jar'
+#     jar = 'SortSam.jar'
 
-    def cmd(self,i,s,p):
-        return r"""
-            {self.bin}
-            I={i[bam][0]}
-            O=$OUT.bam
-            SORT_ORDER=coordinate
-        """
+#     def cmd(self,i,s,p):
+#         return r"""
+#             {self.bin}
+#             I={i[bam][0]}
+#             O=$OUT.bam
+#             SORT_ORDER=coordinate
+#         """
 
 
 
-class INDEX_BAM(Picard):
-    name = "Index Bam Files"
-    mem_req = 4*1024
-    forward_input = True
-    inputs = ['bam']
+# class INDEX_BAM(Picard):
+#     name = "Index Bam Files"
+#     mem_req = 4*1024
+#     forward_input = True
+#     inputs = ['bam']
         
-    jar = 'BuildBamIndex.jar'
+#     jar = 'BuildBamIndex.jar'
     
-    def cmd(self,i,s,p):
-        return r"""
-            {self.bin}
-            INPUT={i[bam][0]}
-            OUTPUT={i[bam][0]}.bai
-        """
+#     def cmd(self,i,s,p):
+#         return r"""
+#             {self.bin}
+#             INPUT={i[bam][0]}
+#             OUTPUT={i[bam][0]}.bai
+#         """
