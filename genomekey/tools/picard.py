@@ -44,7 +44,6 @@ class MarkDuplicates(Picard):
             ASSUME_SORTED=True
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
-            MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=4000
             {inputs}
         """, {'inputs': list2input(i['bam'])}
 
