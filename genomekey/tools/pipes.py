@@ -56,10 +56,14 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
         """
         Expects tags: chunk, library, sample_name, platform, platform_unit, pair
         """
+
+        # -v  3: print out all normal messages
+        # -M   : Mark shorter split hits as secondary (for Picard compatibility)
+        # -t   : Number of threads [1] 
         return r"""
             set -o pipefail &&
             {s[bwa_path]} mem
-            -v 3                # verbose for all normal messages
+            -v 3
             -M
             -t {self.cpu_req}
             -R "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}\tPU:{p[platform_unit]}"
