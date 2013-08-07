@@ -66,10 +66,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
         # -M   : Mark shorter split hits as secondary (for Picard compatibility)
         # -t   : Number of threads [1] 
         return r"""
-            set -o pipefail && {s[bwa_path]} mem
-            -v 3
-            -M
-            -t {self.cpu_req}
+            set -o pipefail && {s[bwa_path]} mem -v 3 -M -t {self.cpu_req}
             -R "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}\tPU:{p[platform_unit]}"
             {s[reference_fasta_path]}
             {i[fastq][0]}

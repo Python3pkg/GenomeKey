@@ -36,6 +36,7 @@ class MarkDuplicates(Picard):
         
     jar = 'MarkDuplicates.jar'
     
+    # Increased MAX_RECORDS_IN_RAM from 5M to 40M
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -44,7 +45,7 @@ class MarkDuplicates(Picard):
             ASSUME_SORTED=True
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
-            MAX_RECORDS_IN_RAM=4000000    # default:500000
+            MAX_RECORDS_IN_RAM=4000000
             {inputs}
         """, {'inputs': list2input(i['bam'])}
 
