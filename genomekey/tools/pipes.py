@@ -28,17 +28,23 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
     #         --secondOut $OUT.2.fastq.gz
     #         --unpairedOut $OUT.unpaired.fastq.gz
     #     """
+
+    # samtools option
+    # -f 0x1 : the read is paired in sequencing
+    # -h     : Include the header in the output
+    # -u     : Output uncompressed BAM
+    # -r STR : Only output reads in read group STR
+
     def cmd(self,i,s,p):
         return r"""
-            set -o pipefail &&
-            {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]}
+            set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]}
             |
             {self.bin} INPUT=/dev/stdin OUTPUT=/dev/stdout
             VALIDATION_STRINGENCY=SILENT
             MAX_RECORDS_IN_RAM=4000000
             COMPRESSION_LEVEL=0
             |
-            {s[bamUtil_path]} bam2FastQ --params --in -.ubam
+            {s[bamUtil_path]} bam2FastQ --in -.ubam
             --firstOut    $OUT.1.fastq
             --secondOut   $OUT.2.fastq
             --unpairedOut /dev/null
@@ -56,13 +62,11 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
         """
         Expects tags: chunk, library, sample_name, platform, platform_unit, pair
         """
-
-        # -v  3: print out all normal messages
+        # -v 3 : Show all normal messages
         # -M   : Mark shorter split hits as secondary (for Picard compatibility)
         # -t   : Number of threads [1] 
         return r"""
-            set -o pipefail &&
-            {s[bwa_path]} mem
+            set -o pipefail && {s[bwa_path]} mem
             -v 3
             -M
             -t {self.cpu_req}
