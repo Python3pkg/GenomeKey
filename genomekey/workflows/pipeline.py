@@ -18,7 +18,7 @@ def Pipeline():
     align_to_reference = sequence_(
         apply_(
 #           reduce_(['sample_name', 'library'], misc.FastqStats),
-            reduce_(['sample_name', 'library', 'platform', 'platform_unit', 'chunk'], pipes.AlignAndClean)
+            reduce_(['sample_name', 'library', 'platform', 'platform_unit', 'chunk', 'sqsn', 'bam', 'rgid'], pipes.AlignAndClean)
         ),
     )
 

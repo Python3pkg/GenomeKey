@@ -94,7 +94,8 @@ def Bam2Fastq(workflow, dag, settings, bams):
     bam_seq = None
     for b in bams:
         header = _getHeaderInfo(b)
-        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"), split_([('rgid', header['rgid']), ('sqsn', header['sqsn'])], pipes.FilterBamByRG_To_FastQ))
+        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"), 
+                  split_([('rgid', header['rgid']), ('sqsn', header['sqsn'])], pipes.FilterBamByRG_To_FastQ))
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = seq_(bam_seq, s, combine=True)
 
