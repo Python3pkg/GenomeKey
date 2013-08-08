@@ -37,7 +37,7 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
 
     def cmd(self,i,s,p):
         return r"""
-            set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]}
+            set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sqsn]}
             |
             {self.bin} INPUT=/dev/stdin OUTPUT=/dev/stdout
             VALIDATION_STRINGENCY=SILENT

@@ -15,6 +15,8 @@ import logging as log
 import gzip
 import argparse
 
+from subprocess import call
+
 from itertools import islice
 from cosmos.utils.helpers import confirm
 
@@ -25,14 +27,24 @@ def splitFastq(input_fastq,output_dir,chunksize,buffersize):
     log.info('Opening {0}'.format(input_fastq))
 
     ## output file type will be decided based on input format
-    if input_fastq.endswith('.gz'):
-        infile  = gzip.open(input_fastq, 'rb')
-        outType = '.fastq.gz'
-    else:
-        infile  =      open(input_fastq, 'rb')
-        outType = '.fastq'
+    if input_fastq.endswith('.gz'): outType = '.fastq.gz'
+    else:                           outType = '.fastq'
 
     output_prefix = re.search("(.+?)(_001)*\.(fastq|fq)(\.gz)*", os.path.basename(input_fastq)).group(1)
+
+    
+    # input < 512MB, then just make a symbolic link
+    size = os.stat(input_fastq).st_size
+    log.info('input file size = {0}/1048576 = {1}'.format(size, size/1048576))
+    if os.stat(input_fastq).st_size/1048576 < 512 :
+        log.info('input file {0} < 512MB, do not split, but make a symbolic link'.format(input_fastq))
+        outFileName = output_dir + "/" + '{0}_001'.format(output_prefix) + outType
+        call(["ln", "-s", '{0}'.format(input_fastq), '{0}'.format(outFileName)])
+        return
+
+
+    if input_fastq.endswith('.gz'): infile = gzip.open(input_fastq, 'rb')
+    else:                           infile =      open(input_fastq, 'rb')
 
     #write chunks
     chunk = 0

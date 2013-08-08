@@ -35,6 +35,22 @@ def _getRgids(input_bam):
 
     return [ tags['ID'] for tags in RG ]
 
+def _getSeqNames(input_bam):
+    if   input_bam[-3:] == 'bam': SQ = pysam.Samfile(input_bam,'rb').header['SQ']
+    elif input_bam[-3:] == 'sam': SQ = pysam.Samfile(input_bam,'r' ).header['SQ']
+    else:
+        raise TypeError, 'input file is not a bam or sam'
+
+    return [ tags['SN'] for tags in SQ ]
+
+def _getHeaderInfo(input_bam):
+    if   input_bam[-3:] == 'bam': header = pysam.Samfile(input_bam,'rb').header
+    elif input_bam[-3:] == 'sam': header = pysam.Samfile(input_bam,'r' ).header
+    else:
+        raise TypeError, 'input file is not a bam or sam'
+
+    return {'rgid': [ tags['ID'] for tags in header['RG']], 'sqsn': [ tags['SN'] for tags in header['SQ']] }
+
 
 def _splitfastq2inputs(dag):
     """
@@ -75,7 +91,16 @@ seq_ = sequence_
 def Bam2Fastq(workflow, dag, settings, bams):
 
     # Set "Load BAM" and "BAMs to FASTQs"
-    bam_seq = seq_( *[ seq_( add_([ INPUT(b, tags={'bam': opb(b)})], stage_name="Load BAMs"), split_([('rgid', _getRgids(b))], pipes.FilterBamByRG_To_FastQ) ) for b in bams], combine=True)
+#    bam_seq = seq_( *[ seq_( add_([ INPUT(b, tags={'bam': opb(b)})], stage_name="Load BAMs"), 
+#                             split_([('rgid', _getRgids(b)),('sn', _getSeqNames(b))], pipes.FilterBamByRG_To_FastQ) ) for b in bams], combine=True)
+
+    bam_seq = None
+    for b in bams:
+        header = _getHeaderInfo(b)
+        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"), split_([('rgid', header['rgid']), ('sqsn', header['sqsn'])], pipes.FilterBamByRG_To_FastQ))
+        if bam_seq is None:   bam_seq = s
+        else:                 bam_seq = seq_(bam_seq, s, combine=True)
+
 
     # Add "Split FASTQ" stage and run
     dag.sequence_(bam_seq, split_([('pair',[1,2])], genomekey_scripts.SplitFastq), configure(settings), add_run(workflow, finish=False))

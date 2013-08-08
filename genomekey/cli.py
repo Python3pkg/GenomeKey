@@ -154,11 +154,10 @@ def main():
 
     bam_sp = subparsers.add_parser('bam',help="Input is a BAM or list of BAMs",description=bam.__doc__,formatter_class=RawTextHelpFormatter)
     cli.add_workflow_args(bam_sp)
-    bam_sp.add_argument('-i','--input_bam',type=file,help='A path to a BAM with RGs properly annotated')
+    bam_sp.add_argument('-i', '--input_bam',type=file,help='A path to a BAM with RGs properly annotated')
     bam_sp.add_argument('-il','--input_bam_list',type=file,help='A path to a file containing a list of paths to BAMs, separated by newlines')
     bam_sp.add_argument('-ped','--pedigree_file',type=file,help='A Pedigree File to pass to all GATK tools')
-    bam_sp.add_argument('-capture','--capture',action="store_true",default=False,help='Signifies that a capture technology was used.  Currently'
-                                                                                       'all this does is remove -an DP to VQSR')
+    bam_sp.add_argument('-capture','--capture',action="store_true",default=False,help='Signifies that a capture technology was used.  Currently all this does is remove -an DP to VQSR')
     bam_sp.set_defaults(func=bam)
 
     downdbs_sp = subparsers.add_parser('downdbs',help=downdbs.__doc__)
@@ -178,11 +177,13 @@ def main():
     sp.set_defaults(func=gunzip)
 
     wf,kwargs = cli.parse_args(parser)
-    wga_settings['test'] = kwargs['test']
-    wga_settings['lustre'] = kwargs['lustre']
+    wga_settings['test']    = kwargs['test']
+    wga_settings['lustre']  = kwargs['lustre']
     wga_settings['tmp_dir'] = kwargs.get('temp_directory')
     wga_settings['capture'] = kwargs.get('capture',None)
+
     ped_file = kwargs.get('pedigree',None)
+
     wga_settings['pedigree'] = ped_file.name if ped_file else None
 
     wf.log.info('wga_settings =\n{0}'.format(pprint.pformat(wga_settings,indent=2)))
