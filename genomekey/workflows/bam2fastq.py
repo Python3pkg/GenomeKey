@@ -54,7 +54,7 @@ def _getHeaderInfo(input_bam):
 
 def _splitfastq2inputs(dag):
     """
-    Assumes dag's active tools are from SplitFastq.  Traverses their output for the fastq files, and
+    Assumes dag's active tools are from SplitFastq. Traverses their output for the fastq files, and
     yields new INPUTs properly annotated with dags, and children of their right SplitFastq parent.
     """
     for split_fastq_tool in dag.active_tools:
@@ -63,8 +63,8 @@ def _splitfastq2inputs(dag):
         # Get The RG info and place into a dictionary for tags
         # note: FilterBamByRG's output bam has the right RG information
         input_tool = split_fastq_tool.parent.parent
-        bam_path   = TaskFile.objects.get(id=input_tool.get_output('bam').id).path
-        RGs        = pysam.Samfile(bam_path,'rb').header['RG']
+        bam_path = TaskFile.objects.get(id=input_tool.get_output('bam').id).path
+        RGs = pysam.Samfile(bam_path,'rb').header['RG']
 
         # FilterBamByRG does not remove the non-filtered RGs from the new header
         RG = [ d for d in RGs if d['ID'] == split_fastq_tool.tags['rgid']][0]
@@ -76,8 +76,8 @@ def _splitfastq2inputs(dag):
         # Add fastq chucks as input files
         fastq_output_dir = TaskFile.objects.get(id=split_fastq_tool.get_output('dir').id).path
         for f in os.listdir(fastq_output_dir):
-            fastq_path     = os.path.join(fastq_output_dir,f)
-            tags2          = tags.copy()
+            fastq_path = os.path.realpath(os.path.join(fastq_output_dir,f))
+            tags2 = tags.copy()
             tags2['chunk'] = re.search("(\d+)\.fastq",f).group(1)
 
             i = INPUT(name='fastq',path=fastq_path,tags=tags2,stage_name='Load FASTQ')
@@ -90,9 +90,6 @@ seq_ = sequence_
 
 def Bam2Fastq(workflow, dag, settings, bams):
 
-    # Set "Load BAM" and "BAMs to FASTQs"
-#    bam_seq = seq_( *[ seq_( add_([ INPUT(b, tags={'bam': opb(b)})], stage_name="Load BAMs"), 
-#                             split_([('rgid', _getRgids(b)),('sn', _getSeqNames(b))], pipes.FilterBamByRG_To_FastQ) ) for b in bams], combine=True)
 
     bam_seq = None
     for b in bams:
@@ -102,7 +99,7 @@ def Bam2Fastq(workflow, dag, settings, bams):
         else:                 bam_seq = seq_(bam_seq, s, combine=True)
 
 
-    # Add "Split FASTQ" stage and run
+    # Add "Split FASTQ" stage
     dag.sequence_(bam_seq, split_([('pair',[1,2])], genomekey_scripts.SplitFastq), configure(settings), add_run(workflow, finish=False))
 
     # Set "Load FASTQ" stage

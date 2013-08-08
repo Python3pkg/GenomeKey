@@ -8,7 +8,7 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
     outputs = ['1.fastq','2.fastq']
     time_req = 12*60
     mem_req = 7*1024
-    cpu_req=2
+    cpu_req=1 # if it's split by sqsn
 
     # def cmd(self,i,s,p):
     #     return r"""
