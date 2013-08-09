@@ -69,6 +69,7 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
 
     dag = DAG(ignore_stage_name_collisions=True)
     Bam2Fastq(workflow,dag,wga_settings,input_bams)
+    exit
     dag.sequence_(
          Pipeline(),
          configure(wga_settings),
@@ -200,7 +201,7 @@ if __name__ == '__main__':
 
 from genomekey.workflows.pipeline import Pipeline
 from genomekey.workflows.annotate import massive_annotation, get_db_names
-from genomekey.workflows.bam2fastq import Bam2Fastq
+from genomekey.workflows.bam2fastq2 import Bam2Fastq
 from genomekey.tools import annovarext
 from genomekey.tools import unix
 from genomekey.wga_settings import wga_settings

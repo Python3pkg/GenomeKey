@@ -2,6 +2,8 @@ from . import picard, bamUtil, samtools,bwa
 import os
 opj = os.path.join
     
+
+    
 class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
     name = "BAM to FASTQ"
     inputs = ['bam']
@@ -99,3 +101,34 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             CleanSam               = opj(s['Picard_dir'],'CleanSam.jar'),
             SortSam                = opj(s['Picard_dir'],'SortSam.jar')
         )
+
+
+    
+class Bam_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
+    name = "BAM to FASTQ"
+    inputs = ['bam']
+    outputs = ['1.fastq','2.fastq']
+    time_req = 12*60
+    mem_req = 7*1024
+    cpu_req=1 # if it's split by sqsn
+
+    # samtools option
+    # -f 0x1 : the read is paired in sequencing
+    # -h     : Include the header in the output
+    # -u     : Output uncompressed BAM
+    # -r STR : Only output reads in read group STR
+
+    def cmd(self,i,s,p):
+        return r"""
+            set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[region]}
+            |
+            {self.bin} INPUT=/dev/stdin OUTPUT=/dev/stdout
+            VALIDATION_STRINGENCY=SILENT
+            MAX_RECORDS_IN_RAM=4000000
+            COMPRESSION_LEVEL=0
+            |
+            {s[bamUtil_path]} bam2FastQ --in -.ubam
+            --firstOut    $OUT.1.fastq
+            --secondOut   $OUT.2.fastq
+            --unpairedOut /dev/null
+        """
