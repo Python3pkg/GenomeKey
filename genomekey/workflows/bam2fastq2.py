@@ -34,9 +34,11 @@ def _getRegions(sq):
 
     regions = []
 
+    TOTAL_RGID = 1
     TOTAL_CPUS_IN_THE_CLUSTER = 8*4
-
-    targetBlockSize = int(totalLen/(TOTAL_CPUS_IN_THE_CLUSTER+1))
+    
+    targetTaskNum   = TOTAL_CPUS_IN_THE_CLUSTER*2
+    targetBlockSize = int(totalLen/targetTaskNum)
 
     log.info("\n TargetBlockSize = {0}\n".format(targetBlockSize))
 
@@ -84,8 +86,8 @@ def _getRegions(sq):
     if (currRegion != ""):
         regions.append(currRegion)
 
-    for r in regions:
-        log.info('region: {0}'.format(r))
+#    for r in regions:
+#        log.info('region: {0}'.format(r))
 
     return regions
 
@@ -98,7 +100,7 @@ def _fastq2input(dag):
 
     
     for tool in dag.active_tools:
-        log.info('dag.active_tool= {0}, output= {1}'.format(tool, tool.get_output_file_names()))
+        #log.info('dag.active_tool= {0}, output= {1}'.format(tool, tool.get_output('1.fastq')))
         tags = tool.tags.copy()
 
         # Get The RG info and place into a dictionary for tags
@@ -112,12 +114,14 @@ def _fastq2input(dag):
         tags['platform']      = RG['PL']
         tags['platform_unit'] = RG.get('PU', RG['ID']) # use 'ID' if 'PU' does not exist
 
-        log.info('tags= {0}'.format(tags))
+        #log.info('tags= {0}'.format(tags))
 
         # Add each fastq as input file
         for idx in [1,2]:
-            fastq = tool.get_output('{0}.fastq'.format(idx)).path
-            log.info('fastq= {0}'.format(fastq))
+            fastq = TaskFile.objects.get(id=tool.get_output('{0}.fastq'.format(idx)).id).path
+
+            if os.stat(fastq).st_size == 0: continue   # somtimes output fastq file can be empty
+
             newTag = tags.copy()
             newTag['pair'] = idx
             i = INPUT(name='fastq',path=fastq,tags=newTag)
@@ -139,24 +143,12 @@ def Bam2Fastq(workflow, dag, settings, bams):
         region = _getRegions(header['sq'])
 
         rgid = [ h[0] for h in header['rg']]
-        rgsm = [ h[1] for h in header['rg']]
-        rglb = [ h[2] for h in header['rg']]
-        rgpl = [ h[2] for h in header['rg']]
-        
-        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"),
-                  split_([ ('rgid',rgid),('region', region)], pipes.Bam_To_FastQ))
- #                split_([ ('rgid',rgid),('sample_name',rgsm),('library',rglb),('platform',rgpl),('platform_unit',rgid),('region',region)], pipes.Bam_To_FastQ))
+
+        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"), split_([ ('rgid',rgid),('region', region)], pipes.Bam_To_FastQ))
 
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = seq_(bam_seq, s, combine=True)
 
 
-    # Add "Split FASTQ" stage
-    #dag.sequence_(bam_seq, split_([('pair',[1,2])], genomekey_scripts.SplitFastq), configure(settings), add_run(workflow, finish=False))
+    dag.sequence_(bam_seq, configure(settings), add_run(workflow)).add_(_fastq2input(dag), stage_name="Input FASTQ")
 
-    dag.sequence_(bam_seq, configure(settings), add_run(workflow))
-    dag.add_(_fastq2input(dag), stage_name="Input FASTQ")
-    #dag.sequence_(bam_seq, add_(_fastq2input(dag), stage_name="Input FASTQ"))
-
-    # Set "Load FASTQ" stage
-    #dag.add_(list(_fastq2input(dag)))
