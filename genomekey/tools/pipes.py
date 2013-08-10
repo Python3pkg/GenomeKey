@@ -104,7 +104,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
 
 
     
-class Bam_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
+class Bam_To_FastQ(picard.REVERTSAM):
     name = "BAM to FASTQ"
     inputs = ['bam']
     outputs = ['1.fastq','2.fastq']
@@ -117,6 +117,9 @@ class Bam_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
     # -h     : Include the header in the output
     # -u     : Output uncompressed BAM
     # -r STR : Only output reads in read group STR
+    
+    # picard option
+    # MAX_RECORDS_IN_RAM: default 500000 at 2GB memory.
 
     def cmd(self,i,s,p):
         return r"""
@@ -124,7 +127,7 @@ class Bam_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
             |
             {self.bin} INPUT=/dev/stdin OUTPUT=/dev/stdout
             VALIDATION_STRINGENCY=SILENT
-            MAX_RECORDS_IN_RAM=4000000
+            MAX_RECORDS_IN_RAM=4000000 
             COMPRESSION_LEVEL=0
             |
             {s[bamUtil_path]} bam2FastQ --in -.ubam

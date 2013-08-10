@@ -2,7 +2,7 @@ import os
 import re
 import pysam
 
-from cosmos.lib.ezflow.dag  import DAG, add_, split_, sequence_, configure, add_run
+from cosmos.lib.ezflow.dag  import DAG, add_, split_, sequence_, configure, add_run, add_to_workflow
 from cosmos.lib.ezflow.tool import INPUT
 from cosmos.Workflow.models import TaskFile
 
@@ -90,17 +90,19 @@ def _getRegions(sq):
     return regions
 
     
-def _fastq2inputs(dag):
+def _fastq2input(dag):
     """
     Traverses their output for the fastq files, and yields new INPUTs properly annotated with dags, and children of their right parent.
     """
+    fastq_input = list()
+
+    
     for tool in dag.active_tools:
+        log.info('dag.active_tool= {0}, output= {1}'.format(tool, tool.get_output_file_names()))
         tags = tool.tags.copy()
 
         # Get The RG info and place into a dictionary for tags
-        # note: FilterBamByRG's output bam has the right RG information
-        input_tool = tool.parent
-        bam_path = TaskFile.objects.get(id=input_tool.get_output('bam').id).path
+        bam_path = tool.parent.get_output('bam').path
         RGs = pysam.Samfile(bam_path,'rb').header['RG']
 
         # FilterBamByRG does not remove the non-filtered RGs from the new header
@@ -110,17 +112,20 @@ def _fastq2inputs(dag):
         tags['platform']      = RG['PL']
         tags['platform_unit'] = RG.get('PU', RG['ID']) # use 'ID' if 'PU' does not exist
 
-        # Add fastq chucks as input files
-        fastq_output_dir = TaskFile.objects.get(id=tool.get_output('dir').id).path
-        for f in os.listdir(fastq_output_dir):
-            fastq_path = os.path.realpath(os.path.join(fastq_output_dir,f))
-            tags2 = tags.copy()
-            tags2['chunk'] = re.search("(\d+)\.fastq",f).group(1)
+        log.info('tags= {0}'.format(tags))
 
-            i = INPUT(name='fastq',path=fastq_path,tags=tags2,stage_name='Load FASTQ')
-            dag.add_edge(tool,i)
-            yield i
+        # Add each fastq as input file
+        for idx in [1,2]:
+            fastq = tool.get_output('{0}.fastq'.format(idx)).path
+            log.info('fastq= {0}'.format(fastq))
+            newTag = tags.copy()
+            newTag['pair'] = idx
+            i = INPUT(name='fastq',path=fastq,tags=newTag)
+            dag.add_edge(tool, i)
+            
+            fastq_input.append(i)
 
+    return list(fastq_input)
 
 opb  = os.path.basename
 seq_ = sequence_
@@ -139,8 +144,8 @@ def Bam2Fastq(workflow, dag, settings, bams):
         rgpl = [ h[2] for h in header['rg']]
         
         s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"),
-                  split_([ ('rgid',rgid),('region',region)], pipes.Bam_To_FastQ))
- #                 split_([ ('rgid',rgid),('sample_name',rgsm),('library',rglb),('platform',rgpl),('platform_unit',rgid),('region',region)], pipes.Bam_To_FastQ))
+                  split_([ ('rgid',rgid),('region', region)], pipes.Bam_To_FastQ))
+ #                split_([ ('rgid',rgid),('sample_name',rgsm),('library',rglb),('platform',rgpl),('platform_unit',rgid),('region',region)], pipes.Bam_To_FastQ))
 
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = seq_(bam_seq, s, combine=True)
@@ -149,5 +154,9 @@ def Bam2Fastq(workflow, dag, settings, bams):
     # Add "Split FASTQ" stage
     #dag.sequence_(bam_seq, split_([('pair',[1,2])], genomekey_scripts.SplitFastq), configure(settings), add_run(workflow, finish=False))
 
+    dag.sequence_(bam_seq, configure(settings), add_run(workflow))
+    dag.add_(_fastq2input(dag), stage_name="Input FASTQ")
+    #dag.sequence_(bam_seq, add_(_fastq2input(dag), stage_name="Input FASTQ"))
+
     # Set "Load FASTQ" stage
-    dag.sequence_(bam_seq, configure(settings), add_run(workflow, finish=False)).add_(list(_fastq2inputs(dag)))
+    #dag.add_(list(_fastq2input(dag)))
