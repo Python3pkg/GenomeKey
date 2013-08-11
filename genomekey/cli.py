@@ -199,7 +199,7 @@ def main():
 if __name__ == '__main__':
     main()
 
-from genomekey.workflows.pipeline import Pipeline
+from genomekey.workflows.pipeline2 import Pipeline
 from genomekey.workflows.annotate import massive_annotation, get_db_names
 from genomekey.workflows.bam2fastq2 import Bam2Fastq
 from genomekey.tools import annovarext

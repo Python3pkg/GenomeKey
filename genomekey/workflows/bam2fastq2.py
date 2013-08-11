@@ -24,20 +24,21 @@ def _getHeaderInfo(input_bam):
             'sq': [ [tags['SN'], tags['LN']]                          for tags in header['SQ']]
            }
 
-def _getRegions(sq):
+def _getRegions(header):
 
 #   for s in sq:
 #       log.info('SN= {0}\tLN= {1}'.format(s[0], s[1]))
 
-    totalLen = sum(s[1] for s in sq)
+    totalLen = sum(sn[1] for sn in header['sq'])
     log.info('Total LN sum = {0}'.format(totalLen))
 
     regions = []
 
-    TOTAL_RGID = 1
+    TOTAL_RGID = len([tags for tags in header['rg']])
+
     TOTAL_CPUS_IN_THE_CLUSTER = 8*4
     
-    targetTaskNum   = TOTAL_CPUS_IN_THE_CLUSTER*2
+    targetTaskNum   = TOTAL_CPUS_IN_THE_CLUSTER*2/TOTAL_RGID
     targetBlockSize = int(totalLen/targetTaskNum)
 
     log.info("\n TargetBlockSize = {0}\n".format(targetBlockSize))
@@ -45,7 +46,7 @@ def _getRegions(sq):
     currBlockSize = 0
     currRegion    = ""
 
-    for sn in sq:
+    for sn in header['sq']:
         seqname     = sn[0]
         size        = sn[1]
         chunkRemain = size
@@ -112,7 +113,6 @@ def _fastq2input(dag):
         tags['sample_name']   = RG['SM']
         tags['library']       = RG['LB']
         tags['platform']      = RG['PL']
-        tags['platform_unit'] = RG.get('PU', RG['ID']) # use 'ID' if 'PU' does not exist
 
         #log.info('tags= {0}'.format(tags))
 
@@ -140,7 +140,7 @@ def Bam2Fastq(workflow, dag, settings, bams):
     
     for b in bams:
         header = _getHeaderInfo(b)
-        region = _getRegions(header['sq'])
+        region = _getRegions(header)
 
         rgid = [ h[0] for h in header['rg']]
 
@@ -150,5 +150,5 @@ def Bam2Fastq(workflow, dag, settings, bams):
         else:                 bam_seq = seq_(bam_seq, s, combine=True)
 
 
-    dag.sequence_(bam_seq, configure(settings), add_run(workflow)).add_(_fastq2input(dag), stage_name="Input FASTQ")
+    dag.sequence_(bam_seq, configure(settings), add_run(workflow,finish=False)).add_(_fastq2input(dag), stage_name="Input FASTQ")
 

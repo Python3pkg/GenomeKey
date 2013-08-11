@@ -13,10 +13,8 @@ def get_interval(param_dict):
     :param param_dict: parameter dictionary
     :return: '' if param_dict does not have 'interval' in it, otherwise -L p['interval']
     """
-    if 'interval' in param_dict:
-        return '--intervals {0}'.format(param_dict['interval'])
-    else:
-        return ''
+    if 'interval' in param_dict: return '--intervals {0}'.format(param_dict['interval'])
+    else:                        return ''
 
 def get_sleep(settings_dict):
     """
@@ -37,14 +35,14 @@ def get_pedigree(settings_dict):
     :return: '' if settings_dict does not have 'interval' in it, otherwise -L p['interval']
     """
     ped_path = settings_dict['pedigree']
-    if ped_path:
-        return ' --pedigree {0}'.format(ped_path)
-    else:
-        return ''
+    if ped_path: return ' --pedigree {0}'.format(ped_path)
+    else:        return ''
+
 
 class GATK(Tool):
+    cpu_req  = 1
+    mem_req  = 5*1024
     time_req = 12*60
-    mem_req = 5*1024
 
     @property
     def bin(self):
@@ -55,14 +53,17 @@ class GATK(Tool):
         #import ipdb; ipdb.set_trace()
         return new_cmd_str,format_dict
 
+
 class BQSRGatherer(Tool):
     name="BQSR Gatherer"
-    time_req=10
-    mem_req=3*1024
-    inputs = ['bam','recal']
-    outputs = ['recal']
+    cpu_req  = 1
+    mem_req  = 3*1024
+    time_req = 10
+    inputs   = ['bam','recal']
+    outputs  = ['recal']
+
+    persist  = True
     forward_input = True
-    persist=True
 
     def cmd(self,i, s, p):
         return r"""
@@ -77,14 +78,14 @@ class BQSRGatherer(Tool):
         }
 
 class RealignerTargetCreator(GATK):
-    name = "Indel Realigner Target Creator"
+    name    = "Realigner Target Creator"
+    cpu_req = 1
     mem_req = 8*1024
-    #cpu_req = 4
-    cpu_req = 2
-    inputs = ['bam']
+    inputs  = ['bam']
     outputs = ['intervals']
+
+    persist = True
     forward_input = True
-    persist=True
     
     def cmd(self,i,s,p):
         return r"""
@@ -98,13 +99,13 @@ class RealignerTargetCreator(GATK):
             --num_threads {self.cpu_req}
             {interval}
             {sleep}
-        """,{'interval':get_interval(p),
-             'sleep': get_sleep(s)}
+        """,{'interval':get_interval(p), 'sleep': get_sleep(s)}
     
 class IndelRealigner(GATK):
-    name = "Indel Realigner"
+    name    = "Indel Realigner"
+    cpu_req = 1
     mem_req = 8*1024
-    inputs = ['bam','intervals']
+    inputs  = ['bam','intervals']
     outputs = ['bam']
     
     def cmd(self,i,s,p):
@@ -120,17 +121,16 @@ class IndelRealigner(GATK):
             -model USE_READS
             -compress 0
             {interval} {sleep}
-        """,{'interval':get_interval(p),
-             'sleep': get_sleep(s)}
+        """,{'interval':get_interval(p), 'sleep': get_sleep(s)}
     
 class BQSR(GATK):
-    name = "Base Quality Score Recalibration"
-    #cpu_req = 8
-    cpu_req = 4
+    name    = "Base Quality Score Recalibration"
+    cpu_req = 1 #4
     mem_req = 9*1024
-    inputs = ['bam']
-    outputs = ['recal']
-    persist=True
+    inputs  = ['bam']
+    outputs = ['grp']
+
+    persist = True
     forward_input = True
 
     def cmd(self,i,s,p):
@@ -139,26 +139,20 @@ class BQSR(GATK):
             -T BaseRecalibrator
             -R {s[reference_fasta_path]}
             {inputs}
-            -o $OUT.recal
+            -o $OUT.grp
+            -knownSites {s[dbsnp_path]}
+            -knownSites {s[omni_path]}
             -knownSites {s[indels_1000g_phase1_path]}
             -knownSites {s[mills_path]}
-            --disable_indel_quals
-            -cov ReadGroupCovariate
-            -cov QualityScoreCovariate
-            -cov CycleCovariate
-            -cov ContextCovariate
             -nct {nct}
             {sleep}
-        """, {
-            'inputs' : list2input(i['bam']),
-            'nct': self.cpu_req +1,
-             'sleep': get_sleep(s)
-          }
+        """, {'inputs' : list2input(i['bam']), 'nct': self.cpu_req +1, 'sleep': get_sleep(s)}
     
 class ApplyBQSR(GATK):
-    name = "Apply BQSR"
+    name    = "Apply BQSR"
+    cpu_req = 1
     mem_req = 8*1024
-    inputs = ['bam','recal']
+    inputs  = ['bam','grp']
     outputs = ['bam']
 
     # def map_inputs(self):
@@ -183,21 +177,17 @@ class ApplyBQSR(GATK):
             {inputs}
             -o $OUT.bam
             -compress 0
-            -BQSR {i[recal][0]}
+            -BQSR {i[grp][0]}
             {sleep}
-        """, {
-            'inputs' : list2input(i['bam']),
-             'sleep': get_sleep(s)
-        }
+        """, {'inputs' : list2input(i['bam']), 'sleep': get_sleep(s)}
 
 class ReduceReads(GATK):
-    name = "Reduce Reads"
-    mem_req = 30*1024
-    cpu_req = 1
-    inputs = ['bam']
-    outputs = ['bam']
-    reduce_reads=True
+    name     = "Reduce Reads"
+    cpu_req  = 1
+    mem_req  = 30*1024
     time_req = 12*60
+    inputs   = ['bam']
+    outputs  = ['bam']
 
     def cmd(self,i,s,p):
         return r"""
@@ -209,18 +199,16 @@ class ReduceReads(GATK):
            -o $OUT.bam
            {interval}
            {inputs}           
-        """, {
-            'inputs' : list2input(i['bam']),
-            'interval': get_interval(p)
-        }
+        """, {'inputs' : list2input(i['bam']), 'interval': get_interval(p)}
 
 class HaplotypeCaller(GATK):
-    name = "Haplotype Caller"
-    mem_req = 5.5*1024
-    cpu_req = 1
-    inputs = ['bam']
-    outputs = ['vcf']
+    name     = "Haplotype Caller"
+    cpu_req  = 1
+    mem_req  = 5.5*1024
     time_req = 12*60
+    inputs   = ['bam']
+    outputs  = ['vcf']
+
 
     def cmd(self,i,s,p):
         return r"""
@@ -246,12 +234,12 @@ class HaplotypeCaller(GATK):
         }
 
 class UnifiedGenotyper(GATK):
-    name = "Unified Genotyper"
-    mem_req = 6.5*1024
-    cpu_req = 6
-    inputs = ['bam']
-    outputs = ['vcf']
+    name     = "Unified Genotyper"
+    cpu_req  = 6
+    mem_req  = 6.5*1024
     time_req = 12*60
+    inputs   = ['bam']
+    outputs  = ['vcf']
     
     def cmd(self,i,s,p):
         return r"""
@@ -279,17 +267,16 @@ class UnifiedGenotyper(GATK):
         }
     
 class CombineVariants(GATK):
-    name = "Combine Variants"
-    mem_req = 3*1024
-    time_req = 12*60
+    name     = "Combine Variants"
+    cpu_req  = 1
+    mem_req  = 3*1024
+    time_req = 12*60    
+    inputs   = ['vcf']
+    outputs  = [TaskFile(name='vcf',basename='master.vcf')]
+
+    persist  = True
     
-    inputs = ['vcf']
-    outputs = [TaskFile(name='vcf',basename='master.vcf')]
-    persist = True
-    
-    default_params = {
-      'genotypeMergeOptions':'UNSORTED'       
-    }
+    default_params = {'genotypeMergeOptions':'UNSORTED'}
     
     def cmd(self,i,s,p):
         """
@@ -321,30 +308,25 @@ class VQSR(GATK):
     Note that HaplotypeScore is no longer applicable to indels
     see http://gatkforums.broadinstitute.org/discussion/2463/unified-genotyper-no-haplotype-score-annotated-for-indels
     """
-    name = "Variant Quality Score Recalibration"
-    mem_req = 8*1024
-    cpu_req = 6
+    name     = "Variant Quality Score Recalibration"
+    cpu_req  = 1#6
+    mem_req  = 8*1024
     time_req = 12*60
-    inputs = ['vcf']
-    outputs = ['recal','tranches','R']
-    persist=True
-    
+    inputs   = ['vcf']
+    outputs  = ['recal','tranches','R']
+
+    persist  = True
     forward_input = True
     
-    default_params = {
-      'inbreeding_coeff' : False
-    }
+    default_params = { 'inbreeding_coeff' : False}
 
     def cmd(self,i,s,p):
         annotations = ['MQRankSum','ReadPosRankSum','FS',]
-        if not s['capture']:
-           annotations.append('DP')
-        if p['inbreeding_coeff']:
-            annotations.append('InbreedingCoeff')
+        if not s['capture']:      annotations.append('DP')
+        if p['inbreeding_coeff']: annotations.append('InbreedingCoeff')
+        if p['glm'] == 'SNP':     annotations.extend(['QD','HaplotypeScore'])
 
-        if p['glm'] == 'SNP':
-            annotations.extend(['QD','HaplotypeScore'])
-            cmd = r"""
+        return r"""
             {self.bin}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
@@ -354,41 +336,25 @@ class VQSR(GATK):
             -resource:omni,known=false,training=true,truth=true,prior=12.0 {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
             -an {an}
-            -mode SNP
+            -mode {p['glm']
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
             -nt {self.cpu_req}
-            """
-        elif p['glm'] == 'INDEL':
-            cmd = r"""
-            {self.bin}
-            -T VariantRecalibrator
-            -R {s[reference_fasta_path]}
-            -input {i[vcf][0]}
-            --maxGaussians 4 -percentBad 0.01 -minNumBad 1000
-            -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
-            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
-            -an {an}
-            -mode INDEL
-            -recalFile $OUT.recal
-            -tranchesFile $OUT.tranches
-            -rscriptFile $OUT.R
-            """
-        return cmd, {'an':' -an '.join(annotations)}
+            """,{'an':' -an '.join(annotations)}
     
 class Apply_VQSR(GATK):
-    name = "Apply VQSR"
-    mem_req = 8*1024
+    name     = "Apply VQSR"
+    cpu_req  = 1
+    mem_req  = 8*1024
     time_req = 12*60
-    persist=True
+    inputs   = ['vcf','recal','tranches']
+    outputs  = [TaskFile(name='vcf',persist=True)]
     
-    inputs = ['vcf','recal','tranches']
-    outputs = [TaskFile(name='vcf',persist=True)]
+    persist  = True    
     
     def cmd(self,i,s,p):
-        if p['glm'] == 'SNP': 
-            cmd = r"""
+        return r"""
             {self.bin}
             -T ApplyRecalibration
             -R {s[reference_fasta_path]}
@@ -397,19 +363,5 @@ class Apply_VQSR(GATK):
             -recalFile {i[recal][0]}
             -o $OUT.vcf
             --ts_filter_level 99.9
-            -mode SNP
-            """
-        elif p['glm'] == 'INDEL':
-            cmd = r"""
-            {self.bin}
-            -T ApplyRecalibration
-            -R {s[reference_fasta_path]}
-            -input {i[vcf][0]}
-            -tranchesFile {i[tranches][0]}
-            -recalFile {i[recal][0]}
-            -o $OUT.vcf
-            --ts_filter_level 99.9
-            -mode INDEL
-            """
-        return cmd
-    
+            -mode {p['glm']}
+            """    

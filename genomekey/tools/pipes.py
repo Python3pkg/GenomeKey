@@ -53,7 +53,7 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
         """
 
 class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):
-    name = "BWA Alignment and Cleaning"
+    name = "BWA Alignment"
     mem_req = 10*1024
     cpu_req = 2             # if it's all required
     time_req = 12*60
@@ -61,34 +61,50 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
     outputs = ['bam']
 
     def cmd(self,i,s,p):
-        """
-        Expects tags: chunk, library, sample_name, platform, platform_unit, pair
-        """
         # -v 3 : Show all normal messages
         # -M   : Mark shorter split hits as secondary (for Picard compatibility)
         # -t   : Number of threads [1] 
+
+        # return r"""
+        #     set -o pipefail && {s[bwa_path]} mem -v 3 -M -t {self.cpu_req}
+        #     -R "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}\tPU:{p[platform_unit]}"
+        #     {s[reference_fasta_path]}
+        #     {i[fastq][0]}
+        #     {i[fastq][1]}
+        #     |
+        #     {self.picard_bin} -jar {AddOrReplaceReadGroups}
+        #     INPUT=/dev/stdin
+        #     OUTPUT=/dev/stdout
+        #     RGID={p[platform_unit]}
+        #     RGLB={p[library]}
+        #     RGSM={p[sample_name]}
+        #     RGPL={p[platform]}
+        #     RGPU={p[platform_unit]}
+        #     COMPRESSION_LEVEL=0
+        #     |
+        #     {self.picard_bin} -jar {CleanSam}
+        #     INPUT=/dev/stdin
+        #     OUTPUT=/dev/stdout
+        #     VALIDATION_STRINGENCY=SILENT
+        #     COMPRESSION_LEVEL=0
+        #     |
+        #     {self.picard_bin} -jar {SortSam}
+        #     INPUT=/dev/stdin
+        #     OUTPUT=$OUT.bam
+        #     SORT_ORDER=coordinate
+        #     CREATE_INDEX=True
+        #     COMPRESSION_LEVEL=0
+        #     """, dict (
+        #     AddOrReplaceReadGroups = opj(s['Picard_dir'],'AddOrReplaceReadGroups.jar'),
+        #     CleanSam               = opj(s['Picard_dir'],'CleanSam.jar'),
+        #     SortSam                = opj(s['Picard_dir'],'SortSam.jar')
+        # )
         return r"""
-            set -o pipefail && {s[bwa_path]} mem -v 3 -M -t {self.cpu_req}
-            -R "@RG\tID:{p[platform_unit]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}\tPU:{p[platform_unit]}"
+            set -o pipefail && {s[bwa_path]} mem -M -t {self.cpu_req}
+            -R "@RG\tID:{p[rgid]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}"
             {s[reference_fasta_path]}
             {i[fastq][0]}
             {i[fastq][1]}
-            |
-            {self.picard_bin} -jar {AddOrReplaceReadGroups}
-            INPUT=/dev/stdin
-            OUTPUT=/dev/stdout
-            RGID={p[platform_unit]}
-            RGLB={p[library]}
-            RGSM={p[sample_name]}
-            RGPL={p[platform]}
-            RGPU={p[platform_unit]}
-            COMPRESSION_LEVEL=0
-            |
-            {self.picard_bin} -jar {CleanSam}
-            INPUT=/dev/stdin
-            OUTPUT=/dev/stdout
-            VALIDATION_STRINGENCY=SILENT
-            COMPRESSION_LEVEL=0
             |
             {self.picard_bin} -jar {SortSam}
             INPUT=/dev/stdin
@@ -96,11 +112,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             SORT_ORDER=coordinate
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
-            """, dict (
-            AddOrReplaceReadGroups = opj(s['Picard_dir'],'AddOrReplaceReadGroups.jar'),
-            CleanSam               = opj(s['Picard_dir'],'CleanSam.jar'),
-            SortSam                = opj(s['Picard_dir'],'SortSam.jar')
-        )
+            """, dict (SortSam = opj(s['Picard_dir'],'SortSam.jar'))
 
 
     
