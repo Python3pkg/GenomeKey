@@ -235,7 +235,7 @@ class HaplotypeCaller(GATK):
 
 class UnifiedGenotyper(GATK):
     name     = "Unified Genotyper"
-    cpu_req  = 6
+    cpu_req  = 1 #6
     mem_req  = 6.5*1024
     time_req = 12*60
     inputs   = ['bam']
