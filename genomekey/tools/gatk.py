@@ -336,7 +336,7 @@ class VQSR(GATK):
             -resource:omni,known=false,training=true,truth=true,prior=12.0 {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
             -an {an}
-            -mode {p['glm']
+            -mode {p['glm']}
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R

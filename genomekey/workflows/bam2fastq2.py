@@ -2,7 +2,7 @@ import os
 import re
 import pysam
 
-from cosmos.lib.ezflow.dag  import DAG, add_, split_, sequence_, configure, add_run, add_to_workflow
+from cosmos.lib.ezflow.dag  import DAG, add_, split_, sequence_, configure, add_run
 from cosmos.lib.ezflow.tool import INPUT
 from cosmos.Workflow.models import TaskFile
 
