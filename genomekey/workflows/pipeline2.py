@@ -18,8 +18,9 @@ def Pipeline():
 
     post_align = sequence_(
         reduce_(['sample_name', 'library'], picard.MarkDuplicates),
-        split_([intervals],gatk.RealignerTargetCreator),
-        map_(gatk.IndelRealigner),
+#       split_([intervals],gatk.RealignerTargetCreator),
+#       map_(gatk.IndelRealigner),
+        split_([intervals], gatk.IndelRealigner),
         map_(gatk.BQSR),
         map_(gatk.ApplyBQSR) #TODO I add BQSRGatherer as a parent with a hack inside ApplyBQSR.cmd    
     )

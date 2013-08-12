@@ -115,7 +115,7 @@ class IndelRealigner(GATK):
             -R {s[reference_fasta_path]}
             -I {i[bam][0]}
             -o $OUT.bam
-            -targetIntervals {i[intervals][0]}
+            -targetIntervals /gluster/gv0/known.realign.interval.{p['interval']}
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
