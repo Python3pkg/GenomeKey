@@ -5,7 +5,7 @@ import os
 
 
 
-def list2input(l):
+def __list2input(l):
     return "-I " +"\n-I ".join(map(lambda x: str(x),l))
 
 def get_interval(param_dict):
@@ -104,7 +104,7 @@ class IndelRealigner(GATK):
     name    = "Indel Realigner"
     cpu_req = 1
     mem_req = 8*1024
-    inputs  = ['bam','intervals']
+    inputs  = ['bam']
     outputs = ['bam']
     
     def cmd(self,i,s,p):
@@ -112,15 +112,16 @@ class IndelRealigner(GATK):
             {self.bin}
             -T IndelRealigner
             -R {s[reference_fasta_path]}
-            -I {i[bam][0]}
             -o $OUT.bam
             -targetIntervals /gluster/gv0/known.realign.target.{intv}.intervals
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
             -compress 0
-            {interval} {sleep}
-        """,{'intv': p['interval'], 'interval':get_interval(p), 'sleep': get_sleep(s)}
+            {interval} 
+            {inputs}
+            {sleep}
+        """,{'intv': p['interval'], 'interval':get_interval(p), 'inputs': __list2input(i['bam']), 'sleep': get_sleep(s)}
     
 class BQSR(GATK):
     name    = "Base Quality Score Recalibration"
@@ -145,7 +146,7 @@ class BQSR(GATK):
             -knownSites {s[mills_path]}
             -nct {nct}
             {sleep}
-        """, {'inputs' : list2input(i['bam']), 'nct': self.cpu_req +1, 'sleep': get_sleep(s)}
+        """, {'inputs' : _list2input(i['bam']), 'nct': self.cpu_req +1, 'sleep': get_sleep(s)}
     
 class ApplyBQSR(GATK):
     name    = "Apply BQSR"
@@ -178,7 +179,7 @@ class ApplyBQSR(GATK):
             -compress 0
             -BQSR {i[grp][0]}
             {sleep}
-        """, {'inputs' : list2input(i['bam']), 'sleep': get_sleep(s)}
+        """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s)}
 
 class ReduceReads(GATK):
     name     = "Reduce Reads"
@@ -198,7 +199,7 @@ class ReduceReads(GATK):
            -o $OUT.bam
            {interval}
            {inputs}           
-        """, {'inputs' : list2input(i['bam']), 'interval': get_interval(p)}
+        """, {'inputs' : _list2input(i['bam']), 'interval': get_interval(p)}
 
 class HaplotypeCaller(GATK):
     name     = "Haplotype Caller"
@@ -229,7 +230,7 @@ class HaplotypeCaller(GATK):
             -A MappingQualityRankSumTest
             -L {p[interval]}
         """, {
-            'inputs' : list2input(i['bam'])
+            'inputs' : _list2input(i['bam'])
         }
 
 class UnifiedGenotyper(GATK):
@@ -261,9 +262,7 @@ class UnifiedGenotyper(GATK):
             -baq CALCULATE_AS_NECESSARY
             -L {p[interval]}
             -nt {self.cpu_req}
-        """, {
-            'inputs' : list2input(i['bam'])
-        }
+        """, {'inputs' : _list2input(i['bam'])}
     
 class CombineVariants(GATK):
     name     = "Combine Variants"

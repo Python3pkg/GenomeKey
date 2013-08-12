@@ -9,16 +9,16 @@ def Pipeline():
     is_capture = wga_settings['capture']
 
     # split_ tuples
-    intervals = ('interval', range(1,23) + ['X', 'Y'])
+    interval = ('interval', range(1,23) + ['X', 'Y'])
 
     glm = ('glm', ['SNP', 'INDEL'])
 
 
-    align = reduce_(['sample_name', 'library', 'region', 'bam', 'rgid','platform'], pipes.AlignAndClean)
+    align = reduce_(['bam','sample_name','rgid','platform','library','region'], pipes.AlignAndClean)
 
     post_align1 = sequence_(
         reduce_(['sample_name', 'library'], picard.MarkDuplicates),
-        split_([intervals],gatk.RealignerTargetCreator),
+        split_([interval],gatk.RealignerTargetCreator),
         map_(gatk.IndelRealigner),
         map_(gatk.BQSR),
         map_(gatk.ApplyBQSR) 
@@ -26,14 +26,14 @@ def Pipeline():
     
     post_align2 = sequence_(
         reduce_(['sample_name', 'library'], picard.MarkDuplicates),
-        split_([intervals], gatk.IndelRealigner),
+        split_([interval], gatk.IndelRealigner),
         map_(gatk.BQSR),
         map_(gatk.ApplyBQSR) 
         )
 
     post_align3 = sequence_(
-        reduce_split_(['sample_name','library','rgid'],[intervals], gatk.IndelRealigner),
-        reduce_(['sample_name','library','interval'], picard.MarkDuplicates),
+        reduce_split_(['bam','sample_name','library','rgid'],[interval],  gatk.IndelRealigner),
+        reduce_(      ['bam','sample_name','library',        'interval'], picard.MarkDuplicates),
         map_(gatk.BQSR),
         map_(gatk.ApplyBQSR)
         )
@@ -62,7 +62,7 @@ def Pipeline():
         return sequence_(
             align,
             post_align3,
-            reduce_split_(['sample_name'], [intervals], gatk.ReduceReads),
+            reduce_split_(['sample_name'], [interval], gatk.ReduceReads),
             call_variants,
             massive_annotation
         )
