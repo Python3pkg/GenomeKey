@@ -16,23 +16,37 @@ def Pipeline():
 
     align = reduce_(['sample_name', 'library', 'region', 'bam', 'rgid','platform'], pipes.AlignAndClean)
 
-    post_align = sequence_(
+    post_align1 = sequence_(
         reduce_(['sample_name', 'library'], picard.MarkDuplicates),
-#       split_([intervals],gatk.RealignerTargetCreator),
-#       map_(gatk.IndelRealigner),
+        split_([intervals],gatk.RealignerTargetCreator),
+        map_(gatk.IndelRealigner),
+        map_(gatk.BQSR),
+        map_(gatk.ApplyBQSR) 
+        )
+    
+    post_align2 = sequence_(
+        reduce_(['sample_name', 'library'], picard.MarkDuplicates),
         split_([intervals], gatk.IndelRealigner),
         map_(gatk.BQSR),
-        map_(gatk.ApplyBQSR) #TODO I add BQSRGatherer as a parent with a hack inside ApplyBQSR.cmd    
-    )
+        map_(gatk.ApplyBQSR) 
+        )
+
+    post_align3 = sequence_(
+        reduce_split_(['sample_name','library'],['interval'], gatk.IndelRealigner),
+        map_(picard.MarkDuplicates),
+        map_(gatk.BQSR),
+        map_(gatk.ApplyBQSR)
+        )
 
     call_variants = sequence_(
-        apply_(
+#        apply_(
             #reduce_(['interval'],gatk.HaplotypeCaller,tag={'vcf':'HaplotypeCaller'}),
-            reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
-            combine=True
-        ),
+#            reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
+#            combine=True
+#        ),
+        reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
         reduce_(['vcf'], gatk.CombineVariants, 'Combine Into Raw VCFs'),
-        split_([glm],gatk.VQSR),
+        split_([glm], gatk.VQSR),
         map_(gatk.Apply_VQSR),
         reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs")
     )
@@ -40,14 +54,14 @@ def Pipeline():
     if is_capture:
         return sequence_(
             align,
-            post_align,
+            post_align3,
             call_variants,
             massive_annotation
         )
     else:
         return sequence_(
             align,
-            post_align,
+            post_align3,
             reduce_split_(['sample_name'], [intervals], gatk.ReduceReads),
             call_variants,
             massive_annotation
