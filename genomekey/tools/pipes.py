@@ -1,3 +1,4 @@
+from cosmos.Workflow.models import TaskFile
 from . import picard, bamUtil, samtools,bwa
 import os
 opj = os.path.join
@@ -122,7 +123,7 @@ class Bam_To_FastQ(picard.REVERTSAM):
     mem_req  = 7*1024
     time_req = 12*60
     inputs   = ['bam']
-    outputs  = ['1.fastq','2.fastq']
+    outputs  = [TaskFile(name='dir',persist=True)]
 
     # samtools option
     # -f 0x1 : the read is paired in sequencing
@@ -143,7 +144,7 @@ class Bam_To_FastQ(picard.REVERTSAM):
             COMPRESSION_LEVEL=0
             |
             {s[bamUtil_path]} bam2FastQ --in -.ubam
-            --firstOut    $OUT.1.fastq
-            --secondOut   $OUT.2.fastq
+            --firstOut    $OUT.dir/1.fastq
+            --secondOut   $OUT.dir/2.fastq
             --unpairedOut /dev/null
         """

@@ -118,13 +118,14 @@ def _fastq2input(dag):
 
         # Add each fastq as input file
         for idx in [1,2]:
-            fastq = TaskFile.objects.get(id=tool.get_output('{0}.fastq'.format(idx)).id).path
+            prevOutDir = TaskFile.objects.get(id=tool.get_output('dir').id).path
+            outFastq   = os.path.join(prevOutDir,'{0}.fastq'.format(idx))
 
-            if os.stat(fastq).st_size == 0: continue   # somtimes output fastq file can be empty
+            if os.stat(outFastq).st_size == 0: continue   # somtimes output fastq file can be empty
 
             newTag = tags.copy()
             newTag['pair'] = idx
-            i = INPUT(name='fastq',path=fastq,tags=newTag)
+            i = INPUT(name='fastq',path=outFastq,tags=newTag)
             dag.add_edge(tool, i)
             
             fastq_input.append(i)
