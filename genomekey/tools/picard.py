@@ -40,6 +40,7 @@ class MarkDuplicates(Picard):
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
+            TMP_DIR={s[tmp_dir]}
             OUTPUT=$OUT.bam
             METRICS_FILE=$OUT.metrics
             ASSUME_SORTED=True
