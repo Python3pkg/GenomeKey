@@ -32,7 +32,6 @@ def get_sleep(settings_dict):
 def get_pedigree(settings_dict):
     """
     :param settings_dict: parameter dictionary
-    :return: '' if settings_dict does not have 'interval' in it, otherwise -L p['interval']
     """
     ped_path = settings_dict['pedigree']
     if ped_path: return ' --pedigree {0}'.format(ped_path)
@@ -115,13 +114,13 @@ class IndelRealigner(GATK):
             -R {s[reference_fasta_path]}
             -I {i[bam][0]}
             -o $OUT.bam
-            -targetIntervals /gluster/gv0/known.realign.interval.{p['interval']}
+            -targetIntervals /gluster/gv0/known.realign.target.{intv}.intervals
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
             -compress 0
             {interval} {sleep}
-        """,{'interval':get_interval(p), 'sleep': get_sleep(s)}
+        """,{'intv': p['interval'], 'interval':get_interval(p), 'sleep': get_sleep(s)}
     
 class BQSR(GATK):
     name    = "Base Quality Score Recalibration"
