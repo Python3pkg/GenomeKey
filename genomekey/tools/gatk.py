@@ -5,7 +5,7 @@ import os
 
 
 
-def __list2input(l):
+def _list2input(l):
     return "-I " +"\n-I ".join(map(lambda x: str(x),l))
 
 def get_interval(param_dict):
@@ -85,7 +85,7 @@ class RealignerTargetCreator(GATK):
 
     persist = True
     forward_input = True
-    
+   
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -118,10 +118,10 @@ class IndelRealigner(GATK):
             -known {s[mills_path]}
             -model USE_READS
             -compress 0
-            {interval} 
+            --intervals {intv}
             {inputs}
             {sleep}
-        """,{'intv': p['interval'], 'interval':get_interval(p), 'inputs': __list2input(i['bam']), 'sleep': get_sleep(s)}
+        """,{'intv': p['interval'], 'inputs': _list2input(i['bam']), 'sleep': get_sleep(s)}
     
 class BQSR(GATK):
     name    = "Base Quality Score Recalibration"
