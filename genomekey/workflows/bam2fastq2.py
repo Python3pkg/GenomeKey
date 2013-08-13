@@ -29,6 +29,8 @@ def _getRegions(header):
 #   for s in sq:
 #       log.info('SN= {0}\tLN= {1}'.format(s[0], s[1]))
 
+    ## TO DO; read bai file to split them evenly.
+
     totalLen = sum(sn[1] for sn in header['sq'])
     log.info('Total LN sum = {0}'.format(totalLen))
 

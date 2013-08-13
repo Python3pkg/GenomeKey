@@ -107,6 +107,7 @@ class IndelRealigner(GATK):
     inputs  = ['bam']
     outputs = ['bam']
     
+    # Currently gatk IndelRealigner does not accept --num_threds option
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -144,7 +145,7 @@ class BQSR(GATK):
             -knownSites {s[omni_path]}
             -knownSites {s[indels_1000g_phase1_path]}
             -knownSites {s[mills_path]}
-            -nct {nct}
+            --num_threads {nct}
             {sleep}
         """, {'inputs' : _list2input(i['bam']), 'nct': self.cpu_req +1, 'sleep': get_sleep(s)}
     
@@ -299,16 +300,14 @@ class VQSR(GATK):
     """
     VQSR
 
-    Might want to set different values for capture vs whole genome of
-    i don't understand vqsr well enough yet
-    --maxGaussians 4 -percentBad 0.01 -minNumBad 1000
+    Might want to set different values for capture vs whole genome
 
     Note that HaplotypeScore is no longer applicable to indels
     see http://gatkforums.broadinstitute.org/discussion/2463/unified-genotyper-no-haplotype-score-annotated-for-indels
     """
     name     = "Variant Quality Score Recalibration"
-    cpu_req  = 1#6
-    mem_req  = 8*1024
+    cpu_req  = 4
+    mem_req  = 30*1024
     time_req = 12*60
     inputs   = ['vcf']
     outputs  = ['recal','tranches','R']
@@ -319,27 +318,46 @@ class VQSR(GATK):
     default_params = { 'inbreeding_coeff' : False}
 
     def cmd(self,i,s,p):
-        annotations = ['MQRankSum','ReadPosRankSum','FS',]
-        if not s['capture']:      annotations.append('DP')
-        if p['inbreeding_coeff']: annotations.append('InbreedingCoeff')
-        if p['glm'] == 'SNP':     annotations.extend(['QD','HaplotypeScore'])
 
-        return r"""
+        ## copied from gatk forum: http://gatkforums.broadinstitute.org/discussion/1259/what-vqsr-training-sets-arguments-should-i-use-for-my-specific-project
+        ##
+        ## --maxGaussians: default 10
+
+        if p['glm'] == 'SNP':
+            return r"""
             {self.bin}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
-            --maxGaussians 6
             -input {i[vcf][0]}
-            -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
-            -resource:omni,known=false,training=true,truth=true,prior=12.0 {s[omni_path]}
-            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
-            -an {an}
-            -mode {p[glm]}
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
             -nt {self.cpu_req}
-            """,{'an':' -an '.join(annotations)}
+            -percentBad 0.01 -minNumBad 1000
+            -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
+            -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
+            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
+            -an DP -an FS -an QD -an ReadPosRankSum -an MQRankSum
+            -mode SNP 
+            """
+        else:
+            return r"""
+            {self.bin}
+            -T VariantRecalibrator
+            -R {s[reference_fasta_path]}
+            -input {i[vcf][0]}
+            -recalFile $OUT.recal
+            -tranchesFile $OUT.tranches
+            -rscriptFile $OUT.R
+            -nt {self.cpu_req}
+            -percentBad 0.01 -minNumBad1000
+            --maxGaussians 4 
+            -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
+            -an DP -an FS -an ReadPosRankSum -an MQRankSum
+            -mode INDEL
+            """
     
 class Apply_VQSR(GATK):
     name     = "Apply VQSR"

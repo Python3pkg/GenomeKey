@@ -39,6 +39,7 @@ wga_settings = {
     'reference_fasta_path'            : opj(resource, 'human_g1k_v37.fasta'),
 
     'dbsnp_path'                      : opj(resource, 'dbsnp_137.b37.vcf'),
+    '1ksnp_path'                      : opj(resource, '1000G_phase1.snps.high_confidence.b37.vcf'),
     'hapmap_path'                     : opj(resource, 'hapmap_3.3.b37.vcf'),
     'omni_path'                       : opj(resource, '1000G_omni2.5.b37.vcf'),
     'mills_path'                      : opj(resource, 'Mills_and_1000G_gold_standard.indels.b37.vcf'),
