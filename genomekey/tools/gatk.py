@@ -304,9 +304,12 @@ class VQSR(GATK):
 
     Note that HaplotypeScore is no longer applicable to indels
     see http://gatkforums.broadinstitute.org/discussion/2463/unified-genotyper-no-haplotype-score-annotated-for-indels
+
+
+    Currently does not allow -nct (--num_cpu_threds_per_data_thread) option
     """
     name     = "Variant Quality Score Recalibration"
-    cpu_req  = 4
+    cpu_req  = 1
     mem_req  = 30*1024
     time_req = 12*60
     inputs   = ['vcf']
@@ -332,15 +335,15 @@ class VQSR(GATK):
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
-            -nt {self.cpu_req}
-            -percentBad 0.01 -minNumBad 1000
+            -nt  {numThreads}
+            -percentBad 0.01 -minNumBad 1000	
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
             -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
             -an DP -an FS -an QD -an ReadPosRankSum -an MQRankSum
             -mode SNP 
-            """
+            """, {'numThreds': 4}
         else:
             return r"""
             {self.bin}
@@ -350,14 +353,14 @@ class VQSR(GATK):
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
-            -nt {self.cpu_req}
-            -percentBad 0.01 -minNumBad1000
+            -nt  {numThreads}
+            -percentBad 0.01 -minNumBad 1000
             --maxGaussians 4 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
             -an DP -an FS -an ReadPosRankSum -an MQRankSum
             -mode INDEL
-            """
+            """, {'numThreads':4}
     
 class Apply_VQSR(GATK):
     name     = "Apply VQSR"
