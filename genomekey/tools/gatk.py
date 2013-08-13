@@ -83,7 +83,7 @@ class RealignerTargetCreator(GATK):
     persist = True
     forward_input = True
    
-    # no -nct available, -nt = 24 
+    # no -nct available, -nt = 24 recommended
     # see: http://gatkforums.broadinstitute.org/discussion/1975/recommendations-for-parallelizing-gatk-tools
     def cmd(self,i,s,p):
         return r"""
@@ -94,7 +94,7 @@ class RealignerTargetCreator(GATK):
             -o $OUT.intervals
             --known {s[indels_1000g_phase1_path]}
             --known {s[mills_path]}
-            --num_threads 24
+            --num_threads 4
             {interval}
             {sleep}
         """,{'interval':get_interval(p), 'sleep': get_sleep(s)}
@@ -127,7 +127,7 @@ class IndelRealigner(GATK):
 class BQSR(GATK):
     name    = "Base Quality Score Recalibration"
     cpu_req = 4
-    mem_req = 14*1024
+    mem_req = 25*1024
     inputs  = ['bam']
     outputs = ['grp']
 
@@ -146,15 +146,15 @@ class BQSR(GATK):
             -knownSites {s[omni_path]}
             -knownSites {s[indels_1000g_phase1_path]}
             -knownSites {s[mills_path]}
-            --num_cpu_threads_per_data_thread 4
+            --num_cpu_threads_per_data_thread {nct}
             {sleep}
-        """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s)}
+        """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s), 'nct': self.cpu_req}
     
 
 class ApplyBQSR(GATK):
     name    = "Apply BQSR"
     cpu_req = 2
-    mem_req = 16*1024
+    mem_req = 15*1024
     inputs  = ['bam','grp']
     outputs = ['bam']
 
@@ -184,7 +184,7 @@ class ApplyBQSR(GATK):
             -BQSR {i[grp][0]}
             --num_cpu_threads_per_data_thread {nct}
             {sleep}
-        """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s), 'nct':{self.cpu_req}}
+        """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s), 'nct': self.cpu_req}
 
 class ReduceReads(GATK):
     name     = "Reduce Reads"
@@ -243,7 +243,7 @@ class HaplotypeCaller(GATK):
 class UnifiedGenotyper(GATK):
     name     = "Unified Genotyper"
     cpu_req  = 4
-    mem_req  = 6.5*1024
+    mem_req  = 25*1024
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['vcf']
@@ -276,7 +276,7 @@ class UnifiedGenotyper(GATK):
 class CombineVariants(GATK):
     name     = "Combine Variants"
     cpu_req  = 1
-    mem_req  = 3*1024
+    mem_req  = 8*1024
     time_req = 12*60    
     inputs   = ['vcf']
     outputs  = [TaskFile(name='vcf',basename='master.vcf')]
