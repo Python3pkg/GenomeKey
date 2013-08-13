@@ -106,7 +106,7 @@ class IndelRealigner(GATK):
     inputs  = ['bam']
     outputs = ['bam']
     
-    # no -nct, no -nct available
+    # no -nt or -nct available
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -150,6 +150,7 @@ class BQSR(GATK):
             {sleep}
         """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s)}
     
+
 class ApplyBQSR(GATK):
     name    = "Apply BQSR"
     cpu_req = 2
