@@ -66,26 +66,25 @@ class BQSRGatherer(Tool):
 
     def cmd(self,i, s, p):
         return r"""
-            "{s[java]}" -Dlog4j.configuration="file://{log4j_props}"
+            "{s[java]}" -Dlog4j.configuration="file://{log4j}"
             -cp "{s[queue_path]}:{s[bqsr_gatherer_path]}"
             BQSRGathererMain
             $OUT.recal
-            {input_recals}
-        """, {
-            'input_recals': '\n'.join(map(str,i['recal'])),
-            'log4j_props': os.path.join(s['bqsr_gatherer_path'],'log4j.properties')
-        }
+            {input}
+        """, {'input': '\n'.join(map(str,i['recal'])), 'log4j': os.path.join(s['bqsr_gatherer_path'],'log4j.properties')}
 
 class RealignerTargetCreator(GATK):
     name    = "Realigner Target Creator"
     cpu_req = 1
-    mem_req = 8*1024
+    mem_req = 20*1024
     inputs  = ['bam']
     outputs = ['intervals']
 
     persist = True
     forward_input = True
    
+    # no -nct available, -nt = 24 
+    # see: http://gatkforums.broadinstitute.org/discussion/1975/recommendations-for-parallelizing-gatk-tools
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -95,7 +94,7 @@ class RealignerTargetCreator(GATK):
             -o $OUT.intervals
             --known {s[indels_1000g_phase1_path]}
             --known {s[mills_path]}
-            --num_threads {self.cpu_req}
+            --num_threads 24
             {interval}
             {sleep}
         """,{'interval':get_interval(p), 'sleep': get_sleep(s)}
@@ -107,7 +106,7 @@ class IndelRealigner(GATK):
     inputs  = ['bam']
     outputs = ['bam']
     
-    # Currently gatk IndelRealigner does not accept --num_threds option
+    # no -nct, no -nct available
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -124,16 +123,18 @@ class IndelRealigner(GATK):
             {sleep}
         """,{'intv': p['interval'], 'inputs': _list2input(i['bam']), 'sleep': get_sleep(s)}
     
+
 class BQSR(GATK):
     name    = "Base Quality Score Recalibration"
-    cpu_req = 1 #4
-    mem_req = 9*1024
+    cpu_req = 4
+    mem_req = 14*1024
     inputs  = ['bam']
     outputs = ['grp']
 
     persist = True
     forward_input = True
 
+    # no -nt, -nct = 4
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -145,14 +146,14 @@ class BQSR(GATK):
             -knownSites {s[omni_path]}
             -knownSites {s[indels_1000g_phase1_path]}
             -knownSites {s[mills_path]}
-            --num_threads {nct}
+            --num_cpu_threads_per_data_thread 4
             {sleep}
-        """, {'inputs' : _list2input(i['bam']), 'nct': self.cpu_req +1, 'sleep': get_sleep(s)}
+        """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s)}
     
 class ApplyBQSR(GATK):
     name    = "Apply BQSR"
-    cpu_req = 1
-    mem_req = 8*1024
+    cpu_req = 2
+    mem_req = 16*1024
     inputs  = ['bam','grp']
     outputs = ['bam']
 
@@ -163,6 +164,7 @@ class ApplyBQSR(GATK):
 
     added_edge = False
 
+    # PrintReads: no -nt available, -nct = 4 recommended
     def cmd(self,i,s,p):
         #if not self.added_edge:
             #TODO fix this hack.  Also there might be duplicate edges being added on reload which doesn't matter but is ugly.
@@ -179,24 +181,27 @@ class ApplyBQSR(GATK):
             -o $OUT.bam
             -compress 0
             -BQSR {i[grp][0]}
+            --num_cpu_threads_per_data_thread {nct}
             {sleep}
-        """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s)}
+        """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s), 'nct':{self.cpu_req}}
 
 class ReduceReads(GATK):
     name     = "Reduce Reads"
     cpu_req  = 1
-    mem_req  = 30*1024
+    mem_req  = 8*1024
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['bam']
 
+    # no -nt, no -nct available
+    # -known should be SNPs, not indels: non SNP variants will be ignored.
     def cmd(self,i,s,p):
         return r"""
            {self.bin}
            -T ReduceReads           
            -R {s[reference_fasta_path]}
-           -known {s[indels_1000g_phase1_path]}
-           -known {s[mills_path]}
+           -known {s[dbsnp_path]}
+           -known {s[1ksnp_path]}
            -o $OUT.bam
            {interval}
            {inputs}           
@@ -236,12 +241,13 @@ class HaplotypeCaller(GATK):
 
 class UnifiedGenotyper(GATK):
     name     = "Unified Genotyper"
-    cpu_req  = 1 #6
+    cpu_req  = 4
     mem_req  = 6.5*1024
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['vcf']
     
+    # -nt, -nct available
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -262,8 +268,9 @@ class UnifiedGenotyper(GATK):
             -A MappingQualityRankSumTest
             -baq CALCULATE_AS_NECESSARY
             -L {p[interval]}
-            -nt {self.cpu_req}
-        """, {'inputs' : _list2input(i['bam'])}
+            --num_threads 8
+            --num_cpu_threads_per_data_thread {nct}
+        """, {'inputs' : _list2input(i['bam']), 'nct': self.cpu_req}
     
 class CombineVariants(GATK):
     name     = "Combine Variants"
@@ -277,24 +284,24 @@ class CombineVariants(GATK):
     
     default_params = {'genotypeMergeOptions':'UNSORTED'}
     
+    # -nt available, -nct not available
     def cmd(self,i,s,p):
         """
         :param genotypemergeoptions: select from the following:
-            UNIQUIFY - Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.
-            PRIORITIZE - Take genotypes in priority order (see the priority argument).
-            UNSORTED - Take the genotypes in any order.
+            UNIQUIFY       - Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.
+            PRIORITIZE     - Take genotypes in priority order (see the priority argument).
+            UNSORTED       - Take the genotypes in any order.
             REQUIRE_UNIQUE - Require that all samples/genotypes be unique between all inputs.
         """
         return r"""
             {self.bin}
             -T CombineVariants
             -R {s[reference_fasta_path]}
-            {inputs}
             -o $OUT.vcf
             -genotypeMergeOptions {p[genotypeMergeOptions]}
-        """, {
-            'inputs' : "\n".join(["--variant {0}".format(vcf) for vcf in i['vcf']])
-        }
+            --num_threads 4
+            {inputs}
+        """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']])}
     
 class VQSR(GATK):
     """
@@ -305,12 +312,10 @@ class VQSR(GATK):
     Note that HaplotypeScore is no longer applicable to indels
     see http://gatkforums.broadinstitute.org/discussion/2463/unified-genotyper-no-haplotype-score-annotated-for-indels
 
-
-    Currently does not allow -nct (--num_cpu_threds_per_data_thread) option
     """
     name     = "Variant Quality Score Recalibration"
     cpu_req  = 1
-    mem_req  = 30*1024
+    mem_req  = 8*1024
     time_req = 12*60
     inputs   = ['vcf']
     outputs  = ['recal','tranches','R']
@@ -320,12 +325,14 @@ class VQSR(GATK):
     
     default_params = { 'inbreeding_coeff' : False}
 
+    # -nt available, -nct not available
     def cmd(self,i,s,p):
 
         ## copied from gatk forum: http://gatkforums.broadinstitute.org/discussion/1259/what-vqsr-training-sets-arguments-should-i-use-for-my-specific-project
         ##
-        ## --maxGaussians: default 10
-
+        ## --maxGaussians: default 10, default for INDEL 4, single sample for testing 1
+        ## 
+   
         if p['glm'] == 'SNP':
             return r"""
             {self.bin}
@@ -335,7 +342,7 @@ class VQSR(GATK):
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
-            -nt  {numThreads}
+            --num_threads 4
             -percentBad 0.01 -minNumBad 1000	
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
@@ -343,7 +350,7 @@ class VQSR(GATK):
             -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
             -an DP -an FS -an QD -an ReadPosRankSum -an MQRankSum
             -mode SNP 
-            """, {'numThreds': 4}
+            """
         else:
             return r"""
             {self.bin}
@@ -353,14 +360,14 @@ class VQSR(GATK):
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
-            -nt  {numThreads}
+            --num_threads 4
             -percentBad 0.01 -minNumBad 1000
-            --maxGaussians 4 
+            --maxGaussians 1 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
             -an DP -an FS -an ReadPosRankSum -an MQRankSum
             -mode INDEL
-            """, {'numThreads':4}
+            """
     
 class Apply_VQSR(GATK):
     name     = "Apply VQSR"
@@ -372,6 +379,7 @@ class Apply_VQSR(GATK):
     
     persist  = True    
     
+    # -nt available, -nct not available
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -383,4 +391,5 @@ class Apply_VQSR(GATK):
             -o $OUT.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
+            --num_threads 4
             """    
