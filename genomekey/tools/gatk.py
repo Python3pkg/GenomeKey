@@ -75,8 +75,8 @@ class BQSRGatherer(Tool):
 
 class RealignerTargetCreator(GATK):
     name    = "Realigner Target Creator"
-    cpu_req = 1
-    mem_req = 20*1024
+    cpu_req = 2
+    mem_req = 15*1024 
     inputs  = ['bam']
     outputs = ['intervals']
 
@@ -101,8 +101,8 @@ class RealignerTargetCreator(GATK):
     
 class IndelRealigner(GATK):
     name    = "Indel Realigner"
-    cpu_req = 1
-    mem_req = 8*1024
+    cpu_req = 2
+    mem_req = 16*1024   # this will make max. 4 jobs running on a node
     inputs  = ['bam']
     outputs = ['bam']
     
@@ -126,8 +126,8 @@ class IndelRealigner(GATK):
 
 class BQSR(GATK):
     name    = "Base Quality Score Recalibration"
-    cpu_req = 4
-    mem_req = 25*1024
+    cpu_req = 2
+    mem_req = 15*1024   # make max 4 jobs running on a node
     inputs  = ['bam']
     outputs = ['grp']
 
@@ -154,7 +154,7 @@ class BQSR(GATK):
 class ApplyBQSR(GATK):
     name    = "Apply BQSR"
     cpu_req = 2
-    mem_req = 15*1024
+    mem_req = 15*1024       # make max 4 jobs running on a node
     inputs  = ['bam','grp']
     outputs = ['bam']
 
@@ -188,8 +188,8 @@ class ApplyBQSR(GATK):
 
 class ReduceReads(GATK):
     name     = "Reduce Reads"
-    cpu_req  = 1
-    mem_req  = 8*1024
+    cpu_req  = 2
+    mem_req  = 15*1024    # make max 4 jobs running on a node
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['bam']
@@ -242,13 +242,14 @@ class HaplotypeCaller(GATK):
 
 class UnifiedGenotyper(GATK):
     name     = "Unified Genotyper"
-    cpu_req  = 4
-    mem_req  = 25*1024
+    cpu_req  = 4          # assign max 2 jobs on a node
+    mem_req  = 30*1024
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['vcf']
     
     # -nt, -nct available
+    # don't need to change -nct in m2.4xlarge: 1 CPU, 8 cores, 16 threads.
     def cmd(self,i,s,p):
         return r"""
             {self.bin}
@@ -270,13 +271,13 @@ class UnifiedGenotyper(GATK):
             -baq CALCULATE_AS_NECESSARY
             -L {p[interval]}
             --num_threads 8
-            --num_cpu_threads_per_data_thread {nct}
-        """, {'inputs' : _list2input(i['bam']), 'nct': self.cpu_req}
+            --num_cpu_threads_per_data_thread 1
+        """, {'inputs' : _list2input(i['bam'])}
     
 class CombineVariants(GATK):
     name     = "Combine Variants"
-    cpu_req  = 1
-    mem_req  = 8*1024
+    cpu_req  = 8
+    mem_req  = 60*1024
     time_req = 12*60    
     inputs   = ['vcf']
     outputs  = [TaskFile(name='vcf',basename='master.vcf')]
@@ -300,7 +301,7 @@ class CombineVariants(GATK):
             -R {s[reference_fasta_path]}
             -o $OUT.vcf
             -genotypeMergeOptions {p[genotypeMergeOptions]}
-            --num_threads 4
+            --num_threads 8
             {inputs}
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']])}
     
@@ -315,8 +316,8 @@ class VQSR(GATK):
 
     """
     name     = "Variant Quality Score Recalibration"
-    cpu_req  = 1
-    mem_req  = 8*1024
+    cpu_req  = 8
+    mem_req  = 60*1024
     time_req = 12*60
     inputs   = ['vcf']
     outputs  = ['recal','tranches','R']
@@ -343,7 +344,7 @@ class VQSR(GATK):
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
-            --num_threads 4
+            --num_threads 8
             -percentBad 0.01 -minNumBad 1000	
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
@@ -361,7 +362,7 @@ class VQSR(GATK):
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
-            --num_threads 4
+            --num_threads 8
             -percentBad 0.01 -minNumBad 1000
             --maxGaussians 1 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
@@ -372,8 +373,8 @@ class VQSR(GATK):
     
 class Apply_VQSR(GATK):
     name     = "Apply VQSR"
-    cpu_req  = 1
-    mem_req  = 8*1024
+    cpu_req  = 8
+    mem_req  = 60*1024
     time_req = 12*60
     inputs   = ['vcf','recal','tranches']
     outputs  = [TaskFile(name='vcf',persist=True)]
@@ -392,5 +393,5 @@ class Apply_VQSR(GATK):
             -o $OUT.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
-            --num_threads 4
+            --num_threads 8
             """    
