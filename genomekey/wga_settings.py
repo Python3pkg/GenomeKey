@@ -19,7 +19,7 @@ resource = opj(WGA_path, 'reference')   # 2.5/b37
 tools    = opj(WGA_path, 'tools')
 
 wga_settings = {
-#   'java'                            : opj(tools, 'java'),
+    'java'                            : opj(tools, 'java'),
     'tmp_dir'                         : settings['working_directory'],
 
 #   'GATK_source_path'                : opj(tools, 'gatk'),
