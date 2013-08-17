@@ -15,8 +15,8 @@ else:
     WGA_path = '/WGA'    # assuming AWS SCE, updated
     
 
-resource = opj(WGA_path, 'reference')   # 2.5/b37
-tools    = opj(WGA_path, 'tools')
+reference = opj(WGA_path, 'reference')   # 2.5/b37
+tools     = opj(WGA_path, 'tools')
 
 wga_settings = {
     'java'                            : opj(tools, 'java'),
@@ -35,15 +35,15 @@ wga_settings = {
 #   'queue_path'                      : opj(tools,    'queue.jar'), # needed for BQSRGatherer.java
     'samtools_path'                   : opj(tools,    'samtools'),         
 
-    'resource_bundle_path'            : resource,
-    'reference_fasta_path'            : opj(resource, 'human_g1k_v37.fasta'),
+    'reference'                       : reference,
+    'reference_fasta_path'            : opj(reference, 'human_g1k_v37.fasta'),
 
-    'dbsnp_path'                      : opj(resource, 'dbsnp_137.b37.vcf'),
-    '1ksnp_path'                      : opj(resource, '1000G_phase1.snps.high_confidence.b37.vcf'),
-    'hapmap_path'                     : opj(resource, 'hapmap_3.3.b37.vcf'),
-    'omni_path'                       : opj(resource, '1000G_omni2.5.b37.vcf'),
-    'mills_path'                      : opj(resource, 'Mills_and_1000G_gold_standard.indels.b37.vcf'),
-    'indels_1000g_phase1_path'        : opj(resource, '1000G_phase1.indels.b37.vcf'),
+    'dbsnp_path'                      : opj(reference, 'dbsnp_137.b37.vcf'),
+    '1ksnp_path'                      : opj(reference, '1000G_phase1.snps.high_confidence.b37.vcf'),
+    'hapmap_path'                     : opj(reference, 'hapmap_3.3.b37.vcf'),
+    'omni_path'                       : opj(reference, '1000G_omni2.5.b37.vcf'),
+    'mills_path'                      : opj(reference, 'Mills_and_1000G_gold_standard.indels.b37.vcf'),
+    'indels_1000g_phase1_path'        : opj(reference, '1000G_phase1.indels.b37.vcf'),
 
     'genomekey_library_path'          : os.path.dirname(os.path.realpath(__file__)),
 
