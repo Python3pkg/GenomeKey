@@ -15,11 +15,11 @@ else:
     WGA_path = '/WGA'    # assuming AWS SCE, updated
     
 
-resource = opj(WGA_path, 'bundle/current')   # 2.3/b37
+resource = opj(WGA_path, 'reference')   # 2.5/b37
 tools    = opj(WGA_path, 'tools')
 
 wga_settings = {
-    'java'                            : opj(tools, 'java'),
+#   'java'                            : opj(tools, 'java'),
     'tmp_dir'                         : settings['working_directory'],
 
 #   'GATK_source_path'                : opj(tools, 'gatk'),
@@ -32,7 +32,7 @@ wga_settings = {
 #   'fastqstats_path'                 : opj(tools,    'fastq-stats'),      
     'GATK_path'                       : opj(tools,    'gatk.jar'),
     'Picard_dir'                      : opj(tools,    'picard'),  
-    'queue_path'                      : opj(tools,    'queue.jar'), # needed for BQSRGatherer.java
+#   'queue_path'                      : opj(tools,    'queue.jar'), # needed for BQSRGatherer.java
     'samtools_path'                   : opj(tools,    'samtools'),         
 
     'resource_bundle_path'            : resource,
@@ -50,8 +50,8 @@ wga_settings = {
     'get_drmaa_native_specification'  : session.default_get_drmaa_native_specification
 }
 
-os.environ['ANNOVAREXT_DATA'] = opj(WGA_path,'annovarext_data')
-av_path = opj(tools,'AnnovarExtensions/')
+os.environ['ANNOVAREXT_DATA'] = opj(WGA_path, 'annovarext_data')
+av_path = opj(tools, 'AnnovarExtensions/')
 sys.path.append(av_path)
 os.environ['PYTHONPATH'] = av_path+':'+os.environ.get('PYTHONPATH','')
 
