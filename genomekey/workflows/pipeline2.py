@@ -13,7 +13,7 @@ def Pipeline():
 
     glm = ('glm', ['SNP', 'INDEL'])
 
-    align = reduce_(['bam','sample_name','rgid','platform','library','region'], pipes.AlignAndClean)
+    align = reduce_(['bam','sample_name','rgid','platform','library','sn'], pipes.AlignAndClean) # sn is seqName, not sample_name
 
     post_align1 = sequence_(
         reduce_(['sample_name', 'library'], picard.MarkDuplicates),
