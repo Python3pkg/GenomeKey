@@ -13,7 +13,6 @@ def Pipeline():
 
     glm = ('glm', ['SNP', 'INDEL'])
 
-
     align = reduce_(['bam','sample_name','rgid','platform','library','region'], pipes.AlignAndClean)
 
     post_align1 = sequence_(
