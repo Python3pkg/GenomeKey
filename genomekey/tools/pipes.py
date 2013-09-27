@@ -121,11 +121,11 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
     
 class Bam_To_FastQ(picard.REVERTSAM):
     name     = "BAM to FASTQ"
-    cpu_req  = 2          # set as 1 (to use all 8 cores) makes intermittent failures
-    mem_req  = 10*1024 
+    cpu_req  = 2          ## up to 15 jobs can run in parallel in cc2.8xlarge
+    mem_req  = 2*1024     ## java -Xmx2G
     time_req = 12*60
     inputs   = ['bam']
-    outputs  = [TaskFile(name='dir',persist=True)]
+    outputs  = [TaskFile(name='dir', persist=True)]
 
     # samtools option
     # -f 0x1 : the read is paired in sequencing
@@ -134,15 +134,18 @@ class Bam_To_FastQ(picard.REVERTSAM):
     # -r STR : Only output reads in read group STR
     
     # picard option
-    # MAX_RECORDS_IN_RAM: default 500000 at 2GB memory.
+    # MAX_RECORDS_IN_RAM: default 5000000 at 2GB memory.
 
     def cmd(self,i,s,p):
         return r"""
-            set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[region]}
+            set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
-            {self.bin} INPUT=/dev/stdin OUTPUT=/dev/stdout
+            {s[java]} --jar {s[picard_path]}/RevertSam.jar
+            TMP_DIR={s[tmp_dir]}/RevertSam
+            INPUT=/dev/stdin 
+            OUTPUT=/dev/stdout
             VALIDATION_STRINGENCY=SILENT
-            MAX_RECORDS_IN_RAM=4000000 
+            MAX_RECORDS_IN_RAM=1000000 
             COMPRESSION_LEVEL=0
             |
             {s[bamUtil_path]} bam2FastQ --in -.ubam
