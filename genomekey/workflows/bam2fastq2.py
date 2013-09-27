@@ -100,9 +100,14 @@ def _getSeqName(header):
     """
 
     seqNameList = []
+    unMapped=''
     for sn in header['sq']:
-        seqNameList.append(sn[0])  # first column is seqName
+        if (sn[0].startswith('GL')) or (sn[0].startswith('chrUn')):
+            unMapped += " %s" % sn[0]
+        else:
+            seqNameList.append(sn[0])  # first column is seqName
 
+    seqNameList.append(unMapped)
     return seqNameList
     
 
