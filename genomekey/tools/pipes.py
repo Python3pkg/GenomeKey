@@ -140,7 +140,7 @@ class Bam_To_FastQ(picard.REVERTSAM):
         return r"""
             set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
-            {s[java]} --jar {s[picard_path]}/RevertSam.jar
+            {s[java]} -jar {s[Picard_dir]}/RevertSam.jar
             TMP_DIR={s[tmp_dir]}/RevertSam
             INPUT=/dev/stdin 
             OUTPUT=/dev/stdout
