@@ -25,15 +25,15 @@ wga_settings = {
 #   'GATK_source_path'                : opj(tools, 'gatk'),
 
     'annovarext_path'                 : opj(tools,    'annovarext'),       
-    'bamUtil_path'                    : opj(tools,    'bamUtil'),              
+    'bamUtil_path'                    : opj(tools,    'bamUtil.native'),              
 #   'bqsr_gatherer_path'              : opj(tools,    'BQSRGathererMain'),
-    'bwa_path'                        : opj(tools,    'bwa'),              
+    'bwa_path'                        : opj(tools,    'bwa.native'),              
 #   'fastqc_path'                     : opj(tools,    'fastqc'),           
 #   'fastqstats_path'                 : opj(tools,    'fastq-stats'),      
     'GATK_path'                       : opj(tools,    'gatk.jar'),
     'Picard_dir'                      : opj(tools,    'picard'),  
 #   'queue_path'                      : opj(tools,    'queue.jar'), # needed for BQSRGatherer.java
-    'samtools_path'                   : opj(tools,    'samtools'),         
+    'samtools_path'                   : opj(tools,    'samtools.native'),         
 
     'reference'                       : reference,
     'reference_fasta_path'            : opj(reference, 'human_g1k_v37.fasta'),

@@ -90,7 +90,7 @@ class AddOrReplaceReadGroups(Picard):
         """
 
 class REVERTSAM(Picard):
-    inputs = ['bam']
+    inputs  = ['bam']
     outputs = ['bam']
     mem_req = 12*1024
     cpu_req=2

@@ -121,8 +121,8 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
     
 class Bam_To_FastQ(picard.REVERTSAM):
     name     = "BAM to FASTQ"
-    cpu_req  = 2          # set as 1 (to use all 8 cores) makes intermittent failures
-    mem_req  = 10*1024 
+    cpu_req  = 2          
+    mem_req  = 6*1024 # this will limit about 9 jobs in parallel per node 
     time_req = 12*60
     inputs   = ['bam']
     outputs  = [TaskFile(name='dir',persist=True)]
@@ -140,9 +140,11 @@ class Bam_To_FastQ(picard.REVERTSAM):
         return r"""
             set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[region]}
             |
-            {self.bin} INPUT=/dev/stdin OUTPUT=/dev/stdout
+            {s[java]} -Djava.io.tmpdir={s[tmp_dir]} -Dsnappy.loader.verbosity=true -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts -Xms1G -Xmx2G
+            -jar {s[picard_dir}}/REVERTSAM.jar
+            INPUT=/dev/stdin OUTPUT=/dev/stdout
             VALIDATION_STRINGENCY=SILENT
-            MAX_RECORDS_IN_RAM=4000000 
+            MAX_RECORDS_IN_RAM=1000000 
             COMPRESSION_LEVEL=0
             |
             {s[bamUtil_path]} bam2FastQ --in -.ubam
