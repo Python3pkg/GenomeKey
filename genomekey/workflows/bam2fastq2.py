@@ -94,7 +94,24 @@ def _getRegions(header):
 
     return regions
 
+
+def _getSeqName(header):
+    """Return sequence names (@SQ SN in header)
+    """
+
+    seqNameList = []
+    unMapped=''
+    for sn in header['sq']:
+        if (sn[0].startswith('GL')) or (sn[0].startswith('chrUn')):
+            unMapped += " %s" % sn[0]
+        else:
+            seqNameList.append(sn[0])  # first column is seqName
+
+    seqNameList.append(unMapped)
+    return seqNameList
     
+
+
 def _fastq2input(dag):
     """
     Traverses their output for the fastq files, and yields new INPUTs properly annotated with dags, and children of their right parent.
@@ -143,11 +160,11 @@ def Bam2Fastq(workflow, dag, settings, bams):
     
     for b in bams:
         header = _getHeaderInfo(b)
-        region = _getRegions(header)
+        sn     = _getSeqName(header)
 
         rgid = [ h[0] for h in header['rg']]
 
-        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"), split_([ ('rgid',rgid),('region', region)], pipes.Bam_To_FastQ))
+        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"), split_([ ('rgid',rgid),('sn', sn)], pipes.Bam_To_FastQ))
 
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = seq_(bam_seq, s, combine=True)

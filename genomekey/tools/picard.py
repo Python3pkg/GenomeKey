@@ -11,7 +11,7 @@ def list2input(l):
 class Picard(Tool):
     time_req        = 12*60
     mem_req         = 3*1024
-    cpu_req         = 1
+    cpu_req         = 2
     extra_java_args = ''
     
     @property
