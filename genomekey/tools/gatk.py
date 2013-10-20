@@ -276,8 +276,8 @@ class UnifiedGenotyper(GATK):
     
 class CombineVariants(GATK):
     name     = "Combine Variants"
-    cpu_req  = 8
-    mem_req  = 60*1024
+    cpu_req  = 32
+    mem_req  = 50*1024
     time_req = 12*60    
     inputs   = ['vcf']
     outputs  = [TaskFile(name='vcf',basename='master.vcf')]
@@ -316,8 +316,8 @@ class VQSR(GATK):
 
     """
     name     = "Variant Quality Score Recalibration"
-    cpu_req  = 8
-    mem_req  = 60*1024
+    cpu_req  = 32
+    mem_req  = 50*1024
     time_req = 12*60
     inputs   = ['vcf']
     outputs  = ['recal','tranches','R']
@@ -373,8 +373,8 @@ class VQSR(GATK):
     
 class Apply_VQSR(GATK):
     name     = "Apply VQSR"
-    cpu_req  = 8
-    mem_req  = 60*1024
+    cpu_req  = 32
+    mem_req  = 50*1024
     time_req = 12*60
     inputs   = ['vcf','recal','tranches']
     outputs  = [TaskFile(name='vcf',persist=True)]
