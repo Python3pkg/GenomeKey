@@ -121,13 +121,8 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
     
 class Bam_To_FastQ(picard.REVERTSAM):
     name     = "BAM to FASTQ"
-<<<<<<< HEAD
     cpu_req  = 2          
-    mem_req  = 6*1024 # this will limit about 9 jobs in parallel per node 
-=======
-    cpu_req  = 2          ## up to 15 jobs can run in parallel in cc2.8xlarge
-    mem_req  = 2*1024     ## java -Xmx2G
->>>>>>> bbf02aea58267fb38475f0f1470c820f63e8d94e
+    mem_req  = 5*1024 # this will limit about 9 jobs in parallel per node 
     time_req = 12*60
     inputs   = ['bam']
     outputs  = [TaskFile(name='dir', persist=True)]
@@ -145,18 +140,12 @@ class Bam_To_FastQ(picard.REVERTSAM):
         return r"""
             set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
-<<<<<<< HEAD
-            {s[java]} -Djava.io.tmpdir={s[tmp_dir]} -Dsnappy.loader.verbosity=true -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts -Xms1G -Xmx2G
-            -jar {s[picard_dir}}/REVERTSAM.jar
-            INPUT=/dev/stdin OUTPUT=/dev/stdout
-=======
             {s[java]} -Xms1G -Xmx2G
             -jar {s[Picard_dir]}/RevertSam.jar
             TMP_DIR={s[tmp_dir]}/RevertSam
             INPUT=/dev/stdin 
             OUTPUT=/dev/stdout
             SORT_ORDER=queryname
->>>>>>> bbf02aea58267fb38475f0f1470c820f63e8d94e
             VALIDATION_STRINGENCY=SILENT
             MAX_RECORDS_IN_RAM=1000000 
             COMPRESSION_LEVEL=0
