@@ -28,7 +28,8 @@ class Picard(Tool):
 
 class MarkDuplicates(Picard):
     name     = "Mark Duplicates"
-    mem_req  = 8*1024
+    cpu_req  = 2
+    mem_req  = 5*1024
     time_req = 20*60
     inputs   = ['bam']
     outputs  = [TaskFile(name='bam',basename='markdupes.bam'), TaskFile(name='metrics',basename='markdupes.metrics')]
@@ -36,17 +37,16 @@ class MarkDuplicates(Picard):
         
     jar = 'MarkDuplicates.jar'
     
-    # Increased MAX_RECORDS_IN_RAM from 5M to 40M
     def cmd(self,i,s,p):
         return r"""
-            {self.bin}
+            {s[java]} -Xms2G -Xmx4G -jar {s[Picard_dir]}/MarkDuplicates.jar
             TMP_DIR={s[tmp_dir]}
             OUTPUT=$OUT.bam
             METRICS_FILE=$OUT.metrics
             ASSUME_SORTED=True
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
-            MAX_RECORDS_IN_RAM=4000000
+            MAX_RECORDS_IN_RAM=1000000
             {inputs}
         """, {'inputs': list2input(i['bam'])}
 

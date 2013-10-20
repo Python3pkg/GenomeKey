@@ -76,7 +76,7 @@ class BQSRGatherer(Tool):
 class RealignerTargetCreator(GATK):
     name    = "Realigner Target Creator"
     cpu_req = 2
-    mem_req = 15*1024 
+    mem_req = 4*1024 
     inputs  = ['bam']
     outputs = ['intervals']
 
@@ -87,14 +87,14 @@ class RealignerTargetCreator(GATK):
     # see: http://gatkforums.broadinstitute.org/discussion/1975/recommendations-for-parallelizing-gatk-tools
     def cmd(self,i,s,p):
         return r"""
-            {self.bin}
+            {s[java]} -Xms2G -Xmx3G -jar {s[GATK_path]}
             -T RealignerTargetCreator
             -R {s[reference_fasta_path]}
             -I {i[bam][0]}
             -o $OUT.intervals
             --known {s[indels_1000g_phase1_path]}
             --known {s[mills_path]}
-            --num_threads 4
+            --num_threads 2
             {interval}
             {sleep}
         """,{'interval':get_interval(p), 'sleep': get_sleep(s)}
@@ -102,18 +102,19 @@ class RealignerTargetCreator(GATK):
 class IndelRealigner(GATK):
     name    = "Indel Realigner"
     cpu_req = 2
-    mem_req = 16*1024   # this will make max. 4 jobs running on a node
+    mem_req = 5*1024
     inputs  = ['bam']
     outputs = ['bam']
     
     # no -nt or -nct available
+    # if fixed target intervals: -targetIntervals {s[reference]}/known.realign.target.{intv}.intervals
     def cmd(self,i,s,p):
         return r"""
-            {self.bin}
+            {s[java]} -Xms2G -Xmx5G -jar {s[GATK_path]}
             -T IndelRealigner
             -R {s[reference_fasta_path]}
             -o $OUT.bam
-            -targetIntervals {s[reference]}/known.realign.target.{intv}.intervals
+            -targetIntervals {i[intervals][0]}  
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
@@ -126,18 +127,18 @@ class IndelRealigner(GATK):
 
 class BQSR(GATK):
     name    = "Base Quality Score Recalibration"
-    cpu_req = 2
-    mem_req = 15*1024   # make max 4 jobs running on a node
+    cpu_req = 3
+    mem_req = 6*1024   
     inputs  = ['bam']
     outputs = ['grp']
 
     persist = True
     forward_input = True
 
-    # no -nt, -nct = 4
+    # no -nt, -nct = 3
     def cmd(self,i,s,p):
         return r"""
-            {self.bin}
+            {s[java]} -Xms4G -Xmx5G -jar {s[GATK_path]}
             -T BaseRecalibrator
             -R {s[reference_fasta_path]}
             {inputs}
@@ -153,8 +154,8 @@ class BQSR(GATK):
 
 class ApplyBQSR(GATK):
     name    = "Apply BQSR"
-    cpu_req = 2
-    mem_req = 15*1024       # make max 4 jobs running on a node
+    cpu_req = 3
+    mem_req = 5*1024       # make max 4 jobs running on a node
     inputs  = ['bam','grp']
     outputs = ['bam']
 
@@ -175,7 +176,7 @@ class ApplyBQSR(GATK):
             #self.added_edge = True
 
         return r"""
-            {self.bin}
+            {s[java]} -Xms4G -Xmx5G -jar {s[GATK_path]}
             -T PrintReads
             -R {s[reference_fasta_path]}
             {inputs}
@@ -189,7 +190,7 @@ class ApplyBQSR(GATK):
 class ReduceReads(GATK):
     name     = "Reduce Reads"
     cpu_req  = 2
-    mem_req  = 15*1024    # make max 4 jobs running on a node
+    mem_req  = 5*1024
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['bam']
@@ -198,7 +199,7 @@ class ReduceReads(GATK):
     # -known should be SNPs, not indels: non SNP variants will be ignored.
     def cmd(self,i,s,p):
         return r"""
-           {self.bin}
+           {s[java]} -Xms4G -Xmx4G -jar {s[GATK_path]}
            -T ReduceReads           
            -R {s[reference_fasta_path]}
            -known {s[dbsnp_path]}
@@ -242,17 +243,16 @@ class HaplotypeCaller(GATK):
 
 class UnifiedGenotyper(GATK):
     name     = "Unified Genotyper"
-    cpu_req  = 4          # assign max 2 jobs on a node
-    mem_req  = 30*1024
+    cpu_req  = 4         
+    mem_req  = 8*1024
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['vcf']
     
     # -nt, -nct available
-    # don't need to change -nct in m2.4xlarge: 1 CPU, 8 cores, 16 threads.
     def cmd(self,i,s,p):
         return r"""
-            {self.bin}
+            {s[java]} -Xms4G -Xmx7G -jar {s[GATK_path]}
             -T UnifiedGenotyper
             -R {s[reference_fasta_path]}
             --dbsnp {s[dbsnp_path]}
@@ -270,14 +270,14 @@ class UnifiedGenotyper(GATK):
             -A MappingQualityRankSumTest
             -baq CALCULATE_AS_NECESSARY
             -L {p[interval]}
-            --num_threads 8
+            --num_threads 4
             --num_cpu_threads_per_data_thread 1
         """, {'inputs' : _list2input(i['bam'])}
     
 class CombineVariants(GATK):
     name     = "Combine Variants"
-    cpu_req  = 32
-    mem_req  = 50*1024
+    cpu_req  = 30
+    mem_req  = 55*1024
     time_req = 12*60    
     inputs   = ['vcf']
     outputs  = [TaskFile(name='vcf',basename='master.vcf')]
@@ -296,12 +296,12 @@ class CombineVariants(GATK):
             REQUIRE_UNIQUE - Require that all samples/genotypes be unique between all inputs.
         """
         return r"""
-            {self.bin}
+            {s[java]} -Xms10G -Xmx50G -jar {s[GATK_path]}
             -T CombineVariants
             -R {s[reference_fasta_path]}
             -o $OUT.vcf
             -genotypeMergeOptions {p[genotypeMergeOptions]}
-            --num_threads 8
+            --num_threads 30
             {inputs}
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']])}
     
@@ -316,7 +316,7 @@ class VQSR(GATK):
 
     """
     name     = "Variant Quality Score Recalibration"
-    cpu_req  = 32
+    cpu_req  = 30
     mem_req  = 50*1024
     time_req = 12*60
     inputs   = ['vcf']
@@ -337,14 +337,14 @@ class VQSR(GATK):
    
         if p['glm'] == 'SNP':
             return r"""
-            {self.bin}
+            {s[java]} -Xms10G -Xmx50G -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
-            --num_threads 8
+            --num_threads 30
             -percentBad 0.01 -minNumBad 1000	
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
@@ -355,14 +355,14 @@ class VQSR(GATK):
             """
         else:
             return r"""
-            {self.bin}
+            {s[java]} -Xms10G -Xmx50G -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
             -recalFile $OUT.recal
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
-            --num_threads 8
+            --num_threads 30
             -percentBad 0.01 -minNumBad 1000
             --maxGaussians 1 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
@@ -373,7 +373,7 @@ class VQSR(GATK):
     
 class Apply_VQSR(GATK):
     name     = "Apply VQSR"
-    cpu_req  = 32
+    cpu_req  = 30
     mem_req  = 50*1024
     time_req = 12*60
     inputs   = ['vcf','recal','tranches']
@@ -384,7 +384,7 @@ class Apply_VQSR(GATK):
     # -nt available, -nct not available
     def cmd(self,i,s,p):
         return r"""
-            {self.bin}
+            {s[java]} -Xms10G -Xmx50G -jar {s[GATK_path]}
             -T ApplyRecalibration
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -393,5 +393,5 @@ class Apply_VQSR(GATK):
             -o $OUT.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
-            --num_threads 8
+            --num_threads 30
             """    
