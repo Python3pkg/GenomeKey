@@ -55,8 +55,8 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
 
 class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):
     name     = "BWA Alignment"
-    cpu_req  = 2             # if it's all required
-    mem_req  = 15*1024        # otherwise can't use all 8 cores
+    cpu_req  = 5             
+    mem_req  = 9*1024       
     time_req = 12*60
     inputs   = ['fastq']
     outputs  = ['bam']
@@ -101,18 +101,19 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
         #     SortSam                = opj(s['Picard_dir'],'SortSam.jar')
         # )
 
-        # -t: set as 8 in single cpu, otherwise 4
         return r"""
-            set -o pipefail && {s[bwa_path]} mem -M -t 4
+            set -o pipefail && {s[bwa_path]} mem -M -t 5
             -R "@RG\tID:{p[rgid]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}"
             {s[reference_fasta_path]}
             {i[fastq][0]}
             {i[fastq][1]}
             |
-            {self.picard_bin} -jar {SortSam}
+            {s[java]} -Xms1G -Xmx2G -jar {s[Picard_dir]}/SortSam.jar
+            TMP_DIR={s[tmp_dir]}/SortSam
             INPUT=/dev/stdin
             OUTPUT=$OUT.bam
             SORT_ORDER=coordinate
+            MAX_RECORDS_IN_RAM=1000000
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
             """, dict (SortSam = opj(s['Picard_dir'],'SortSam.jar'))
