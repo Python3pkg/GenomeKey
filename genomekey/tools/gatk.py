@@ -373,10 +373,11 @@ class VQSR(GATK):
         ##
         ## --maxGaussians: default 10, default for INDEL 4, single sample for testing 1
         ## 
-   
+        ## removed -an QD for 'NaN LOD value assigned' error
+
         if p['glm'] == 'SNP':
             return r"""
-            {s[java]} -Xms10G -Xmx50G -jar {s[GATK_path]}
+            {s[java]} -Xms10G -Xmx50G -Djava.io.tmpdir=/mnt/vqsr.snp -jar {s[GATK_path]} 
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -384,17 +385,17 @@ class VQSR(GATK):
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
             --num_threads 30
-            -percentBad 0.01 -minNumBad 1000	
+            --numBadVariants 1000
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
             -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
-            -an DP -an FS -an QD -an ReadPosRankSum -an MQRankSum
+            -an DP -an FS -an ReadPosRankSum -an MQRankSum
             -mode SNP 
             """
         else:
             return r"""
-            {s[java]} -Xms10G -Xmx50G -jar {s[GATK_path]}
+            {s[java]} -Xms10G -Xmx50G -Djava.io.tmpdir=/mnt/vqsr.indel -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -402,7 +403,7 @@ class VQSR(GATK):
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
             --num_threads 30
-            -percentBad 0.01 -minNumBad 1000
+            --numBadVariants 1000
             --maxGaussians 1 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
@@ -423,7 +424,9 @@ class Apply_VQSR(GATK):
     # -nt available, -nct not available
     def cmd(self,i,s,p):
         return r"""
-            {s[java]} -Xms10G -Xmx50G -jar {s[GATK_path]}
+            mkdir -p /mnt/applyVQSR;
+
+            {s[java]} -Xms10G -Xmx50G -Djava.io.tmpdir=/mnt/applyVQSR -jar {s[GATK_path]}
             -T ApplyRecalibration
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
