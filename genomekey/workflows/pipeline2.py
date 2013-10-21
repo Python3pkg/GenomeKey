@@ -38,6 +38,14 @@ def Pipeline():
         map_(gatk.ApplyBQSR)
         )
 
+    post_align4 = sequence_(
+        reduce_split_(['bam', 'sample_name', 'library', 'rgid'], [interval], gatk.RealignerTargetCreator),
+        map_(gatk.IndelRealigner),
+        map_(picard.MarkDuplicates),
+        map_(gatk.BQSR),
+        map_(gatk.ApplyBQSR) 
+        )
+
     call_variants = sequence_(
 #        apply_(
             #reduce_(['interval'],gatk.HaplotypeCaller,tag={'vcf':'HaplotypeCaller'}),
@@ -54,14 +62,14 @@ def Pipeline():
     if is_capture:
         return sequence_(
             align,
-            post_align3,
+            post_align4,
             call_variants,
             massive_annotation
         )
     else:
         return sequence_(
             align,
-            post_align3,
+            post_align4,
             reduce_split_(['sample_name'], [interval], gatk.ReduceReads),
             call_variants,
             massive_annotation
