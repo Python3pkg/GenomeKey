@@ -90,14 +90,14 @@ class RealignerTargetCreator(GATK):
             {s[java]} -Xms2G -Xmx3G -jar {s[GATK_path]}
             -T RealignerTargetCreator
             -R {s[reference_fasta_path]}
-            -I {i[bam][0]}
+            {inputs}
             -o $OUT.intervals
             --known {s[indels_1000g_phase1_path]}
             --known {s[mills_path]}
             --num_threads 2
             {interval}
             {sleep}
-        """,{'interval':get_interval(p), 'sleep': get_sleep(s)}
+        """,{'inputs': _list2input(i['bam']), 'interval':get_interval(p), 'sleep': get_sleep(s)}
     
 class IndelRealigner(GATK):
     name    = "Indel Realigner"
