@@ -103,7 +103,7 @@ class IndelRealigner(GATK):
     name    = "Indel Realigner"
     cpu_req = 2
     mem_req = 5*1024
-    inputs  = ['bam']
+    inputs  = ['bam','intervals']
     outputs = ['bam']
     
     # no -nt or -nct available
