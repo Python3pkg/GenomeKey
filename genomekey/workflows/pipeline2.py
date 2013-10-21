@@ -39,8 +39,9 @@ def Pipeline():
         )
 
     post_align4 = sequence_(
-        reduce_split_(['bam', 'sample_name', 'library', 'rgid'], [interval], gatk.RealignerTargetCreator),
-        map_(gatk.IndelRealigner),
+        #reduce_split_(['sample_name', 'library', 'rgid'], [interval], gatk.RealignerTargetCreator),   # bam doesn't need
+        #map_(gatk.IndelRealigner),
+        reduce_split_(['sample_name', 'library', 'rgid'], [interval], gatk.Realigner),   
         map_(picard.MarkDuplicates),
         map_(gatk.BQSR),
         map_(gatk.ApplyBQSR) 

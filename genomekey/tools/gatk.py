@@ -97,7 +97,7 @@ class RealignerTargetCreator(GATK):
             --num_threads 2
             {interval}
             {sleep}
-        """,{'inputs': _list2input(i['bam']), 'interval':get_interval(p), 'sleep': get_sleep(s)}
+        """,{'inputs': _list2input(i['bam']), 'interval': get_interval(p), 'sleep': get_sleep(s)}
     
 class IndelRealigner(GATK):
     name    = "Indel Realigner"
@@ -124,6 +124,45 @@ class IndelRealigner(GATK):
             {sleep}
         """,{'intv': p['interval'], 'inputs': _list2input(i['bam']), 'sleep': get_sleep(s)}
     
+class Realigner(GATK):
+    name    = "Realigner"
+    cpu_req = 2
+    mem_req = 5*1024 
+    inputs  = ['bam']
+    outputs = ['bam']
+
+   
+    # TargetCreator: no -nct available, -nt = 24 recommended
+    # see: http://gatkforums.broadinstitute.org/discussion/1975/recommendations-for-parallelizing-gatk-tools
+    # will replace ; with CR/LF
+    def cmd(self,i,s,p):
+        return r"""
+            {s[java]} -Xms2G -Xmx3G -jar {s[GATK_path]}
+            -T RealignerTargetCreator
+            -R {s[reference_fasta_path]}
+            {inputs}
+            -o /mnt/tmp/{p[interval]}.intervals
+            --known {s[indels_1000g_phase1_path]}
+            --known {s[mills_path]}
+            --num_threads 2
+            {interval} &;
+
+            wait $!;
+
+            {s[java]} -Xms2G -Xmx5G -jar {s[GATK_path]}
+            -T IndelRealigner
+            -R {s[reference_fasta_path]}
+            -o $OUT.bam
+            -targetIntervals /mnt/tmp/{p[interval]}.intervals
+            -known {s[indels_1000g_phase1_path]}
+            -known {s[mills_path]}
+            -model USE_READS
+            -compress 0
+            {interval}
+            {inputs}
+            {sleep}
+ 
+        """,{'inputs': _list2input(i['bam']), 'interval': get_interval(p), 'sleep': get_sleep(s)}
 
 class BQSR(GATK):
     name    = "Base Quality Score Recalibration"
@@ -155,7 +194,7 @@ class BQSR(GATK):
 class ApplyBQSR(GATK):
     name    = "Apply BQSR"
     cpu_req = 3
-    mem_req = 5*1024       # make max 4 jobs running on a node
+    mem_req = 5*1024
     inputs  = ['bam','grp']
     outputs = ['bam']
 
