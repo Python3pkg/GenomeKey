@@ -14,37 +14,35 @@ def Pipeline():
     glm = ('glm', ['SNP', 'INDEL'])
 
     # sn is seqName, not sample_name
-    align = reduce_(['bam','sample_name','rgid','platform','library','sn'], pipes.AlignAndClean) 
+    # assuming that each data file is unique with rgid+sn, without 'bam' file tag.
+    align = reduce_(['sample_name','rgid','platform','library','sn'], pipes.AlignAndClean) 
 
-    post_align1 = sequence_(
-        reduce_(['sample_name', 'library'], picard.MarkDuplicates),
-        split_([interval],gatk.RealignerTargetCreator),
-        map_(gatk.IndelRealigner),
-        map_(gatk.BQSR),
-        map_(gatk.ApplyBQSR) 
-        )
+    # post_align1 = sequence_(
+    #     reduce_(['sample_name', 'library'], picard.MarkDuplicates),
+    #     split_([interval],gatk.RealignerTargetCreator),
+    #     map_(gatk.IndelRealigner),
+    #     map_(gatk.BQSR),
+    #     map_(gatk.ApplyBQSR) 
+    #     )
     
-    post_align2 = sequence_(
-        reduce_(['sample_name', 'library'], picard.MarkDuplicates),
-        split_([interval], gatk.IndelRealigner),
-        map_(gatk.BQSR),
-        map_(gatk.ApplyBQSR) 
-        )
+    # post_align2 = sequence_(
+    #     reduce_(['sample_name', 'library'], picard.MarkDuplicates),
+    #     split_([interval], gatk.IndelRealigner),
+    #     map_(gatk.BQSR),
+    #     map_(gatk.ApplyBQSR) 
+    #     )
 
-    post_align3 = sequence_(
-        reduce_split_(['bam','sample_name','library','rgid'],[interval],  gatk.IndelRealigner),
-        reduce_(      ['bam','sample_name','library',        'interval'], picard.MarkDuplicates),
-        map_(gatk.BQSR),
-        map_(gatk.ApplyBQSR)
-        )
+    # post_align3 = sequence_(
+    #     reduce_split_(['bam','sample_name','library','rgid'],[interval],  gatk.IndelRealigner),
+    #     reduce_(      ['bam','sample_name','library',        'interval'], picard.MarkDuplicates),
+    #     map_(gatk.BQSR),
+    #     map_(gatk.ApplyBQSR)
+    #     )
 
-    post_align4 = sequence_(
-        #reduce_split_(['sample_name', 'library', 'rgid'], [interval], gatk.RealignerTargetCreator),   # bam doesn't need
-        #map_(gatk.IndelRealigner),
-        reduce_split_(['sample_name', 'library', 'rgid'], [interval], gatk.Realigner),   
+    post_align = sequence_(
+        reduce_split_(['sample_name', 'library', 'rgid'], [interval], gatk.IndelRealigner),   
         map_(picard.MarkDuplicates),
-        map_(gatk.BQSR),
-        map_(gatk.ApplyBQSR) 
+        map_(gatk.BaseQualityScoreRecalibration)
         )
 
     call_variants = sequence_(
@@ -55,7 +53,7 @@ def Pipeline():
 #        ),
         reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
         reduce_(['vcf'], gatk.CombineVariants, 'Combine Into Raw VCFs'),
-        split_([glm], gatk.VQSR),
+        split_([glm], gatk.VariantQualityScoreRecalibration),
         map_(gatk.Apply_VQSR),
         reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs")
     )
@@ -63,14 +61,14 @@ def Pipeline():
     if is_capture:
         return sequence_(
             align,
-            post_align4,
+            post_align,
             call_variants,
             massive_annotation
         )
     else:
         return sequence_(
             align,
-            post_align4,
+            post_align,
             reduce_split_(['sample_name'], [interval], gatk.ReduceReads),
             call_variants,
             massive_annotation
