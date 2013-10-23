@@ -239,7 +239,7 @@ class CombineVariants(GATK):
     default_params = {'genotypeMergeOptions':'UNSORTED'}
     
     # -nt available, -nct not available
-    # Too many -nt (30) will cause write error
+    # Too many -nt (20?) will cause write error
     def cmd(self,i,s,p):
         """
         :param genotypemergeoptions: select from the following:
@@ -256,7 +256,7 @@ class CombineVariants(GATK):
             -R {s[reference_fasta_path]}
             -o $OUT.vcf
             -genotypeMergeOptions UNSORTED
-            -nt 24
+            -nt 10
             {inputs}
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']])}
     
@@ -334,7 +334,6 @@ class Apply_VQSR(GATK):
     name     = "Apply_VQSR"
     cpu_req  = 30
     mem_req  = 50*1024
-    time_req = 12*60
     inputs   = ['vcf','recal','tranches']
     outputs  = [TaskFile(name='vcf',persist=True)]
     
@@ -355,7 +354,7 @@ class Apply_VQSR(GATK):
             -o $OUT.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
-            -nt {self.cpu_req}
+            -nt 10
             """    
 
 #######################################
