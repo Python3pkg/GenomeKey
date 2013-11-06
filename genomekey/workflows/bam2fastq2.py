@@ -15,13 +15,13 @@ class WorkflowException(Exception):pass
 
 
 def _getHeaderInfo(input_bam):
-    if   input_bam[-3:] == 'bam': header = pysam.Samfile(input_bam,'rb').header
-    elif input_bam[-3:] == 'sam': header = pysam.Samfile(input_bam,'r' ).header
+    if   input_bam[-3:] == 'bam': header = pysam.Samfile(input_bam,'rb', check_sq = False).header
+    elif input_bam[-3:] == 'sam': header = pysam.Samfile(input_bam,'r' , check_sq = False).header
     else:
         raise TypeError, 'input file is not a bam or sam'
 
-    return {'rg': [ [tags['ID'], tags['SM'], tags['LB'], tags['PL'] ] for tags in header['RG']],
-            'sq': [ [tags['SN'], tags['LN']]                          for tags in header['SQ']]
+    return {'rg': [ [tags['ID'], tags['SM'], tags.get('LB','noLBinfo'), tags.get('PL','noPLinfo') ] for tags in header['RG']],
+            'sq': [ [tags['SN'], tags['LN']]                                                        for tags in header['SQ']]
            }
 
 def _getRegions(header):
@@ -125,14 +125,20 @@ def _fastq2input(dag):
 
         # Get The RG info and place into a dictionary for tags
         bam_path = tool.parent.get_output('bam').path
-        RGs = pysam.Samfile(bam_path,'rb').header['RG']
+        RGs = pysam.Samfile(bam_path,'rb',check_sq=False).header['RG']
 
         # FilterBamByRG does not remove the non-filtered RGs from the new header
         RG = [ d for d in RGs if d['ID'] == tool.tags['rgid']][0]
-        tags['sample_name']   = RG['SM']
-        tags['library']       = RG['LB']
-        tags['platform']      = RG['PL']
-
+        tags['sample_name'] = RG['SM']
+        try:
+            tags['library']  = RG['LB']
+        except:
+            tags['library']  = 'noLBinfo'
+        try:
+            tags['platform'] = RG['PL']
+        except:
+            tags['platform'] = 'noPLinfo'
+  
         #log.info('tags= {0}'.format(tags))
 
         # Add each fastq as input file
@@ -164,7 +170,8 @@ def Bam2Fastq(workflow, dag, settings, bams):
 
         rgid = [ h[0] for h in header['rg']]
 
-        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"), split_([ ('rgid',rgid),('sn', sn)], pipes.Bam_To_FastQ))
+        # if seqName is empty, then let's assume that the input is unaligned bam
+        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"), split_([ ('rgid', rgid), ('sn', sn) ], pipes.Bam_To_FastQ))
 
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = seq_(bam_seq, s, combine=True)
