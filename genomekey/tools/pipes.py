@@ -130,9 +130,13 @@ class Bam_To_FastQ(picard.REVERTSAM):
     #cpu_req  = 20
     #mem_req  = 25*1024
 
-    #02. next: 3 jobs per node
-    cpu_req = 10
-    mem_req = 15*1024
+    #02. next: 3 jobs per node - took 37min for 5 exome, (1exome = 7.5min)
+    #cpu_req = 10
+    #mem_req = 15*1024
+
+    #03. 5 jobs per node
+    cpu_req = 6
+    mem_req = 10*1024
 
     time_req = 12*60
     inputs   = ['bam']
@@ -152,7 +156,7 @@ class Bam_To_FastQ(picard.REVERTSAM):
             set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW HUGETLB_DEBUG=1 
             {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
-            {s[java]} -Xms10G -Xmx15G
+            {s[java]} -Xms10G -Xmx10G
             -jar {s[Picard_dir]}/RevertSam.jar
             TMP_DIR={s[tmp_dir]}/RevertSam
             INPUT=/dev/stdin 
