@@ -19,21 +19,21 @@ reference = opj(WGA_path, 'reference')   # 2.5/b37
 tools     = opj(WGA_path, 'tools')
 
 wga_settings = {
-    'java'                            : opj(tools, 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts -Dsnappy.loader.verbosity=true'),
+    'java'                            : opj(tools, 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts -Dsnappy.loader.verbosity=true -XX:+UseLargePages'),
     'tmp_dir'                         : settings['working_directory'],
 
 #   'GATK_source_path'                : opj(tools, 'gatk'),
 
     'annovarext_path'                 : opj(tools,    'annovarext'),       
-    'bamUtil_path'                    : opj(tools,    'bamUtil.native'),              
+    'bamUtil_path'                    : opj(tools,    'bamUtil.huge'),              
 #   'bqsr_gatherer_path'              : opj(tools,    'BQSRGathererMain'),
-    'bwa_path'                        : opj(tools,    'bwa.native'),              
+    'bwa_path'                        : opj(tools,    'bwa.huge'),              
 #   'fastqc_path'                     : opj(tools,    'fastqc'),           
 #   'fastqstats_path'                 : opj(tools,    'fastq-stats'),      
     'GATK_path'                       : opj(tools,    'gatk.jar'),
     'Picard_dir'                      : opj(tools,    'picard'),  
 #   'queue_path'                      : opj(tools,    'queue.jar'), # needed for BQSRGatherer.java
-    'samtools_path'                   : opj(tools,    'samtools.native'),         
+    'samtools_path'                   : opj(tools,    'samtools.huge'),         
 
     'reference'                       : reference,
     'reference_fasta_path'            : opj(reference, 'human_g1k_v37.fasta'),
