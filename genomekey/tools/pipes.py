@@ -123,8 +123,8 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
     
 class Bam_To_FastQ(picard.REVERTSAM):
     name     = "BAM to FASTQ"
-    cpu_req  = 2          
-    mem_req  = 5*1024 # this will limit about 9 jobs in parallel per node 
+    cpu_req  = 2      #                   max 16 jobs per node
+    mem_req  = 3*1024 # this will limit about 18 jobs per node 
     time_req = 12*60
     inputs   = ['bam']
     outputs  = [TaskFile(name='dir', persist=True)]
