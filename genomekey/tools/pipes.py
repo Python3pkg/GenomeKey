@@ -102,7 +102,8 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
         # )
 
         return r"""
-            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW {s[bwa_path]} mem -M -t 5
+            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW HUGETLB_DEBUG=1 
+            {s[bwa_path]} mem -M -t 5
             -R "@RG\tID:{p[rgid]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}"
             {s[reference_fasta_path]}
             {i[fastq][0]}
@@ -139,7 +140,8 @@ class Bam_To_FastQ(picard.REVERTSAM):
 
     def cmd(self,i,s,p):
         return r"""
-            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
+            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW HUGETLB_DEBUG=1 
+            {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
             {s[java]} -Xms1G -Xmx2G
             -jar {s[Picard_dir]}/RevertSam.jar
@@ -151,7 +153,8 @@ class Bam_To_FastQ(picard.REVERTSAM):
             MAX_RECORDS_IN_RAM=1000000 
             COMPRESSION_LEVEL=0
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW {s[bamUtil_path]} bam2FastQ --in -.ubam
+            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW HUGETLB_DEBUG=1 
+            {s[bamUtil_path]} bam2FastQ --in -.ubam
             --firstOut    $OUT.dir/1.fastq
             --secondOut   $OUT.dir/2.fastq
             --unpairedOut /dev/null

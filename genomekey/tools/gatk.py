@@ -82,9 +82,9 @@ class IndelRealigner(GATK):
             --known {s[mills_path]}
             --num_threads {self.cpu_req}
             -L {p[interval]}
-            {inputs} &;
+            {inputs};
 
-            wait $!;
+            ;
 
             {self.bin}
             -T IndelRealigner
@@ -123,9 +123,9 @@ class BaseQualityScoreRecalibration(GATK):
             -knownSites {s[indels_1000g_phase1_path]}
             -knownSites {s[mills_path]}
             -nct {self.cpu_req}
-            -L {p[interval]} &;
+            -L {p[interval]} ;
 
-            wait $!;
+            ;
 
             {self.bin}
             -T PrintReads
@@ -302,7 +302,7 @@ class VariantQualityScoreRecalibration(GATK):
             -tranchesFile $OUT.tranches
             -rscriptFile $OUT.R
             -nt {self.cpu_req}
-            --numBadVariants 1000
+            --numBadVariants 3000
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
