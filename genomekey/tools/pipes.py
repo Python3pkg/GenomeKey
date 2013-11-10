@@ -102,7 +102,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
         # )
 
         return r"""
-            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW HUGETLB_DEBUG=1 
+            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
             {s[bwa_path]} mem -M -t 5
             -R "@RG\tID:{p[rgid]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}"
             {s[reference_fasta_path]}
@@ -115,6 +115,9 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             OUTPUT=$OUT.bam
             SORT_ORDER=coordinate
             MAX_RECORDS_IN_RAM=1000000
+            VALIDATION_STRINGENCY=SILENT
+            QUIET=True
+            VERBOSITY=ERROR
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
             """, dict (SortSam = opj(s['Picard_dir'],'SortSam.jar'))
@@ -131,12 +134,12 @@ class Bam_To_FastQ(picard.REVERTSAM):
     #mem_req  = 25*1024
 
     #02. next: 3 jobs per node - took 37min for 5 exome, (1exome = 7.5min)
-    #cpu_req = 10
-    #mem_req = 15*1024
+    cpu_req = 10
+    mem_req = 15*1024
 
-    #03. 5 jobs per node
-    cpu_req = 6
-    mem_req = 10*1024
+    #03. 5 jobs per node - took 40min for 5 exome
+    #cpu_req = 6
+    #mem_req = 10*1024
 
     time_req = 12*60
     inputs   = ['bam']
@@ -153,7 +156,7 @@ class Bam_To_FastQ(picard.REVERTSAM):
 
     def cmd(self,i,s,p):
         return r"""
-            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW HUGETLB_DEBUG=1 
+            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW 
             {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
             {s[java]} -Xms10G -Xmx10G
@@ -162,11 +165,13 @@ class Bam_To_FastQ(picard.REVERTSAM):
             INPUT=/dev/stdin 
             OUTPUT=/dev/stdout
             SORT_ORDER=queryname
+            QUIET=True
             VALIDATION_STRINGENCY=SILENT
-            MAX_RECORDS_IN_RAM=5000000
+            VERBOSITY=ERROR
+            MAX_RECORDS_IN_RAM=1000000
             COMPRESSION_LEVEL=0
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW HUGETLB_DEBUG=1 
+            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
             {s[bamUtil_path]} bam2FastQ --in -.ubam
             --firstOut    $OUT.dir/1.fastq
             --secondOut   $OUT.dir/2.fastq
