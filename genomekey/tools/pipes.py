@@ -123,8 +123,17 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
     
 class Bam_To_FastQ(picard.REVERTSAM):
     name     = "BAM to FASTQ"
-    cpu_req  = 3        # max 10 jobs per node: don't recommend to lower this b/c IO overhead, not cpu overhead
-    mem_req  = 3*1024   # max 19 jobs per node: 2G caused crowded traffic.
+#    cpu_req  = 3        # max 10 jobs per node: don't recommend to lower this b/c IO overhead, not cpu overhead
+#    mem_req  = 3*1024   # max 19 jobs per node: 2G caused crowded traffic.
+
+    #01. extreme: 1 job per node - can help recude max wall time, but not practical
+    #cpu_req  = 20
+    #mem_req  = 25*1024
+
+    #02. next: 3 jobs per node
+    cpu_req = 10
+    mem_req = 15*1024
+
     time_req = 12*60
     inputs   = ['bam']
     outputs  = [TaskFile(name='dir', persist=True)]
@@ -136,21 +145,21 @@ class Bam_To_FastQ(picard.REVERTSAM):
     # -r STR : Only output reads in read group STR
     
     # picard option
-    # MAX_RECORDS_IN_RAM: default 5000000 at 2GB memory.
+    # MAX_RECORDS_IN_RAM: default 500000 at 2GB memory.
 
     def cmd(self,i,s,p):
         return r"""
             set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW HUGETLB_DEBUG=1 
             {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
-            {s[java]} -Xms1G -Xmx2G
+            {s[java]} -Xms10G -Xmx15G
             -jar {s[Picard_dir]}/RevertSam.jar
             TMP_DIR={s[tmp_dir]}/RevertSam
             INPUT=/dev/stdin 
             OUTPUT=/dev/stdout
             SORT_ORDER=queryname
             VALIDATION_STRINGENCY=SILENT
-            MAX_RECORDS_IN_RAM=1000000 
+            MAX_RECORDS_IN_RAM=5000000
             COMPRESSION_LEVEL=0
             |
             LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW HUGETLB_DEBUG=1 
