@@ -59,12 +59,12 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
     mem_req  = 9*1024       
     time_req = 12*60
     inputs   = ['fastq']
-    outputs  = ['bam']
+    outputs  = ['bam','bam.bai']
 
     def cmd(self,i,s,p):
         return r"""
             # -v 2: see BWA error or warning messages only;
-            # don't need to create index in SortSam;
+            # Need to create index in SortSam => gatk complains if not.;
 
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
@@ -84,11 +84,12 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             VALIDATION_STRINGENCY=SILENT
             QUIET=True
             VERBOSITY=ERROR
-            CREATE_INDEX=False
-            COMPRESSION_LEVEL=0
-
-            mv $tmpDir/out.bam $OUT.bam;
-            /bin/rmdir $tmpDir;
+            CREATE_INDEX=True
+            COMPRESSION_LEVEL=0;
+       
+            mv $tmpDir/out.bam     $OUT.bam;
+            mv $tmpDir/out.bam.bai $OUT.bam.bai;
+            /bin/rm -rf $tmpDir;
             """
 
 
@@ -147,8 +148,8 @@ class Bam_To_FastQ(picard.REVERTSAM):
             {s[bamUtil_path]} bam2FastQ --in -.ubam
             --firstOut    $tmpDir/1.fastq
             --secondOut   $tmpDir/2.fastq
-            --unpairedOut /dev/null
-            ;
-            mv $tmpDir/?.fastq $OUT.dir/;
-            /bin/rmdir $tmpDir;
+            --unpairedOut /dev/null;
+
+            mv $tmpDir/?.fastq $OUT.dir;
+            /bin/rm -rf $tmpDir;
         """

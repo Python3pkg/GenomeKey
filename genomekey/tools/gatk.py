@@ -226,7 +226,7 @@ class UnifiedGenotyper(GATK):
             
             mv $tmpDir/unifiedGenotyper.vcf      $OUT.vcf;
             mv $tmpDir/unifiedGenotyper.vcf.idx  $OUT.vcf.idx;
-            /bin/rmdir $tmpDir;
+            /bin/rm -rf $tmpDir;
 
         """, {'inputs' : _list2input(i['bam'])}
     
@@ -264,7 +264,7 @@ class CombineVariants(GATK):
 
             mv $tmpDir/combined.vcf     $OUT.vcf;
             mv $tmpDir/combined.vcf.idx $OUT.vcf.idx;
-            /bin/rmdir $tmpDir;
+            /bin/rm -rf $tmpDir;
 
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']])}
     
@@ -322,7 +322,7 @@ class VariantQualityScoreRecalibration(GATK):
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
             mv $tmpDir/out.R         $OUT.R;
-            /bin/rmdir $tmpDir;
+            /bin/rm -rf $tmpDir;
             """
         else:
             return r"""
@@ -346,7 +346,7 @@ class VariantQualityScoreRecalibration(GATK):
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
             mv $tmpDir/out.R         $OUT.R;
-            /bin/rmdir $tmpDir;
+            /bin/rm -rf $tmpDir;
             """
     
 class Apply_VQSR(GATK):
@@ -378,5 +378,5 @@ class Apply_VQSR(GATK):
             # gluster is really slow on appending small chunks, like making an index file.;
             mv $tmpDir/out.vcf     $OUT.vcf;
             mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
-            /bin/rmdir $tmpDir
+            /bin/rm -rf $tmpDir;
             """    
