@@ -32,20 +32,28 @@ class MarkDuplicates(Picard):
     mem_req  = 5*1024
     time_req = 12*60
     inputs   = ['bam']
-    outputs  = [TaskFile(name='bam',basename='markdupes.bam'), TaskFile(name='metrics',basename='markdupes.metrics')]
-    persist  = True
+    outputs  = ['bam','bai','metrics']
+    #persist  = True
         
     def cmd(self,i,s,p):
         return r"""
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
+
             {s[java]} -Xms5G -Xmx5G -jar {s[Picard_dir]}/MarkDuplicates.jar
-            TMP_DIR={s[tmp_dir]}/MarkDup
-            OUTPUT=$OUT.bam
-            METRICS_FILE=$OUT.metrics
+            TMP_DIR=$tmpDir
+            OUTPUT=$tmpDir/out.bam
+            METRICS_FILE=$tmpDir/out.metrics
+            REMOVE_DUPLICATES=True
             ASSUME_SORTED=True
-            CREATE_INDEX=False
+            CREATE_INDEX=True
             COMPRESSION_LEVEL=0
             MAX_RECORDS_IN_RAM=1000000
-            {inputs}
+            {inputs};
+
+            mv $tmpDir/out.bam     $OUT.bam;
+            mv $tmpDir/out.bai     $OUT.bai;
+            mv $tmpDir/out.metrics $OUT.metrics;
+            /bin/rm -rf $tmpDir;
         """, {'inputs': _list2input(i['bam'])}
 
 
