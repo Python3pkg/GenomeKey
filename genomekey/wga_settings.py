@@ -19,7 +19,7 @@ reference = opj(WGA_path, 'reference')   # 2.5/b37
 tools     = opj(WGA_path, 'tools')
 
 wga_settings = {
-    'java'                            : opj(tools, 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts -Dsnappy.loader.verbosity=true -XX:+UseLargePages'),
+    'java'                            : opj(tools, 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts -XX:+UseLargePages'),
     'tmp_dir'                         : settings['working_directory'],
 
 #   'GATK_source_path'                : opj(tools, 'gatk'),

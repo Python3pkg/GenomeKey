@@ -196,7 +196,7 @@ class UnifiedGenotyper(GATK):
     cpu_req  = 4         
     mem_req  = 7*1024
     inputs   = ['bam']
-    outputs  = ['vcf']
+    outputs  = ['vcf','vcf.idx']
     
     # -nt, -nct available
     def cmd(self,i,s,p):
@@ -208,7 +208,7 @@ class UnifiedGenotyper(GATK):
             -R {s[reference_fasta_path]}
             --dbsnp {s[dbsnp_path]}
             -glm {p[glm]}
-            -o $tmpDir/out.vcf
+            -o $tmpDir/unifiedGenotyper.vcf
             -A Coverage
             -A AlleleBalance
             -A AlleleBalanceBySample
@@ -223,8 +223,10 @@ class UnifiedGenotyper(GATK):
             -nt {self.cpu_req}
             -nct 2
             {inputs}
-
-            mv $tmpDir/out* $OUT;
+            
+            mv $tmpDir/unifiedGenotyper.vcf      $OUT.vcf;
+            mv $tmpDir/unifiedGenotyper.vcf.idx  $OUT.vcf.idx;
+            /bin/rmdir $tmpDir;
 
         """, {'inputs' : _list2input(i['bam'])}
     
@@ -233,7 +235,7 @@ class CombineVariants(GATK):
     cpu_req  = 32
     mem_req  = 55*1024
     inputs   = ['vcf']
-    outputs  = [TaskFile(name='vcf',basename='master.vcf')]
+    outputs  = ['vcf','vcf.idx']
 
     persist  = True
     
@@ -255,12 +257,14 @@ class CombineVariants(GATK):
             {self.bin}
             -T CombineVariants
             -R {s[reference_fasta_path]}
-            -o $tmpDir/out.vcf
+            -o $tmpDir/combined.vcf
             -genotypeMergeOptions UNSORTED
             -nt {self.cpu_req}
             {inputs}
 
-            mv $tmpDir/out* $OUT;
+            mv $tmpDir/combined.vcf     $OUT.vcf;
+            mv $tmpDir/combined.vcf.idx $OUT.vcf.idx;
+            /bin/rmdir $tmpDir;
 
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']])}
     
@@ -307,15 +311,18 @@ class VariantQualityScoreRecalibration(GATK):
             -tranchesFile $tmpDir/out.tranches
             -rscriptFile  $tmpDir/out.R
             -nt {self.cpu_req}
+            -an DP -an FS -an ReadPosRankSum -an MQRankSum
+            -mode {p[glm]}
             --numBadVariants 3000
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
             -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
-            -an DP -an FS -an ReadPosRankSum -an MQRankSum
-            -mode SNP 
 
-            mv $tmpDir/out* $OUT;
+            mv $tmpDir/out.recal     $OUT.recal;
+            mv $tmpDir/out.tranches  $OUT.tranches;
+            mv $tmpDir/out.R         $OUT.R;
+            /bin/rmdir $tmpDir;
             """
         else:
             return r"""
@@ -329,14 +336,17 @@ class VariantQualityScoreRecalibration(GATK):
             -tranchesFile $tmpDir/out.tranches
             -rscriptFile  $tmpDir/out.R
             -nt {self.cpu_req}
+            -an DP -an FS -an ReadPosRankSum -an MQRankSum
+            -mode {p[glm]}
             --numBadVariants 1000
             --maxGaussians 1 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
-            -an DP -an FS -an ReadPosRankSum -an MQRankSum
-            -mode INDEL
 
-            mv $tmpDir/out* $OUT;
+            mv $tmpDir/out.recal     $OUT.recal;
+            mv $tmpDir/out.tranches  $OUT.tranches;
+            mv $tmpDir/out.R         $OUT.R;
+            /bin/rmdir $tmpDir;
             """
     
 class Apply_VQSR(GATK):
@@ -344,7 +354,7 @@ class Apply_VQSR(GATK):
     cpu_req  = 32
     mem_req  = 50*1024
     inputs   = ['vcf','recal','tranches']
-    outputs  = [TaskFile(name='vcf',persist=True)]
+    outputs  = ['vcf','vcf.idx']
     
     persist  = True    
     
@@ -357,154 +367,16 @@ class Apply_VQSR(GATK):
             {self.bin}
             -T ApplyRecalibration
             -R {s[reference_fasta_path]}
-            -input {i[vcf][0]}
+            -input        {i[vcf][0]}
             -tranchesFile {i[tranches][0]}
-            -recalFile {i[recal][0]}
+            -recalFile    {i[recal][0]}
             -o $tmpDir/out.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
             -nt {self.cpu_req}
 
-            mv $tmpDir/out* $OUT
+            # gluster is really slow on appending small chunks, like making an index file.;
+            mv $tmpDir/out.vcf     $OUT.vcf;
+            mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            /bin/rmdir $tmpDir
             """    
-
-#######################################
-### OBSOLETE
-#######################################
-
-# class BQSRGatherer(Tool):
-#     name="BQSR Gatherer"
-#     cpu_req  = 2
-#     mem_req  = 3*1024
-#     time_req = 10
-#     inputs   = ['bam','recal']
-#     outputs  = ['recal']
-#
-#     persist  = True
-#     forward_input = True
-#
-#     def cmd(self,i, s, p):
-#         return r"""
-#             "{s[java]}" -Dlog4j.configuration="file://{log4j}"
-#             -cp "{s[queue_path]}:{s[bqsr_gatherer_path]}"
-#             BQSRGathererMain
-#             $OUT.recal
-#             {input}
-#         """, {'input': '\n'.join(map(str,i['recal'])), 'log4j': os.path.join(s['bqsr_gatherer_path'],'log4j.properties')}
-
-
-# class RealignerTargetCreator(GATK):
-#     name          = "Realigner Target Creator"
-#     cpu_req       = 2
-#     mem_req       = 4*1024 
-#     time_req      = 12*60
-#     analysis_type = 'RealignerTargetCreator'
-#     inputs        = ['bam']
-#     outputs       = ['intervals']
-#
-#     persist = True
-#     forward_input = True
-#   
-#     # no -nct available, -nt = 24 recommended
-#     # see: http://gatkforums.broadinstitute.org/discussion/1975/recommendations-for-parallelizing-gatk-tools
-#     def cmd(self,i,s,p):
-#         return r"""
-#             {s[java]} -Xms2G -Xmx3G -jar {s[GATK_path]}
-#             -T {T}
-#             -R {s[reference_fasta_path]}
-#             {inputs}
-#             -o $OUT.intervals
-#             --known {s[indels_1000g_phase1_path]}
-#             --known {s[mills_path]}
-#             --num_threads 2
-#             {interval}
-#             {sleep}
-#         """,{T: self.analysis_type, 'inputs': _list2input(i['bam']), 'interval': get_interval(p), 'sleep': get_sleep(s)}
-
-    
-# class IndelRealigner(GATK):
-#     name    = "Indel Realigner"
-#     cpu_req = 2
-#     mem_req = 5*1024
-#     inputs  = ['bam','intervals']
-#     outputs = ['bam']
-#    
-#     # no -nt or -nct available
-#     # if fixed target intervals: -targetIntervals {s[reference]}/known.realign.target.{intv}.intervals
-#     def cmd(self,i,s,p):
-#         return r"""
-#             {s[java]} -Xms2G -Xmx5G -jar {s[GATK_path]}
-#             -T IndelRealigner
-#             -R {s[reference_fasta_path]}
-#             -o $OUT.bam
-#             -targetIntervals {i[intervals][0]}  
-#             -known {s[indels_1000g_phase1_path]}
-#             -known {s[mills_path]}
-#             -model USE_READS
-#             -compress 0
-#             --intervals {intv}
-#             {inputs}
-#             {sleep}
-#         """,{'intv': p['interval'], 'inputs': _list2input(i['bam']), 'sleep': get_sleep(s)}
-
-# class BQSR(GATK):
-#     name    = "Base Quality Score Recalibration"
-#     cpu_req = 3
-#     mem_req = 6*1024   
-#     inputs  = ['bam']
-#     outputs = ['grp']
-#
-#     persist = True
-#     forward_input = True
-#
-#     # no -nt, -nct = 3
-#     def cmd(self,i,s,p):
-#         return r"""
-#             {s[java]} -Xms4G -Xmx5G -jar {s[GATK_path]}
-#             -T BaseRecalibrator
-#             -R {s[reference_fasta_path]}
-#             {inputs}
-#             -o $OUT.grp
-#             -knownSites {s[dbsnp_path]}
-#             -knownSites {s[omni_path]}
-#             -knownSites {s[indels_1000g_phase1_path]}
-#             -knownSites {s[mills_path]}
-#             --num_cpu_threads_per_data_thread {nct}
-#             {sleep}
-#         """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s), 'nct': self.cpu_req}
-    
-
-# class ApplyBQSR(GATK):
-#     name    = "Apply BQSR"
-#     cpu_req = 3
-#     mem_req = 5*1024
-#     inputs  = ['bam','grp']
-#     outputs = ['bam']
-#
-#     # def map_inputs(self):
-#     #     d= dict([ ('bam',[p.get_output('bam')]) for p in self.parent.parents ])
-#     #     # d['recal'] = [bqsrG_tool.get_output('recal')]
-#     #     return d
-#
-#     added_edge = False
-#
-#     # PrintReads: no -nt available, -nct = 4 recommended
-#     def cmd(self,i,s,p):
-#         #if not self.added_edge:
-#             #TODO fix this hack.  Also there might be duplicate edges being added on reload which doesn't matter but is ugly.
-#             #TODO this also forces ApplyBQSR to expect a ReduceBQSR
-#             #bqsrG_tool = self.dag.get_tools_by([BQSRGatherer.name],tags={'sample_name':self.tags['sample_name']})[0]
-#             #self.dag.G.add_edge(bqsrG_tool, self)
-#             #self.added_edge = True
-#
-#         return r"""
-#             {s[java]} -Xms4G -Xmx5G -jar {s[GATK_path]}
-#             -T PrintReads
-#             -R {s[reference_fasta_path]}
-#             {inputs}
-#             -o $OUT.bam
-#             -compress 0
-#             -BQSR {i[grp][0]}
-#             --num_cpu_threads_per_data_thread {nct}
-#             {sleep}
-#         """, {'inputs' : _list2input(i['bam']), 'sleep': get_sleep(s), 'nct': self.cpu_req}
