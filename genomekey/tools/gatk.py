@@ -106,7 +106,7 @@ class BaseQualityScoreRecalibration(GATK):
     cpu_req = 3
     mem_req = 5*1024   
     inputs  = ['bam']
-    outputs = ['bam']
+    outputs = ['bam','bai']
 
     # no -nt, -nct = 4
     def cmd(self,i,s,p):
@@ -125,18 +125,18 @@ class BaseQualityScoreRecalibration(GATK):
             -nct {self.cpu_req}
             -L {p[interval]} ;
 
-            ;
-
             {self.bin}
             -T PrintReads
             -R {s[reference_fasta_path]}
             {inputs}
-            -o $OUT.bam
+            -o $tmpDir/out.bam
             -compress 0
             -BQSR $tmpDir/{p[interval]}.grp
             -nct {self.cpu_req}
-            -L {p[interval]}
+            -L {p[interval]};
 
+            mv $tmpDir/out.bam $OUT.bam && mv $tmpDir/out.bai $OUT.bai;
+            /bin/rm -rf $tmpDir
         """, {'inputs' : _list2input(i['bam'])}
 
 class ReduceReads(GATK):
