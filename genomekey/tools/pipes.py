@@ -55,15 +55,15 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
 
 class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):
     name     = "BWA Alignment"
-    cpu_req  = 5             
+    cpu_req  = 8             
     mem_req  = 9*1024       
     time_req = 12*60
     inputs   = ['fastq']
-    outputs  = ['bam','bam.bai']
+    outputs  = ['bam','bai']
 
     def cmd(self,i,s,p):
         return r"""
-            # -v 2: see BWA error or warning messages only;
+            # -v 2: see BWA error or warning messages only
             # Need to create index in SortSam => gatk complains if not.;
 
             tmpDir=`mktemp -d --tmpdir=/mnt`;
@@ -72,10 +72,11 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             {s[bwa_path]} mem -M -t {self.cpu_req} -v 2
             -R "@RG\tID:{p[rgid]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}"
             {s[reference_fasta_path]}
-            {i[fastq][0]}
+            {i[fastq][0]} 
             {i[fastq][1]}
             |
-            {s[java]} -Xms1G -Xmx2G -jar {s[Picard_dir]}/SortSam.jar
+            {s[java]} -Xms2G -Xmx2G 
+            -jar {s[Picard_dir]}/SortSam.jar
             TMP_DIR=$tmpDir
             INPUT=/dev/stdin
             OUTPUT=$tmpDir/out.bam
@@ -87,8 +88,8 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0;
        
-            mv $tmpDir/out.bam     $OUT.bam;
-            mv $tmpDir/out.bam.bai $OUT.bam.bai;
+            mv $tmpDir/out.bam $OUT.bam;
+            mv $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
             """
 
