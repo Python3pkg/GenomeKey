@@ -166,7 +166,7 @@ def Bam2Fastq(workflow, dag, settings, bams):
     
     for b in bams:
         header = _getHeaderInfo(b)
-        sn     = _getSeqName(header)
+        sn     = sorted(_getSeqName(header))
 
         rgid = [ h[0] for h in header['rg']]
 

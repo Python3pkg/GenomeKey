@@ -118,7 +118,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             VALIDATION_STRINGENCY=SILENT
             QUIET=True
             VERBOSITY=ERROR
-            CREATE_INDEX=True
+            CREATE_INDEX=False
             COMPRESSION_LEVEL=0
             """, dict (SortSam = opj(s['Picard_dir'],'SortSam.jar'))
 
@@ -156,6 +156,8 @@ class Bam_To_FastQ(picard.REVERTSAM):
 
     def cmd(self,i,s,p):
         return r"""
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
+ 
             set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW 
             {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
@@ -168,12 +170,16 @@ class Bam_To_FastQ(picard.REVERTSAM):
             QUIET=True
             VALIDATION_STRINGENCY=SILENT
             VERBOSITY=ERROR
+            CREATE_INDEX=False
             MAX_RECORDS_IN_RAM=1000000
             COMPRESSION_LEVEL=0
             |
             LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
             {s[bamUtil_path]} bam2FastQ --in -.ubam
-            --firstOut    $OUT.dir/1.fastq
-            --secondOut   $OUT.dir/2.fastq
+            --firstOut    $tmpDir/1.fastq
+            --secondOut   $tmpDir/2.fastq
             --unpairedOut /dev/null
+            ;
+            mv $tmpDir/?.fastq $OUT.dir/;
+            /bin/rmdir $tmpDir;
         """

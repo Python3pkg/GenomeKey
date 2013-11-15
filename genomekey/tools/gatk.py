@@ -72,12 +72,12 @@ class IndelRealigner(GATK):
 
     def cmd(self,i,s,p):
         return r"""
-            mkdir -p {s[tmp_dir]}/{self.name};
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {self.bin}
             -T RealignerTargetCreator
             -R {s[reference_fasta_path]}
-            -o {s[tmp_dir]}/{p[interval]}.intervals
+            -o $tmpDir/{p[interval]}.intervals
             --known {s[indels_1000g_phase1_path]}
             --known {s[mills_path]}
             --num_threads {self.cpu_req}
@@ -90,7 +90,7 @@ class IndelRealigner(GATK):
             -T IndelRealigner
             -R {s[reference_fasta_path]}
             -o $OUT.bam
-            -targetIntervals {s[tmp_dir]}/{p[interval]}.intervals
+            -targetIntervals $tmpDir/{p[interval]}.intervals
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
@@ -111,13 +111,13 @@ class BaseQualityScoreRecalibration(GATK):
     # no -nt, -nct = 4
     def cmd(self,i,s,p):
         return r"""
-            mkdir -p {s[tmp_dir]}/{self.name};
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {self.bin}
             -T BaseRecalibrator
             -R {s[reference_fasta_path]}
             {inputs}
-            -o {s[tmp_dir]}/{p[interval]}.grp
+            -o $tmpDir/{p[interval]}.grp
             -knownSites {s[dbsnp_path]}
             -knownSites {s[omni_path]}
             -knownSites {s[indels_1000g_phase1_path]}
@@ -133,7 +133,7 @@ class BaseQualityScoreRecalibration(GATK):
             {inputs}
             -o $OUT.bam
             -compress 0
-            -BQSR {s[tmp_dir]}/{p[interval]}.grp
+            -BQSR $tmpDir/{p[interval]}.grp
             -nct {self.cpu_req}
             -L {p[interval]}
 
@@ -150,8 +150,6 @@ class ReduceReads(GATK):
     # -known should be SNPs, not indels: non SNP variants will be ignored.
     def cmd(self,i,s,p):
         return r"""
-            mkdir -p {s[tmp_dir]}/{self.name};
-
            {self.bin}
            -T ReduceReads           
            -R {s[reference_fasta_path]}
@@ -203,14 +201,14 @@ class UnifiedGenotyper(GATK):
     # -nt, -nct available
     def cmd(self,i,s,p):
         return r"""
-            mkdir -p {s[tmp_dir]}/{self.name};
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {self.bin}
             -T UnifiedGenotyper
             -R {s[reference_fasta_path]}
             --dbsnp {s[dbsnp_path]}
             -glm {p[glm]}
-            -o $OUT.vcf
+            -o $tmpDir/out.vcf
             -A Coverage
             -A AlleleBalance
             -A AlleleBalanceBySample
@@ -225,11 +223,14 @@ class UnifiedGenotyper(GATK):
             -nt {self.cpu_req}
             -nct 2
             {inputs}
+
+            mv $tmpDir/out* $OUT;
+
         """, {'inputs' : _list2input(i['bam'])}
     
 class CombineVariants(GATK):
     name     = "CombineVariants"
-    cpu_req  = 30
+    cpu_req  = 32
     mem_req  = 55*1024
     inputs   = ['vcf']
     outputs  = [TaskFile(name='vcf',basename='master.vcf')]
@@ -249,17 +250,21 @@ class CombineVariants(GATK):
             REQUIRE_UNIQUE - Require that all samples/genotypes be unique between all inputs.
         """
         return r"""
-            mkdir -p {s[tmp_dir]}/{self.name};
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {self.bin}
             -T CombineVariants
             -R {s[reference_fasta_path]}
-            -o $OUT.vcf
+            -o $tmpDir/out.vcf
             -genotypeMergeOptions UNSORTED
-            -nt 10
+            -nt {self.cpu_req}
             {inputs}
+
+            mv $tmpDir/out* $OUT;
+
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']])}
     
+
 class VariantQualityScoreRecalibration(GATK):
     """
     VQSR
@@ -271,7 +276,7 @@ class VariantQualityScoreRecalibration(GATK):
 
     """
     name     = "VQSR"
-    cpu_req  = 30
+    cpu_req  = 32
     mem_req  = 50*1024
     inputs   = ['vcf']
     outputs  = ['recal','tranches','R']
@@ -292,15 +297,15 @@ class VariantQualityScoreRecalibration(GATK):
 
         if p['glm'] == 'SNP':
             return r"""
-            mkdir -p {s[tmp_dir]}/{self.name};
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {self.bin}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
-            -recalFile $OUT.recal
-            -tranchesFile $OUT.tranches
-            -rscriptFile $OUT.R
+            -recalFile    $tmpDir/out.recal
+            -tranchesFile $tmpDir/out.tranches
+            -rscriptFile  $tmpDir/out.R
             -nt {self.cpu_req}
             --numBadVariants 3000
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
@@ -309,18 +314,20 @@ class VariantQualityScoreRecalibration(GATK):
             -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
             -an DP -an FS -an ReadPosRankSum -an MQRankSum
             -mode SNP 
+
+            mv $tmpDir/out* $OUT;
             """
         else:
             return r"""
-            mkdir -p {s[tmp_dir]}/{self.name};
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {self.bin}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
-            -recalFile $OUT.recal
-            -tranchesFile $OUT.tranches
-            -rscriptFile $OUT.R
+            -recalFile    $tmpDir/out.recal
+            -tranchesFile $tmpDir/out.tranches
+            -rscriptFile  $tmpDir/out.R
             -nt {self.cpu_req}
             --numBadVariants 1000
             --maxGaussians 1 
@@ -328,11 +335,13 @@ class VariantQualityScoreRecalibration(GATK):
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
             -an DP -an FS -an ReadPosRankSum -an MQRankSum
             -mode INDEL
+
+            mv $tmpDir/out* $OUT;
             """
     
 class Apply_VQSR(GATK):
     name     = "Apply_VQSR"
-    cpu_req  = 30
+    cpu_req  = 32
     mem_req  = 50*1024
     inputs   = ['vcf','recal','tranches']
     outputs  = [TaskFile(name='vcf',persist=True)]
@@ -343,7 +352,7 @@ class Apply_VQSR(GATK):
     # too many threads (-nt 20?) may create IO lag issues ('Failure working with the tmp directory ... Unable to create temporary file for stub')
     def cmd(self,i,s,p):
         return r"""
-            mkdir -p {s[tmp_dir]}/{self.name};
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {self.bin}
             -T ApplyRecalibration
@@ -351,10 +360,12 @@ class Apply_VQSR(GATK):
             -input {i[vcf][0]}
             -tranchesFile {i[tranches][0]}
             -recalFile {i[recal][0]}
-            -o $OUT.vcf
+            -o $tmpDir/out.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
-            -nt 10
+            -nt {self.cpu_req}
+
+            mv $tmpDir/out* $OUT
             """    
 
 #######################################

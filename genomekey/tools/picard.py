@@ -42,7 +42,7 @@ class MarkDuplicates(Picard):
             OUTPUT=$OUT.bam
             METRICS_FILE=$OUT.metrics
             ASSUME_SORTED=True
-            CREATE_INDEX=True
+            CREATE_INDEX=False
             COMPRESSION_LEVEL=0
             MAX_RECORDS_IN_RAM=1000000
             {inputs}
