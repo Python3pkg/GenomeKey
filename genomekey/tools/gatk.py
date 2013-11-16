@@ -59,8 +59,8 @@ class GATK(Tool):
     
 class IndelRealigner(GATK):
     name    = "IndelRealigner"
-    cpu_req = 3
-    mem_req = 6*1024 
+    cpu_req = 4
+    mem_req = 7*1024 
     inputs  = ['bam']
     outputs = ['bam','bai']
     
@@ -74,7 +74,7 @@ class IndelRealigner(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req*.5}M -Xmx{self.mem_req*.9}M -jar {s[GATK_path]}
             -T RealignerTargetCreator
             -R {s[reference_fasta_path]}
             -o $tmpDir/{p[interval]}.intervals
@@ -82,10 +82,11 @@ class IndelRealigner(GATK):
             --known {s[mills_path]}
             --num_threads {self.cpu_req}
             -L {p[interval]}
+            --logging_level=ERROR
             {inputs};
 
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req*.5}M -Xmx{self.mem_req*.9}M -jar {s[GATK_path]}
             -T IndelRealigner
             -R {s[reference_fasta_path]}
             -o $tmpDir/out.bam
@@ -95,7 +96,9 @@ class IndelRealigner(GATK):
             -model USE_READS
             -compress 0
             -L {p[interval]}
+            --logging_level=ERROR
             {inputs};
+
 
             mv $tmpDir/out.bam $OUT.bam;
             mv $tmpDir/out.bai $OUT.bai;
@@ -105,8 +108,8 @@ class IndelRealigner(GATK):
 
 class BaseQualityScoreRecalibration(GATK):
     name    = "BQSR"
-    cpu_req = 3
-    mem_req = 5*1024   
+    cpu_req = 4
+    mem_req = 7*1024   
     inputs  = ['bam']
     outputs = ['bam','bai']
 
@@ -115,7 +118,7 @@ class BaseQualityScoreRecalibration(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req*.5}M -Xmx{self.mem_req*.9}M -jar {s[GATK_path]}
             -T BaseRecalibrator
             -R {s[reference_fasta_path]}
             -o $tmpDir/{p[interval]}.grp
@@ -125,6 +128,7 @@ class BaseQualityScoreRecalibration(GATK):
             -knownSites {s[mills_path]}
             -nct {self.cpu_req}
             -L {p[interval]}
+            --logging_level=ERROR
             {inputs};
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
@@ -135,6 +139,7 @@ class BaseQualityScoreRecalibration(GATK):
             -BQSR $tmpDir/{p[interval]}.grp
             -nct {self.cpu_req}
             -L {p[interval]}
+            --logging_level=ERROR
             {inputs};
 
             mv $tmpDir/out.bam $OUT.bam;
@@ -144,7 +149,7 @@ class BaseQualityScoreRecalibration(GATK):
 
 class ReduceReads(GATK):
     name     = "ReduceReads"
-    cpu_req  = 2
+    cpu_req  = 3
     mem_req  = 5*1024
     inputs   = ['bam']
     outputs  = ['bam','bai']
@@ -153,13 +158,16 @@ class ReduceReads(GATK):
     # -known should be SNPs, not indels: non SNP variants will be ignored.
     def cmd(self,i,s,p):
         return r"""
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
+           tmpDir=`mktemp -d --tmpdir=/mnt`;
+
+           {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req*.5}M -Xmx{self.mem_req*.9}M -jar {s[GATK_path]}
            -T ReduceReads           
            -R {s[reference_fasta_path]}
            -known {s[dbsnp_path]}
            -known {s[1ksnp_path]}
            -o $tmpDir/out.bam
            -L {p[interval]}
+           --logging_level=ERROR
            {inputs};
 
            mv $tmpDir/out.bam $OUT.bam;
@@ -169,8 +177,8 @@ class ReduceReads(GATK):
 
 class HaplotypeCaller(GATK):
     name     = "HaplotypeCaller"
-    cpu_req  = 1
-    mem_req  = 5.5*1024
+    cpu_req  = 3
+    mem_req  = 5*1024
     inputs   = ['bam']
     outputs  = ['vcf']
 
@@ -210,7 +218,7 @@ class UnifiedGenotyper(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req*.5}M -Xmx{self.mem_req*.9}M -jar {s[GATK_path]}
             -T UnifiedGenotyper
             -R {s[reference_fasta_path]}
             --dbsnp {s[dbsnp_path]}
@@ -229,6 +237,7 @@ class UnifiedGenotyper(GATK):
             -L {p[interval]}
             -nt {self.cpu_req}
             -nct 2
+            --logging_level=ERROR
             {inputs};
             
             mv $tmpDir/out.vcf      $OUT.vcf;
@@ -244,10 +253,6 @@ class CombineVariants(GATK):
     inputs   = ['vcf']
     outputs  = ['vcf','vcf.idx']
 
-    persist  = True
-    
-    default_params = {'genotypeMergeOptions':'UNSORTED'}
-    
     # -nt available, -nct not available
     # Too many -nt (20?) will cause write error
     def cmd(self,i,s,p):
@@ -261,12 +266,13 @@ class CombineVariants(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req*.5}M -Xmx{self.mem_req*.9}M -jar {s[GATK_path]}
             -T CombineVariants
             -R {s[reference_fasta_path]}
             -o $tmpDir/out.vcf
             -genotypeMergeOptions UNSORTED
             -nt {self.cpu_req}
+            --logging_level=ERROR
             {inputs};
 
             mv $tmpDir/out.vcf     $OUT.vcf;
@@ -288,7 +294,7 @@ class VariantQualityScoreRecalibration(GATK):
     """
     name     = "VQSR"
     cpu_req  = 32
-    mem_req  = 50*1024
+    mem_req  = 55*1024
     inputs   = ['vcf']
     outputs  = ['recal','tranches','R']
 
@@ -310,7 +316,7 @@ class VariantQualityScoreRecalibration(GATK):
             return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req*.5}M -Xmx{self.mem_req*.9}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -324,7 +330,8 @@ class VariantQualityScoreRecalibration(GATK):
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
-            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]};
+            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
+            --logging_level=ERROR;
 
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
@@ -335,7 +342,7 @@ class VariantQualityScoreRecalibration(GATK):
             return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req*.5}M -Xmx{self.mem_req*.9}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -348,7 +355,8 @@ class VariantQualityScoreRecalibration(GATK):
             --numBadVariants 1000
             --maxGaussians 1 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
-            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]};
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
+            --logging_level=ERROR;
 
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
@@ -359,7 +367,7 @@ class VariantQualityScoreRecalibration(GATK):
 class Apply_VQSR(GATK):
     name     = "Apply_VQSR"
     cpu_req  = 32
-    mem_req  = 50*1024
+    mem_req  = 55*1024
     inputs   = ['vcf','recal','tranches']
     outputs  = ['vcf','vcf.idx']
     
@@ -371,7 +379,7 @@ class Apply_VQSR(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req*.5}M -Xmx{self.mem_req*.9}M -jar {s[GATK_path]}
             -T ApplyRecalibration
             -R {s[reference_fasta_path]}
             -input        {i[vcf][0]}
@@ -380,7 +388,8 @@ class Apply_VQSR(GATK):
             -o $tmpDir/out.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
-            -nt {self.cpu_req};
+            -nt {self.cpu_req}
+            --logging_level=ERROR;
 
             # gluster is really slow on appending small chunks, like making an index file.;
             mv $tmpDir/out.vcf     $OUT.vcf;

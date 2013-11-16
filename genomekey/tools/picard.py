@@ -39,11 +39,10 @@ class MarkDuplicates(Picard):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Xms5G -Xmx5G -jar {s[Picard_dir]}/MarkDuplicates.jar
+            {s[java]} -Xms4G -Xmx4G -jar {s[Picard_dir]}/MarkDuplicates.jar
             TMP_DIR=$tmpDir
             OUTPUT=$tmpDir/out.bam
             METRICS_FILE=$tmpDir/out.metrics
-            REMOVE_DUPLICATES=True
             ASSUME_SORTED=True
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
