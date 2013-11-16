@@ -50,7 +50,7 @@ class GATK(Tool):
 
     @property
     def bin(self):
-        return '{s[java]} -Xms{min}M -Xmx{max}M -Djava.io.tmpdir={s[tmp_dir]}/{self.name} -jar {s[GATK_path]}'.format(self=self, s=self.settings, min=int(self.mem_req*.5), max=int(self.mem_req))
+        return '{s[java]} -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}'.format(self=self, s=self.settings, min=int(self.mem_req*.5), max=int(self.mem_req))
 
     def post_cmd(self,cmd_str,format_dict):
         new_cmd_str = cmd_str + ' ' + get_pedigree(format_dict['s'])
@@ -62,7 +62,7 @@ class IndelRealigner(GATK):
     cpu_req = 3
     mem_req = 6*1024 
     inputs  = ['bam']
-    outputs = ['bam']
+    outputs = ['bam','bai']
     
     # RealignerTargetCreator: no -nct available, -nt = 24 recommended
     # IndelRealigner: no -nt/-nct available
@@ -74,7 +74,7 @@ class IndelRealigner(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T RealignerTargetCreator
             -R {s[reference_fasta_path]}
             -o $tmpDir/{p[interval]}.intervals
@@ -84,20 +84,22 @@ class IndelRealigner(GATK):
             -L {p[interval]}
             {inputs};
 
-            ;
 
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T IndelRealigner
             -R {s[reference_fasta_path]}
-            -o $OUT.bam
+            -o $tmpDir/out.bam
             -targetIntervals $tmpDir/{p[interval]}.intervals
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
             -compress 0
             -L {p[interval]}
-            {inputs}
-  
+            {inputs};
+
+            mv $tmpDir/out.bam $OUT.bam;
+            mv $tmpDir/out.bai $OUT.bai;
+            /bin/rm -rf $tmpDir;
         """,{'inputs': _list2input(i['bam'])}
 
 
@@ -113,30 +115,31 @@ class BaseQualityScoreRecalibration(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T BaseRecalibrator
             -R {s[reference_fasta_path]}
-            {inputs}
             -o $tmpDir/{p[interval]}.grp
             -knownSites {s[dbsnp_path]}
             -knownSites {s[omni_path]}
             -knownSites {s[indels_1000g_phase1_path]}
             -knownSites {s[mills_path]}
             -nct {self.cpu_req}
-            -L {p[interval]} ;
+            -L {p[interval]}
+            {inputs};
 
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T PrintReads
             -R {s[reference_fasta_path]}
-            {inputs}
             -o $tmpDir/out.bam
             -compress 0
             -BQSR $tmpDir/{p[interval]}.grp
             -nct {self.cpu_req}
-            -L {p[interval]};
+            -L {p[interval]}
+            {inputs};
 
-            mv $tmpDir/out.bam $OUT.bam && mv $tmpDir/out.bai $OUT.bai;
-            /bin/rm -rf $tmpDir
+            mv $tmpDir/out.bam $OUT.bam;
+            mv $tmpDir/out.bai $OUT.bai;
+            /bin/rm -rf $tmpDir;
         """, {'inputs' : _list2input(i['bam'])}
 
 class ReduceReads(GATK):
@@ -144,20 +147,24 @@ class ReduceReads(GATK):
     cpu_req  = 2
     mem_req  = 5*1024
     inputs   = ['bam']
-    outputs  = ['bam']
+    outputs  = ['bam','bai']
 
     # no -nt, no -nct available
     # -known should be SNPs, not indels: non SNP variants will be ignored.
     def cmd(self,i,s,p):
         return r"""
-           {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
            -T ReduceReads           
            -R {s[reference_fasta_path]}
            -known {s[dbsnp_path]}
            -known {s[1ksnp_path]}
-           -o $OUT.bam
+           -o $tmpDir/out.bam
            -L {p[interval]}
-           {inputs}           
+           {inputs};
+
+           mv $tmpDir/out.bam $OUT.bam;
+           mv $tmpDir/out.bai $OUT.bai;
+           /bin/rm -rf $tmpDir;
         """, {'inputs' : _list2input(i['bam'])}
 
 class HaplotypeCaller(GATK):
@@ -170,7 +177,7 @@ class HaplotypeCaller(GATK):
 
     def cmd(self,i,s,p):
         return r"""
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T HaplotypeCaller
             -R {s[reference_fasta_path]}
             --dbsnp {s[dbsnp_path]}
@@ -203,12 +210,12 @@ class UnifiedGenotyper(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T UnifiedGenotyper
             -R {s[reference_fasta_path]}
             --dbsnp {s[dbsnp_path]}
             -glm {p[glm]}
-            -o $tmpDir/unifiedGenotyper.vcf
+            -o $tmpDir/out.vcf
             -A Coverage
             -A AlleleBalance
             -A AlleleBalanceBySample
@@ -222,10 +229,10 @@ class UnifiedGenotyper(GATK):
             -L {p[interval]}
             -nt {self.cpu_req}
             -nct 2
-            {inputs}
+            {inputs};
             
-            mv $tmpDir/unifiedGenotyper.vcf      $OUT.vcf;
-            mv $tmpDir/unifiedGenotyper.vcf.idx  $OUT.vcf.idx;
+            mv $tmpDir/out.vcf      $OUT.vcf;
+            mv $tmpDir/out.vcf.idx  $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
         """, {'inputs' : _list2input(i['bam'])}
@@ -254,16 +261,16 @@ class CombineVariants(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T CombineVariants
             -R {s[reference_fasta_path]}
-            -o $tmpDir/combined.vcf
+            -o $tmpDir/out.vcf
             -genotypeMergeOptions UNSORTED
             -nt {self.cpu_req}
-            {inputs}
+            {inputs};
 
-            mv $tmpDir/combined.vcf     $OUT.vcf;
-            mv $tmpDir/combined.vcf.idx $OUT.vcf.idx;
+            mv $tmpDir/out.vcf     $OUT.vcf;
+            mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']])}
@@ -303,7 +310,7 @@ class VariantQualityScoreRecalibration(GATK):
             return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -317,7 +324,7 @@ class VariantQualityScoreRecalibration(GATK):
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
-            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
+            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]};
 
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
@@ -328,7 +335,7 @@ class VariantQualityScoreRecalibration(GATK):
             return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -341,7 +348,7 @@ class VariantQualityScoreRecalibration(GATK):
             --numBadVariants 1000
             --maxGaussians 1 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
-            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]};
 
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
@@ -364,7 +371,7 @@ class Apply_VQSR(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {self.bin}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{self.mem_req}M -Xmx{self.mem_req}M -jar {s[GATK_path]}
             -T ApplyRecalibration
             -R {s[reference_fasta_path]}
             -input        {i[vcf][0]}
@@ -373,7 +380,7 @@ class Apply_VQSR(GATK):
             -o $tmpDir/out.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
-            -nt {self.cpu_req}
+            -nt {self.cpu_req};
 
             # gluster is really slow on appending small chunks, like making an index file.;
             mv $tmpDir/out.vcf     $OUT.vcf;
