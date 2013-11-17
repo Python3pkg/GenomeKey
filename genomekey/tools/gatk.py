@@ -48,7 +48,7 @@ class GATK(Tool):
     mem_req  = 5*1024
     time_req = 12*60
 
-    logging_level = 'INFO' #'ERROR'
+    logging_level = 'ERROR' #'INFO'
 
     @property
     def bin(self):
@@ -61,8 +61,8 @@ class GATK(Tool):
     
 class IndelRealigner(GATK):
     name    = "IndelRealigner"
-    cpu_req = 4
-    mem_req = 7*1024 
+    cpu_req = 3
+    mem_req = 6*1024  # will allow 9 realign jobs in a node
     inputs  = ['bam']
     outputs = ['bam','bai']
     
@@ -76,7 +76,7 @@ class IndelRealigner(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min)M -Xmx{max}M -jar {s[GATK_path]}
             -T RealignerTargetCreator
             -R {s[reference_fasta_path]}
             -o $tmpDir/{p[interval]}.intervals
@@ -88,7 +88,7 @@ class IndelRealigner(GATK):
             {inputs};
 
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{max}M -Xmn{min)M -Xmx{max}M -jar {s[GATK_path]}
             -T IndelRealigner
             -R {s[reference_fasta_path]}
             -o $OUT.bam
@@ -105,13 +105,13 @@ class IndelRealigner(GATK):
             #mv $tmpDir/out.bam $OUT.bam;
             #mv $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
-        """,{'inputs': _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
+        """,{'inputs': _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
 
 
 class BaseQualityScoreRecalibration(GATK):
     name    = "BQSR"
-    cpu_req = 4
-    mem_req = 7*1024   
+    cpu_req = 2        
+    mem_req = 5*1024    # will allow 11 bqsr jobes in a node.
     inputs  = ['bam']
     outputs = ['bam','bai']
 
@@ -120,7 +120,7 @@ class BaseQualityScoreRecalibration(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T BaseRecalibrator
             -R {s[reference_fasta_path]}
             -o $tmpDir/{p[interval]}.grp
@@ -133,7 +133,7 @@ class BaseQualityScoreRecalibration(GATK):
             --logging_level {self.logging_level}
             {inputs};
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T PrintReads
             -R {s[reference_fasta_path]}
             -o $OUT.bam
@@ -147,12 +147,12 @@ class BaseQualityScoreRecalibration(GATK):
             #mv $tmpDir/out.bam $OUT.bam;
             #mv $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
-        """, {'inputs' : _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
+        """, {'inputs' : _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
 
 class ReduceReads(GATK):
     name     = "ReduceReads"
-    cpu_req  = 3
-    mem_req  = 5*1024
+    cpu_req  = 2
+    mem_req  = 5*1024  # will allow 11 reducedRead jobs in a node.
     inputs   = ['bam']
     outputs  = ['bam','bai']
 
@@ -162,7 +162,7 @@ class ReduceReads(GATK):
         return r"""
            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-           {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+           {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
            -T ReduceReads           
            -R {s[reference_fasta_path]}
            -known {s[dbsnp_path]}
@@ -175,7 +175,7 @@ class ReduceReads(GATK):
            #mv $tmpDir/out.bam $OUT.bam;
            #mv $tmpDir/out.bai $OUT.bai;
            /bin/rm -rf $tmpDir;
-        """, {'inputs' : _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
+        """, {'inputs' : _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
 
 class HaplotypeCaller(GATK):
     name     = "HaplotypeCaller"
@@ -208,7 +208,7 @@ class HaplotypeCaller(GATK):
 
 class UnifiedGenotyper(GATK):
     name     = "UnifiedGenotyper"
-    cpu_req  = 4         
+    cpu_req  = 4         # allow 8 ug jobs in a node
     mem_req  = 7*1024
     inputs   = ['bam']
     outputs  = ['vcf','vcf.idx']
@@ -218,7 +218,7 @@ class UnifiedGenotyper(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T UnifiedGenotyper
             -R {s[reference_fasta_path]}
             --dbsnp {s[dbsnp_path]}
@@ -248,8 +248,8 @@ class UnifiedGenotyper(GATK):
     
 class CombineVariants(GATK):
     name     = "CombineVariants"
-    cpu_req  = 32
-    mem_req  = 55*1024
+    cpu_req  = 30
+    mem_req  = 50*1024
     inputs   = ['vcf']
     outputs  = ['vcf','vcf.idx']
 
@@ -266,10 +266,10 @@ class CombineVariants(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            ulimit -n 4096;
+            ulimit -n 65535;
             echo "`whoami`@`hostname`: ulimit -n = `ulimit -n`";
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T CombineVariants
             -R {s[reference_fasta_path]}
             -o $tmpDir/out.vcf
@@ -282,7 +282,7 @@ class CombineVariants(GATK):
             mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
-        """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']]), 'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
+        """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']]), 'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
     
 
 class VariantQualityScoreRecalibration(GATK):
@@ -296,8 +296,8 @@ class VariantQualityScoreRecalibration(GATK):
 
     """
     name     = "VQSR"
-    cpu_req  = 32
-    mem_req  = 55*1024
+    cpu_req  = 30
+    mem_req  = 50*1024
     inputs   = ['vcf']
     outputs  = ['recal','tranches','R']
 
@@ -319,7 +319,7 @@ class VariantQualityScoreRecalibration(GATK):
             return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -340,12 +340,12 @@ class VariantQualityScoreRecalibration(GATK):
             mv $tmpDir/out.tranches  $OUT.tranches;
             mv $tmpDir/out.R         $OUT.R;
             /bin/rm -rf $tmpDir;
-            """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
+            """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
         else:
             return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -365,12 +365,12 @@ class VariantQualityScoreRecalibration(GATK):
             mv $tmpDir/out.tranches  $OUT.tranches;
             mv $tmpDir/out.R         $OUT.R;
             /bin/rm -rf $tmpDir;
-            """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
+            """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
     
 class Apply_VQSR(GATK):
     name     = "Apply_VQSR"
-    cpu_req  = 32
-    mem_req  = 55*1024
+    cpu_req  = 30
+    mem_req  = 50*1024
     inputs   = ['vcf','recal','tranches']
     outputs  = ['vcf','vcf.idx']
     
@@ -401,4 +401,4 @@ class Apply_VQSR(GATK):
             mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
             #/bin/rm -rf $tmpDir;
 
-            """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
+            """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req)}

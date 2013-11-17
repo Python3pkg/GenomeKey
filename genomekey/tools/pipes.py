@@ -79,17 +79,17 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             -jar {s[Picard_dir]}/SortSam.jar
             TMP_DIR=$tmpDir
             INPUT=/dev/stdin
-            OUTPUT=$OUT.bam
+            OUTPUT=$tmpDir/out.bam
             SORT_ORDER=coordinate
             MAX_RECORDS_IN_RAM=1000000
             VALIDATION_STRINGENCY=SILENT
             QUIET=True
-            VERBOSITY=ERROR
+            VERBOSITY=WARNING
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0;
        
-            #mv $tmpDir/out.bam $OUT.bam;
-            #mv $tmpDir/out.bai $OUT.bai;
+            mv $tmpDir/out.bam $OUT.bam;
+            mv $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
             """
 
@@ -127,7 +127,6 @@ class Bam_To_FastQ(picard.REVERTSAM):
 
     def cmd(self,i,s,p):
         return r"""
-            echo "hostname: `hostname` whoami: `whoami`   ulimit -n: `ulimit -n`";
             tmpDir=`mktemp -d --tmpdir=/mnt`;
  
             set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW 
@@ -141,7 +140,7 @@ class Bam_To_FastQ(picard.REVERTSAM):
             SORT_ORDER=queryname
             QUIET=True
             VALIDATION_STRINGENCY=SILENT
-            VERBOSITY=ERROR
+            VERBOSITY=WARNING
             CREATE_INDEX=False
             MAX_RECORDS_IN_RAM=1000000
             COMPRESSION_LEVEL=0
