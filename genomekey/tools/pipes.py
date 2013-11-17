@@ -56,7 +56,7 @@ class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam
 class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):
     name     = "BWA Alignment"
     cpu_req  = 8             
-    mem_req  = 9*1024       
+    mem_req  = 14*1024       
     time_req = 12*60
     inputs   = ['fastq']
     outputs  = ['bam','bai']
@@ -79,7 +79,7 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             -jar {s[Picard_dir]}/SortSam.jar
             TMP_DIR=$tmpDir
             INPUT=/dev/stdin
-            OUTPUT=$tmpDir/out.bam
+            OUTPUT=$OUT.bam
             SORT_ORDER=coordinate
             MAX_RECORDS_IN_RAM=1000000
             VALIDATION_STRINGENCY=SILENT
@@ -88,8 +88,8 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0;
        
-            mv $tmpDir/out.bam $OUT.bam;
-            mv $tmpDir/out.bai $OUT.bai;
+            #mv $tmpDir/out.bam $OUT.bam;
+            #mv $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
             """
 
@@ -127,12 +127,13 @@ class Bam_To_FastQ(picard.REVERTSAM):
 
     def cmd(self,i,s,p):
         return r"""
+            echo "hostname: `hostname` whoami: `whoami`   ulimit -n: `ulimit -n`";
             tmpDir=`mktemp -d --tmpdir=/mnt`;
  
             set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW 
             {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
-            {s[java]} -Xms10G -Xmx10G
+            {s[java]} -Xms4G -Xmx{self.mem_req}M
             -jar {s[Picard_dir]}/RevertSam.jar
             TMP_DIR=$tmpDir
             INPUT=/dev/stdin 
@@ -147,10 +148,10 @@ class Bam_To_FastQ(picard.REVERTSAM):
             |
             LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
             {s[bamUtil_path]} bam2FastQ --in -.ubam
-            --firstOut    $tmpDir/1.fastq
-            --secondOut   $tmpDir/2.fastq
+            --firstOut    $OUT.dir/1.fastq
+            --secondOut   $OUT.dir/2.fastq
             --unpairedOut /dev/null;
 
-            mv $tmpDir/?.fastq $OUT.dir;
+            #mv $tmpDir/?.fastq $OUT.dir;
             /bin/rm -rf $tmpDir;
         """

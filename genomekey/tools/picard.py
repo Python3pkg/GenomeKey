@@ -41,17 +41,17 @@ class MarkDuplicates(Picard):
 
             {s[java]} -Xms4G -Xmx4G -jar {s[Picard_dir]}/MarkDuplicates.jar
             TMP_DIR=$tmpDir
-            OUTPUT=$tmpDir/out.bam
-            METRICS_FILE=$tmpDir/out.metrics
+            OUTPUT=$OUT.bam
+            METRICS_FILE=$OUT.metrics
             ASSUME_SORTED=True
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
             MAX_RECORDS_IN_RAM=1000000
             {inputs};
 
-            mv $tmpDir/out.bam     $OUT.bam;
-            mv $tmpDir/out.bai     $OUT.bai;
-            mv $tmpDir/out.metrics $OUT.metrics;
+            #mv $tmpDir/out.baa     $OUT.bam;
+            #mv $tmpDir/out.bai     $OUT.bai;
+            #mv $tmpDir/out.metrics $OUT.metrics;
             /bin/rm -rf $tmpDir;
         """, {'inputs': _list2input(i['bam'])}
 

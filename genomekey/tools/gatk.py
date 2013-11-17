@@ -48,6 +48,8 @@ class GATK(Tool):
     mem_req  = 5*1024
     time_req = 12*60
 
+    logging_level = 'INFO' #'ERROR'
+
     @property
     def bin(self):
         return '{s[java]} -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}'.format(self=self, s=self.settings, min=int(self.mem_req *.5), max=int(self.mem_req))
@@ -82,26 +84,26 @@ class IndelRealigner(GATK):
             --known {s[mills_path]}
             --num_threads {self.cpu_req}
             -L {p[interval]}
-            --logging_level ERROR
+            --logging_level {self.logging_level}
             {inputs};
 
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T IndelRealigner
             -R {s[reference_fasta_path]}
-            -o $tmpDir/out.bam
+            -o $OUT.bam
             -targetIntervals $tmpDir/{p[interval]}.intervals
             -known {s[indels_1000g_phase1_path]}
             -known {s[mills_path]}
             -model USE_READS
             -compress 0
             -L {p[interval]}
-            --logging_level ERROR
+            --logging_level {self.logging_level}
             {inputs};
 
 
-            mv $tmpDir/out.bam $OUT.bam;
-            mv $tmpDir/out.bai $OUT.bai;
+            #mv $tmpDir/out.bam $OUT.bam;
+            #mv $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
         """,{'inputs': _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
 
@@ -128,22 +130,22 @@ class BaseQualityScoreRecalibration(GATK):
             -knownSites {s[mills_path]}
             -nct {self.cpu_req}
             -L {p[interval]}
-            --logging_level ERROR
+            --logging_level {self.logging_level}
             {inputs};
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T PrintReads
             -R {s[reference_fasta_path]}
-            -o $tmpDir/out.bam
+            -o $OUT.bam
             -compress 0
             -BQSR $tmpDir/{p[interval]}.grp
             -nct {self.cpu_req}
             -L {p[interval]}
-            --logging_level ERROR
+            --logging_level {self.logging_level}
             {inputs};
 
-            mv $tmpDir/out.bam $OUT.bam;
-            mv $tmpDir/out.bai $OUT.bai;
+            #mv $tmpDir/out.bam $OUT.bam;
+            #mv $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
         """, {'inputs' : _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
 
@@ -165,13 +167,13 @@ class ReduceReads(GATK):
            -R {s[reference_fasta_path]}
            -known {s[dbsnp_path]}
            -known {s[1ksnp_path]}
-           -o $tmpDir/out.bam
+           -o $OUT.bam
            -L {p[interval]}
-           --logging_level ERROR
+           --logging_level {self.logging_level}
            {inputs};
 
-           mv $tmpDir/out.bam $OUT.bam;
-           mv $tmpDir/out.bai $OUT.bai;
+           #mv $tmpDir/out.bam $OUT.bam;
+           #mv $tmpDir/out.bai $OUT.bai;
            /bin/rm -rf $tmpDir;
         """, {'inputs' : _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
 
@@ -235,7 +237,7 @@ class UnifiedGenotyper(GATK):
             -L {p[interval]}
             -nt {self.cpu_req}
             -nct 2
-            --logging_level ERROR
+            --logging_level {self.logging_level}
             {inputs};
             
             mv $tmpDir/out.vcf      $OUT.vcf;
@@ -264,13 +266,16 @@ class CombineVariants(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
+            ulimit -n 4096;
+            echo "`whoami`@`hostname`: ulimit -n = `ulimit -n`";
+
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T CombineVariants
             -R {s[reference_fasta_path]}
             -o $tmpDir/out.vcf
             -genotypeMergeOptions UNSORTED
             -nt {self.cpu_req}
-            --logging_level ERROR
+            --logging_level {self.logging_level}
             {inputs};
 
             mv $tmpDir/out.vcf     $OUT.vcf;
@@ -329,7 +334,7 @@ class VariantQualityScoreRecalibration(GATK):
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
             -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
-            --logging_level ERROR;
+            --logging_level {self.logging_level};
 
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
@@ -354,7 +359,7 @@ class VariantQualityScoreRecalibration(GATK):
             --maxGaussians 1 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
-            --logging_level ERROR;
+            --logging_level {self.logging_level};
 
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
@@ -377,6 +382,8 @@ class Apply_VQSR(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
+            echo "ulimit -n: `ulimit -n`";
+
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T ApplyRecalibration
             -R {s[reference_fasta_path]}
@@ -387,10 +394,11 @@ class Apply_VQSR(GATK):
             --ts_filter_level 99.9
             -mode {p[glm]}
             -nt {self.cpu_req}
-            --logging_level ERROR;
+            --logging_level {self.logging_level};
 
             # gluster is really slow on appending small chunks, like making an index file.;
             mv $tmpDir/out.vcf     $OUT.vcf;
             mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
-            /bin/rm -rf $tmpDir;
+            #/bin/rm -rf $tmpDir;
+
             """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
