@@ -261,10 +261,10 @@ class VariantQualityScoreRecalibration(GATK):
     cpu_req  = 30
     mem_req  = 50*1024
     inputs   = ['vcf']
-    outputs  = ['recal','tranches','R']
+    outputs  = ['vcf','vcf.idx','R']
 
-    persist  = True
-    forward_input = True
+#    persist  = True
+#    forward_input = True
     
     default_params = { 'inbreeding_coeff' : False}
 
@@ -277,8 +277,7 @@ class VariantQualityScoreRecalibration(GATK):
         ## 
         ## removed -an QD for 'NaN LOD value assigned' error
 
-        if p['glm'] == 'SNP':
-            return r"""
+        cmd_VQSR = r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
@@ -289,69 +288,34 @@ class VariantQualityScoreRecalibration(GATK):
             -rscriptFile  $tmpDir/out.R
             -nt {self.cpu_req}
             -an DP -an FS -an ReadPosRankSum -an MQRankSum
-            -mode {p[glm]}
+            -mode {p[glm]}                       
+            {inputs}
+            --logging_level {self.logging_level}
+            """
+        cmd_SNP = r"""
             --numBadVariants 3000
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
-            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
-            {inputs}
-            --logging_level {self.logging_level};
+            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]};
 
-            mv $tmpDir/out.recal     $OUT.recal;
-            mv $tmpDir/out.tranches  $OUT.tranches;
-            mv $tmpDir/out.R         $OUT.R;
-            /bin/rm -rf $tmpDir;
-            """,{'inputs' : "\n".join(["-input {0}".format(vcf) for vcf in i['vcf']]),'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
-        else:
-            return r"""
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
+            """
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
-            -T VariantRecalibrator
-            -R {s[reference_fasta_path]}
-            -recalFile    $tmpDir/out.recal
-            -tranchesFile $tmpDir/out.tranches
-            -rscriptFile  $tmpDir/out.R
-            -nt {self.cpu_req}
-            -an DP -an FS -an ReadPosRankSum -an MQRankSum
-            -mode {p[glm]}
-            --numBadVariants 1000
-            --maxGaussians 1 
+        cmd_INDEL = r"""
+            --numBadVariants 3000
+            --maxGaussians   1
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
-            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
-            {inputs}
-            --logging_level {self.logging_level};
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]};
 
-            mv $tmpDir/out.recal     $OUT.recal;
-            mv $tmpDir/out.tranches  $OUT.tranches;
-            mv $tmpDir/out.R         $OUT.R;
-            /bin/rm -rf $tmpDir;
-            """,{'inputs' : "\n".join(["-input {0}".format(vcf) for vcf in i['vcf']]),'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
-    
-class Apply_VQSR(GATK):
-    name     = "Apply_VQSR"
-    cpu_req  = 30
-    mem_req  = 50*1024
-    inputs   = ['vcf','recal','tranches']
-    outputs  = ['vcf','vcf.idx']
-    
-    persist  = True    
-    
-    # -nt available, -nct not available
-    # too many threads (-nt 20?) may create IO lag issues ('Failure working with the tmp directory ... Unable to create temporary file for stub')
-    def cmd(self,i,s,p):
-        return r"""
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
+            """
 
-            echo "ulimit -n: `ulimit -n`";
-
+        cmd_apply_VQSR = r"""
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T ApplyRecalibration
             -R {s[reference_fasta_path]}
-            -tranchesFile {i[tranches][0]}
-            -recalFile    {i[recal][0]}
-            -o $tmpDir/out.vcf
+            -recalFile    $tmpDir/out.recal
+            -tranchesFile $tmpDir/out.tranches
+            -o            $tmpDir/out.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
             -nt {self.cpu_req}
@@ -361,9 +325,17 @@ class Apply_VQSR(GATK):
             # gluster is really slow on appending small chunks, like making an index file.;
             mv $tmpDir/out.vcf     $OUT.vcf;
             mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
-            #/bin/rm -rf $tmpDir;
+            mv $tmpDir/out.R       $OUT.R;
 
-            """,{'inputs' : "\n".join(["-input {0}".format(vcf) for vcf in i['vcf']]),'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
+            #/bin/rm -rf $tmpDir;
+            """
+
+        if p['glm'] == 'SNP': 
+            cmd = cmd_VQSR + cmd_SNP   + cmd_apply_VQSR
+        else:
+            cmd = cmd_VQSR + cmd_INDEL + cmd_apply_VQSR
+
+        return cmd, {'inputs' : "\n".join(["-input {0}".format(vcf) for vcf in i['vcf']]),'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
 
 class CombineVariants(GATK):
     name     = "CombineVariants"

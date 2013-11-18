@@ -20,8 +20,8 @@ def Pipeline2():
         reduce_split_(['bam'],      [interval], gatk.ReduceReads),
         reduce_split_(['interval'], [glm],      gatk.UnifiedGenotyper),
 
-        reduce_(['glm'],                        gatk.VariantQualityScoreRecalibration),
-        map_(gatk.Apply_VQSR, tag={'vcf':'master'}),        
+        reduce_(['glm'],                        gatk.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
+        #map_(gatk.Apply_VQSR, tag={'vcf':'master'}),        
 
         reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs"),
 
