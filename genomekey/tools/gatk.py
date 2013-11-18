@@ -76,7 +76,7 @@ class IndelRealigner(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min)M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T RealignerTargetCreator
             -R {s[reference_fasta_path]}
             -o $tmpDir/{p[interval]}.intervals
@@ -88,7 +88,7 @@ class IndelRealigner(GATK):
             {inputs};
 
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{max}M -Xmn{min)M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T IndelRealigner
             -R {s[reference_fasta_path]}
             -o $OUT.bam
@@ -110,8 +110,8 @@ class IndelRealigner(GATK):
 
 class BaseQualityScoreRecalibration(GATK):
     name    = "BQSR"
-    cpu_req = 2        
-    mem_req = 5*1024    # will allow 11 bqsr jobes in a node.
+    cpu_req = 4         # will allow 8 bqsr jobes in a node.
+    mem_req = 7*1024 
     inputs  = ['bam']
     outputs = ['bam','bai']
 
@@ -120,7 +120,7 @@ class BaseQualityScoreRecalibration(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T BaseRecalibrator
             -R {s[reference_fasta_path]}
             -o $tmpDir/{p[interval]}.grp
@@ -133,7 +133,7 @@ class BaseQualityScoreRecalibration(GATK):
             --logging_level {self.logging_level}
             {inputs};
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T PrintReads
             -R {s[reference_fasta_path]}
             -o $OUT.bam
@@ -162,7 +162,7 @@ class ReduceReads(GATK):
         return r"""
            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-           {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
+           {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
            -T ReduceReads           
            -R {s[reference_fasta_path]}
            -known {s[dbsnp_path]}
@@ -218,7 +218,7 @@ class UnifiedGenotyper(GATK):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T UnifiedGenotyper
             -R {s[reference_fasta_path]}
             --dbsnp {s[dbsnp_path]}
@@ -244,7 +244,7 @@ class UnifiedGenotyper(GATK):
             mv $tmpDir/out.vcf.idx  $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
-        """, {'inputs' : _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req *.9)}
+        """, {'inputs' : _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
     
 class CombineVariants(GATK):
     name     = "CombineVariants"
@@ -269,7 +269,7 @@ class CombineVariants(GATK):
             ulimit -n 65535;
             echo "`whoami`@`hostname`: ulimit -n = `ulimit -n`";
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T CombineVariants
             -R {s[reference_fasta_path]}
             -o $tmpDir/out.vcf
@@ -319,7 +319,7 @@ class VariantQualityScoreRecalibration(GATK):
             return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}
@@ -345,7 +345,7 @@ class VariantQualityScoreRecalibration(GATK):
             return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
             -input {i[vcf][0]}

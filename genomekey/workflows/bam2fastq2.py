@@ -7,7 +7,7 @@ from cosmos.lib.ezflow.tool import INPUT
 from cosmos.Workflow.models import TaskFile
 
 from genomekey.tools import picard, samtools, bamUtil, pipes
-from genomekey import log
+from genomekey       import log
 
 
 class BamException(Exception):pass
@@ -166,12 +166,13 @@ def Bam2Fastq(workflow, dag, settings, bams):
     
     for b in bams:
         header = _getHeaderInfo(b)
-        sn     = sorted(_getSeqName(header))
+        sn     = _getSeqName(header)
 
         rgid = [ h[0] for h in header['rg']]
 
         # if seqName is empty, then let's assume that the input is unaligned bam
-        s = seq_( add_([INPUT(b, tags={'bam':opb(b)})], stage_name="Load BAMs"), split_([ ('rgid', rgid), ('sn', sn) ], pipes.Bam_To_FastQ))
+        sample_name = opb(b).partition('.')[0]
+        s = seq_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), split_([ ('rgid', rgid), ('sn', sn) ], pipes.Bam_To_FastQ))
 
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = seq_(bam_seq, s, combine=True)
@@ -179,3 +180,25 @@ def Bam2Fastq(workflow, dag, settings, bams):
 
     dag.sequence_(bam_seq, configure(settings), add_run(workflow,finish=False)).add_(_fastq2input(dag), stage_name="Input FASTQ")
 
+
+
+def Bam2BWA(workflow, dag, settings, bams):
+
+    bam_seq = None
+    
+    for b in bams:
+        header = _getHeaderInfo(b)
+        sn     = _getSeqName(header)
+
+        rgid = [ h[0] for h in header['rg']]
+
+        # if seqName is empty, then let's assume that the input is unaligned bam
+        sample_name = opb(b).partition('.')[0]
+        s = seq_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), split_([ ('rgid', rgid), ('sn', sn) ], pipes.Bam_To_BWA))
+
+        if bam_seq is None:   bam_seq = s
+        else:                 bam_seq = seq_(bam_seq, s, combine=True)
+
+
+    dag.sequence_(bam_seq, configure(settings), add_run(workflow, finish=False))
+    #return sequence_(bam_seq)

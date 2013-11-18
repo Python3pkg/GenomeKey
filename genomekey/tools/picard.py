@@ -28,8 +28,8 @@ class Picard(Tool):
 
 class MarkDuplicates(Picard):
     name     = "MarkDuplicates"
-    cpu_req  = 3
-    mem_req  = 6*1024   # will allow 9 jobs in a node, as mem_total = 59.3G
+    cpu_req  = 2
+    mem_req  = 5*1024   # will allow 11 jobs in a node, as mem_total = 59.3G
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['bam','bai','metrics']
@@ -39,7 +39,7 @@ class MarkDuplicates(Picard):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Xms{min}M -Xmn{min}M -Xmx{max}M -jar {s[Picard_dir]}/MarkDuplicates.jar
+            {s[java]} -Xms{min}M -Xmx{max}M -jar {s[Picard_dir]}/MarkDuplicates.jar
             TMP_DIR=$tmpDir
             OUTPUT=$OUT.bam
             METRICS_FILE=$OUT.metrics

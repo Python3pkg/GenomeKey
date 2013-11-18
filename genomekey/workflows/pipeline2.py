@@ -4,6 +4,34 @@ from genomekey.tools              import gatk, picard, bwa, misc, bamUtil, pipes
 from genomekey.workflows.annotate import massive_annotation
 from genomekey.wga_settings       import wga_settings
 
+def Pipeline2():
+    #is_capture = wga_settings['capture'] => will not reduceReads
+
+    # split_ tuples
+    interval = ('interval', range(1,23) + ['X', 'Y'])
+
+    glm = ('glm', ['SNP', 'INDEL'])
+
+    post_align = sequence_(
+        reduce_split_(['bam','rgid'], [interval], gatk.IndelRealigner),   
+        map_(picard.MarkDuplicates),
+        map_(gatk.BaseQualityScoreRecalibration)
+        )
+
+    call_variants = sequence_(
+        reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper),
+        reduce_([glm], gatk.VariantQualityScoreRecalibration),
+        map_(gatk.Apply_VQSR,tag={'vcf':'master'}),
+        reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs")
+    )
+
+    
+    return sequence_(
+        post_align,
+        reduce_split_(['bam'], [interval], gatk.ReduceReads),
+        call_variants,
+        massive_annotation
+        )
 
 def Pipeline():
     is_capture = wga_settings['capture']

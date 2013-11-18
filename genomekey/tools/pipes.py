@@ -1,5 +1,5 @@
 from cosmos.Workflow.models import TaskFile
-from . import picard, bamUtil, samtools,bwa
+from . import picard, bamUtil, samtools, bwa
 import os
 opj = os.path.join
     
@@ -94,7 +94,55 @@ class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultiple
             """
 
 
-    
+class Bam_To_BWA(bwa.MEM):
+    name = "BAM to BWA"
+    cpu_req = 8
+    mem_req = 14*1024
+    time_req = 12*60
+
+    inputs  = ['bam']
+    outputs = ['bam', 'bai']
+
+    def cmd(self,i,s,p):
+        return r"""
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
+            cd $tmpDir;
+
+            rg=`{s[samtools_path]} view -H {i[bam][0]} | grep "{p[rgid]}"`;
+            echo "RG = $rg";
+
+            set -o pipefail && 
+            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
+            |
+            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            /WGA/tools/htscmd.huge bamshuf -Oun 128 - _tmp
+            |
+            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            /WGA/tools/htscmd.huge bam2fq -a -
+            |
+            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[bwa_path]} mem -p -M -t {self.cpu_req} -v 1
+            -R "$rg"
+            {s[reference_fasta_path]}
+            - 
+            |
+            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[samtools_path]} view -Shu -
+            |
+            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[samtools_path]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $tmpDir/out.bam;
+
+            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[samtools_path]} index $tmpDir/out.bam $tmpDir/out.bai;
+            
+       
+            mv $tmpDir/out.bam $OUT.bam;
+            mv $tmpDir/out.bai $OUT.bai;
+            #/bin/rm -rf $tmpDir;
+            """
+
+
 class Bam_To_FastQ(picard.REVERTSAM):
     name     = "BAM to FASTQ"
 #    cpu_req  = 3        # max 10 jobs per node: don't recommend to lower this b/c IO overhead, not cpu overhead

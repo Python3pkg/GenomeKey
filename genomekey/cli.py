@@ -68,12 +68,12 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
         raise WorkflowException, 'At least 1 BAM input required'
 
     dag = DAG(ignore_stage_name_collisions=True)
-    Bam2Fastq(workflow,dag,wga_settings,input_bams)
-    exit
+    Bam2BWA(workflow,dag,wga_settings,input_bams)
+    #exit
     dag.sequence_(
-         Pipeline(),
-         configure(wga_settings),
-         add_run(workflow)
+        Pipeline2(),
+        configure(wga_settings),
+        add_run(workflow)
     )
     
 
@@ -199,9 +199,9 @@ def main():
 if __name__ == '__main__':
     main()
 
-from genomekey.workflows.pipeline2 import Pipeline
+from genomekey.workflows.pipeline2 import Pipeline,Pipeline2
 from genomekey.workflows.annotate import massive_annotation, get_db_names
-from genomekey.workflows.bam2fastq2 import Bam2Fastq
+from genomekey.workflows.bam2fastq2 import Bam2Fastq, Bam2BWA
 from genomekey.tools import annovarext
 from genomekey.tools import unix
 from genomekey.wga_settings import wga_settings
