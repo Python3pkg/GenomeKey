@@ -200,5 +200,5 @@ def Bam2BWA(workflow, dag, settings, bams):
         else:                 bam_seq = seq_(bam_seq, s, combine=True)
 
 
-    dag.sequence_(bam_seq, configure(settings), add_run(workflow, finish=False))
-    #return sequence_(bam_seq)
+    #dag.sequence_(bam_seq, configure(settings), add_run(workflow, finish=False))
+    return sequence_(bam_seq)

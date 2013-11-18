@@ -12,24 +12,19 @@ def Pipeline2():
 
     glm = ('glm', ['SNP', 'INDEL'])
 
-    post_align = sequence_(
-        reduce_split_(['bam','rgid'], [interval], gatk.IndelRealigner),   
-        map_(picard.MarkDuplicates),
-        map_(gatk.BaseQualityScoreRecalibration)
-        )
-
-    call_variants = sequence_(
-        reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper),
-        reduce_([glm], gatk.VariantQualityScoreRecalibration),
-        map_(gatk.Apply_VQSR,tag={'vcf':'master'}),
-        reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs")
-    )
-
-    
     return sequence_(
-        post_align,
-        reduce_split_(['bam'], [interval], gatk.ReduceReads),
-        call_variants,
+        reduce_split_(['bam','rgid'], [interval], gatk.IndelRealigner),
+        map_(picard.MarkDuplicates),
+        map_(gatk.BaseQualityScoreRecalibration),        
+
+        reduce_split_(['bam'],      [interval], gatk.ReduceReads),
+        reduce_split_(['interval'], [glm],      gatk.UnifiedGenotyper),
+
+        reduce_(['glm'],                        gatk.VariantQualityScoreRecalibration),
+        map_(gatk.Apply_VQSR, tag={'vcf':'master'}),        
+
+        reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs"),
+
         massive_annotation
         )
 

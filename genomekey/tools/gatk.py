@@ -48,7 +48,7 @@ class GATK(Tool):
     mem_req  = 5*1024
     time_req = 12*60
 
-    logging_level = 'ERROR' #'INFO'
+    logging_level = 'INFO' #ERROR
 
     @property
     def bin(self):
@@ -61,8 +61,8 @@ class GATK(Tool):
     
 class IndelRealigner(GATK):
     name    = "IndelRealigner"
-    cpu_req = 3
-    mem_req = 6*1024  # will allow 9 realign jobs in a node
+    cpu_req = 4
+    mem_req = 7*1024  # will allow 8 realign jobs in a node
     inputs  = ['bam']
     outputs = ['bam','bai']
     
@@ -110,8 +110,8 @@ class IndelRealigner(GATK):
 
 class BaseQualityScoreRecalibration(GATK):
     name    = "BQSR"
-    cpu_req = 4         # will allow 8 bqsr jobes in a node.
-    mem_req = 7*1024 
+    cpu_req = 3         # will allow 10 bqsr jobes in a node.
+    mem_req = 5*1024 
     inputs  = ['bam']
     outputs = ['bam','bai']
 
@@ -246,44 +246,6 @@ class UnifiedGenotyper(GATK):
 
         """, {'inputs' : _list2input(i['bam']), 'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
     
-class CombineVariants(GATK):
-    name     = "CombineVariants"
-    cpu_req  = 30
-    mem_req  = 50*1024
-    inputs   = ['vcf']
-    outputs  = ['vcf','vcf.idx']
-
-    # -nt available, -nct not available
-    # Too many -nt (20?) will cause write error
-    def cmd(self,i,s,p):
-        """
-        :param genotypemergeoptions: select from the following:
-            UNIQUIFY       - Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.
-            PRIORITIZE     - Take genotypes in priority order (see the priority argument).
-            UNSORTED       - Take the genotypes in any order.
-            REQUIRE_UNIQUE - Require that all samples/genotypes be unique between all inputs.
-        """
-        return r"""
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
-
-            ulimit -n 65535;
-            echo "`whoami`@`hostname`: ulimit -n = `ulimit -n`";
-
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
-            -T CombineVariants
-            -R {s[reference_fasta_path]}
-            -o $tmpDir/out.vcf
-            -genotypeMergeOptions UNSORTED
-            -nt {self.cpu_req}
-            --logging_level {self.logging_level}
-            {inputs};
-
-            mv $tmpDir/out.vcf     $OUT.vcf;
-            mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
-            /bin/rm -rf $tmpDir;
-
-        """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']]), 'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
-    
 
 class VariantQualityScoreRecalibration(GATK):
     """
@@ -322,7 +284,6 @@ class VariantQualityScoreRecalibration(GATK):
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
-            -input {i[vcf][0]}
             -recalFile    $tmpDir/out.recal
             -tranchesFile $tmpDir/out.tranches
             -rscriptFile  $tmpDir/out.R
@@ -334,13 +295,14 @@ class VariantQualityScoreRecalibration(GATK):
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
             -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]}
+            {inputs}
             --logging_level {self.logging_level};
 
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
             mv $tmpDir/out.R         $OUT.R;
             /bin/rm -rf $tmpDir;
-            """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
+            """,{'inputs' : "\n".join(["-input {0}".format(vcf) for vcf in i['vcf']]),'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
         else:
             return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
@@ -348,7 +310,6 @@ class VariantQualityScoreRecalibration(GATK):
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T VariantRecalibrator
             -R {s[reference_fasta_path]}
-            -input {i[vcf][0]}
             -recalFile    $tmpDir/out.recal
             -tranchesFile $tmpDir/out.tranches
             -rscriptFile  $tmpDir/out.R
@@ -359,13 +320,14 @@ class VariantQualityScoreRecalibration(GATK):
             --maxGaussians 1 
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]}
+            {inputs}
             --logging_level {self.logging_level};
 
             mv $tmpDir/out.recal     $OUT.recal;
             mv $tmpDir/out.tranches  $OUT.tranches;
             mv $tmpDir/out.R         $OUT.R;
             /bin/rm -rf $tmpDir;
-            """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
+            """,{'inputs' : "\n".join(["-input {0}".format(vcf) for vcf in i['vcf']]),'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
     
 class Apply_VQSR(GATK):
     name     = "Apply_VQSR"
@@ -387,13 +349,13 @@ class Apply_VQSR(GATK):
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
             -T ApplyRecalibration
             -R {s[reference_fasta_path]}
-            -input        {i[vcf][0]}
             -tranchesFile {i[tranches][0]}
             -recalFile    {i[recal][0]}
             -o $tmpDir/out.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
             -nt {self.cpu_req}
+            {inputs}
             --logging_level {self.logging_level};
 
             # gluster is really slow on appending small chunks, like making an index file.;
@@ -401,4 +363,43 @@ class Apply_VQSR(GATK):
             mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
             #/bin/rm -rf $tmpDir;
 
-            """,{'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
+            """,{'inputs' : "\n".join(["-input {0}".format(vcf) for vcf in i['vcf']]),'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
+
+class CombineVariants(GATK):
+    name     = "CombineVariants"
+    cpu_req  = 30
+    mem_req  = 50*1024
+    inputs   = ['vcf']
+    outputs  = ['vcf','vcf.idx']
+
+    # -nt available, -nct not available
+    # Too many -nt (20?) will cause write error
+    def cmd(self,i,s,p):
+        """
+        :param genotypemergeoptions: select from the following:
+            UNIQUIFY       - Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.
+            PRIORITIZE     - Take genotypes in priority order (see the priority argument).
+            UNSORTED       - Take the genotypes in any order.
+            REQUIRE_UNIQUE - Require that all samples/genotypes be unique between all inputs.
+        """
+        return r"""
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
+
+            ulimit -n 65535;
+            echo "`whoami`@`hostname`: ulimit -n = `ulimit -n`";
+
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            -T CombineVariants
+            -R {s[reference_fasta_path]}
+            -o $tmpDir/out.vcf
+            -genotypeMergeOptions UNSORTED
+            -nt {self.cpu_req}
+            --logging_level {self.logging_level}
+            {inputs};
+
+            mv $tmpDir/out.vcf     $OUT.vcf;
+            mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            /bin/rm -rf $tmpDir;
+
+        """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']]), 'min':int(self.mem_req *.5), 'max':int(self.mem_req)}
+    

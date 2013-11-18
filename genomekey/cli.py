@@ -68,9 +68,10 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
         raise WorkflowException, 'At least 1 BAM input required'
 
     dag = DAG(ignore_stage_name_collisions=True)
-    Bam2BWA(workflow,dag,wga_settings,input_bams)
+#    Bam2BWA(workflow,dag,wga_settings,input_bams)
     #exit
     dag.sequence_(
+        Bam2BWA(workflow,dag,wga_settings,input_bams),
         Pipeline2(),
         configure(wga_settings),
         add_run(workflow)
