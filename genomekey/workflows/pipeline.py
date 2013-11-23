@@ -1,12 +1,10 @@
 import os
 import pysam
 
-from cosmos.lib.ezflow.dag  import DAG, add_, split_, sequence_, configure, add_run, map_, reduce_, reduce_split_, apply_
+from cosmos.lib.ezflow.dag  import DAG, add_, split_, sequence_, map_, reduce_, reduce_split_, apply_
 from cosmos.lib.ezflow.tool import INPUT
-from cosmos.Workflow.models import TaskFile
 
-from genomekey.tools              import pipes
-from genomekey.wga_settings       import wga_settings
+from genomekey.tools        import pipes
 
 
 class BamException(Exception):pass
@@ -14,8 +12,10 @@ class WorkflowException(Exception):pass
 
 
 def _getHeaderInfo(input_bam):
-    if   input_bam[-3:] == 'bam': header = pysam.Samfile(input_bam,'rb', check_sq = False).header
-    elif input_bam[-3:] == 'sam': header = pysam.Samfile(input_bam,'r' , check_sq = False).header
+    if   input_bam[-3:] == 'bam': 
+        header = pysam.Samfile(input_bam,'rb', check_sq = False).header
+    elif input_bam[-3:] == 'sam': 
+        header = pysam.Samfile(input_bam,'r' , check_sq = False).header
     else:
         raise TypeError, 'input file is not a bam or sam'
 

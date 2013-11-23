@@ -1,7 +1,4 @@
 from cosmos.lib.ezflow.tool import Tool
-from cosmos.Workflow.models import TaskFile
-
-from cosmos.session import settings as cosmos_settings
 
 
 class Bam_To_BWA(Tool):
