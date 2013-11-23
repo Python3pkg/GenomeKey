@@ -3,9 +3,10 @@
 import ipdb
 import argparse
 
-from cosmos          import session
-from cosmos.config   import settings
-from cosmos.Workflow import cli
+from cosmos                import session
+from cosmos.config         import settings
+from cosmos.Workflow       import cli
+from cosmos.lib.ezflow.dag import DAG,configure,add_run
 
 from genomekey.wga_settings        import wga_settings
 from genomekey.workflows.pipeline  import Pipeline
@@ -52,7 +53,7 @@ def main():
     bam_sp.set_defaults(func=bam)
 
     wf,kwargs = cli.parse_args(parser)
-    wf.log.info('wga_settings =\n{0}'.format(pprint.pformat(wga_settings,indent=2)))
+    #wf.log.info('wga_settings =\n{0}'.format(pprint.pformat(wga_settings,indent=2)))
     kwargs['func'](wf,**kwargs)
 
 

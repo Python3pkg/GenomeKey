@@ -1,12 +1,11 @@
 import os
 import pysam
-#import re
 
 from cosmos.lib.ezflow.dag  import DAG, add_, split_, sequence_, configure, add_run, map_, reduce_, reduce_split_, apply_
 from cosmos.lib.ezflow.tool import INPUT
 from cosmos.Workflow.models import TaskFile
 
-from genomekey.tools              import gatk, picard, pipes
+from genomekey.tools              import pipes
 from genomekey.wga_settings       import wga_settings
 
 from genomekey       import log
@@ -42,10 +41,6 @@ def _getSeqName(header):
     return seqNameList
 
     
-opb  = os.path.basename
-seq_ = sequence_
-
-
 def Pipeline(workflow, dag, settings, bams):
 
     # split_ tuples
@@ -63,27 +58,28 @@ def Pipeline(workflow, dag, settings, bams):
         rgid = [ h[0] for h in header['rg']]
 
         # if seqName is empty, then let's assume that the input is unaligned bam
-        sample_name = opb(b).partition('.')[0]
-        s = seq_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), split_([ ('rgid', rgid), ('sn', sn) ], pipes.Bam_To_BWA))
+        sample_name = os.path.basename(b).partition('.')[0]
+        s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
+                       split_([ ('rgid', rgid), ('sn', sn) ], pipes.Bam_To_BWA))
 
         if bam_seq is None:   bam_seq = s
-        else:                 bam_seq = seq_(bam_seq, s, combine=True)
+        else:                 bam_seq = sequence_(bam_seq, s, combine=True)
 
 
     return sequence_(
         bam_seq,
 
-        reduce_split_(['bam','rgid'], [interval], gatk.IndelRealigner),
+        reduce_split_(['bam','rgid'], [interval], pipes.IndelRealigner),
 
-        map_(picard.MarkDuplicates),
+        map_(pipes.MarkDuplicates),
 
-        map_(gatk.BaseQualityScoreRecalibration),        
+        map_(pipes.BaseQualityScoreRecalibration),        
 
-        reduce_split_(['bam'],      [interval], gatk.ReduceReads),
+        reduce_split_(['bam'],      [interval], pipes.ReduceReads),
 
-        reduce_split_(['interval'], [glm],      gatk.UnifiedGenotyper),
+        reduce_split_(['interval'], [glm],      pipes.UnifiedGenotyper),
 
-        reduce_(['glm'],                        gatk.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
+        reduce_(['glm'],                        pipes.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
 
-        reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs")
+        reduce_(['vcf'], pipes.CombineVariants, "Combine into Master VCFs")
         )
