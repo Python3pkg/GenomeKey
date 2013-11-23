@@ -16,7 +16,7 @@ def _get_drmaa_native_specification(jobAttempt):
     queue    = task.workflow.default_queue
 
     # orchestra-specific option
-    if settings['server_name'] == 'orchestra':
+    if cosmos_settings['server_name'] == 'orchestra':
         if   time_req <= 10:        queue = 'mini'
         elif time_req <= 12 * 60:   queue = 'short'
         else:                       queue = 'long'
