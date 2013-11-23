@@ -1,8 +1,4 @@
-############################################
-# wga_settings.py
-############################################
 import os
-import sys
 
 from cosmos        import session
 from cosmos.config import settings
@@ -10,52 +6,32 @@ from cosmos.config import settings
 opj = os.path.join
 
 if settings['server_name'] == 'orchestra':
-    WGA_path = '/groups/cbi/WGA'
+    ref_path   = '/groups/cbi/WGA/reference'   # Orchestra
+    tools_path = '/groups/cbi/WGA/tools'
 else:
-    WGA_path = '/WGA'    # assuming AWS SCE, updated
+    ref_path   = '/WGA/reference'              # AWS
+    tools_path = '/WGA/tools'
+
     
 
-reference = opj(WGA_path, 'reference')   # 2.5/b37
-tools     = opj(WGA_path, 'tools')
-
 wga_settings = {
-    'java'                            : opj(tools, 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts -XX:+UseLargePages'),
-    'tmp_dir'                         : settings['working_directory'],
+    'java'                  : opj(tools_path, 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts'),
 
-#   'GATK_source_path'                : opj(tools, 'gatk'),
+    'bwa'                   : opj(tools_path, 'bwa.huge'),              
+    'gatk'                  : opj(tools_path, 'gatk.jar'),
+    'picard_dir'            : opj(tools_path, 'picard'),  
+    'samtools'              : opj(tools_path, 'samtools.huge'),         
 
-    'annovarext_path'                 : opj(tools,    'annovarext'),       
-    'bamUtil_path'                    : opj(tools,    'bamUtil.huge'),              
-#   'bqsr_gatherer_path'              : opj(tools,    'BQSRGathererMain'),
-    'bwa_path'                        : opj(tools,    'bwa.huge'),              
-#   'fastqc_path'                     : opj(tools,    'fastqc'),           
-#   'fastqstats_path'                 : opj(tools,    'fastq-stats'),      
-    'GATK_path'                       : opj(tools,    'gatk.jar'),
-    'Picard_dir'                      : opj(tools,    'picard'),  
-#   'queue_path'                      : opj(tools,    'queue.jar'), # needed for BQSRGatherer.java
-    'samtools_path'                   : opj(tools,    'samtools.huge'),         
-
-    'reference'                       : reference,
-    'reference_fasta_path'            : opj(reference, 'human_g1k_v37.fasta'),
-
-    'dbsnp_path'                      : opj(reference, 'dbsnp_137.b37.vcf'),
-    '1ksnp_path'                      : opj(reference, '1000G_phase1.snps.high_confidence.b37.vcf'),
-    'hapmap_path'                     : opj(reference, 'hapmap_3.3.b37.vcf'),
-    'omni_path'                       : opj(reference, '1000G_omni2.5.b37.vcf'),
-    'mills_path'                      : opj(reference, 'Mills_and_1000G_gold_standard.indels.b37.vcf'),
-    'indels_1000g_phase1_path'        : opj(reference, '1000G_phase1.indels.b37.vcf'),
-
-    'genomekey_library_path'          : os.path.dirname(os.path.realpath(__file__)),
+    'reference_fasta'       : opj(ref_path,   'human_g1k_v37.fasta'),
+    'dbsnp_vcf'             : opj(ref_path,   'dbsnp_137.b37.vcf'),
+    'hapmap_vcf'            : opj(ref_path,   'hapmap_3.3.b37.vcf'),
+    'mills_vcf'             : opj(ref_path,   'Mills_and_1000G_gold_standard.indels.b37.vcf'),
+    '1ksnp_vcf'             : opj(ref_path,   '1000G_phase1.snps.high_confidence.b37.vcf'),
+    '1komni_vcf'            : opj(ref_path,   '1000G_omni2.5.b37.vcf'),
+    '1kindel_vcf'           : opj(ref_path,   '1000G_phase1.indels.b37.vcf'),
 
     'get_drmaa_native_specification'  : session.default_get_drmaa_native_specification
 }
-
-os.environ['ANNOVAREXT_DATA'] = opj(WGA_path, 'annovarext_data')
-av_path = opj(tools, 'AnnovarExtensions/')
-sys.path.append(av_path)
-os.environ['PYTHONPATH'] = av_path+':'+os.environ.get('PYTHONPATH','')
-
-
 
 def get_drmaa_native_specification(jobAttempt):
     task = jobAttempt.task
@@ -71,19 +47,12 @@ def get_drmaa_native_specification(jobAttempt):
 
     # orchestra-specific option
     if settings['server_name'] == 'orchestra':
-        if wga_settings['test'] == True:
-            if jobAttempt.task.stage.name != 'Unified_Genotyper':
-                time_req=10
-                cpu_req=1
-            
         if   time_req <= 10:        queue = 'mini'
         elif time_req <= 12 * 60:   queue = 'short'
         else:                       queue = 'long'
-
                             
     if DRM == 'LSF':
         s = '-R "rusage[mem={0}] span[hosts=1]" -n {1}'.format(mem_req/cpu_req, cpu_req)
-#       s = '-R "rusage[mem={0}] span[hosts=1]" -n {1} -J {2}'.format(mem_req, cpu_req, jobAttempt.task.workflow.name.replace(' ','_'))
 
         if time_req:  s += ' -W 0:{0}'.format(time_req)
         if queue:     s += '   -q {0}'.format(queue)

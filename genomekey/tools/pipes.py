@@ -18,33 +18,33 @@ class Bam_To_BWA(Tool):
             tmpDir=`mktemp -d --tmpdir=/mnt`;
             cd $tmpDir;
 
-            rg=`{s[samtools_path]} view -H {i[bam][0]} | grep "{p[rgid]}"`;
+            rg=`{s[samtools]} view -H {i[bam][0]} | grep "{p[rgid]}"`;
             echo "RG = $rg";
 
             set -o pipefail && 
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
+            LD_LIBRARY=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[samtools]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            LD_LIBRARY=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
             /WGA/tools/htscmd.huge bamshuf -Oun 128 - _tmp
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            LD_LIBRARY=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
             /WGA/tools/htscmd.huge bam2fq -a -
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[bwa_path]} mem -p -M -t {self.cpu_req} -v 1
+            LD_LIBRARY=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[bwa]} mem -p -M -t {self.cpu_req} -v 1
             -R "$rg"
-            {s[reference_fasta_path]}
+            {s[reference_fasta]}
             - 
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[samtools_path]} view -Shu -
+            LD_LIBRARY=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[samtools]} view -Shu -
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[samtools_path]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $tmpDir/out.bam;
+            LD_LIBRARY=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[samtools]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $tmpDir/out.bam;
 
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[samtools_path]} index $tmpDir/out.bam $tmpDir/out.bai;
+            LD_LIBRARY=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
+            {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
             
        
             mv $tmpDir/out.bam $OUT.bam;
@@ -68,7 +68,7 @@ class MarkDuplicates(Tool):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Xms{min}M -Xmx{max}M -jar {s[Picard_dir]}/MarkDuplicates.jar
+            {s[java]} -Xms{min}M -Xmx{max}M -jar {s[picard_dir]}/MarkDuplicates.jar
             TMP_DIR=$tmpDir
             OUTPUT=$OUT.bam
             METRICS_FILE=$OUT.metrics
@@ -109,25 +109,25 @@ class IndelRealigner(Tool):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[gatk]}
             -T RealignerTargetCreator
-            -R {s[reference_fasta_path]}
+            -R {s[reference_fasta]}
             -o $tmpDir/{p[interval]}.intervals
-            --known {s[indels_1000g_phase1_path]}
-            --known {s[mills_path]}
+            --known {s[1kindel_vcf]}
+            --known {s[mills_vcf]}
             --num_threads {self.cpu_req}
             -L {p[interval]}
             --logging_level {self.logging_level}
             {inputs};
 
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[gatk]}
             -T IndelRealigner
-            -R {s[reference_fasta_path]}
+            -R {s[reference_fasta]}
             -o $OUT.bam
             -targetIntervals $tmpDir/{p[interval]}.intervals
-            -known {s[indels_1000g_phase1_path]}
-            -known {s[mills_path]}
+            -known {s[1kindel_vcf]}
+            -known {s[mills_vcf]}
             -model USE_READS
             -compress 0
             -L {p[interval]}
@@ -154,22 +154,22 @@ class BaseQualityScoreRecalibration(Tool):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[gatk]}
             -T BaseRecalibrator
-            -R {s[reference_fasta_path]}
+            -R {s[reference_fasta]}
             -o $tmpDir/{p[interval]}.grp
-            -knownSites {s[dbsnp_path]}
-            -knownSites {s[omni_path]}
-            -knownSites {s[indels_1000g_phase1_path]}
-            -knownSites {s[mills_path]}
+            -knownSites {s[dbsnp_vcf]}
+            -knownSites {s[1komni_vcf]}
+            -knownSites {s[1kindel_vcf]}
+            -knownSites {s[mills_vcf]}
             -nct {self.cpu_req}
             -L {p[interval]}
             --logging_level {self.logging_level}
             {inputs};
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[gatk]}
             -T PrintReads
-            -R {s[reference_fasta_path]}
+            -R {s[reference_fasta]}
             -o $OUT.bam
             -compress 0
             -BQSR $tmpDir/{p[interval]}.grp
@@ -197,11 +197,11 @@ class ReduceReads(Tool):
         return r"""
            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-           {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+           {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[gatk]}
            -T ReduceReads           
-           -R {s[reference_fasta_path]}
-           -known {s[dbsnp_path]}
-           -known {s[1ksnp_path]}
+           -R {s[reference_fasta]}
+           -known {s[dbsnp_vcf]}
+           -known {s[1ksnp_vcf]}
            -o $OUT.bam
            -L {p[interval]}
            --logging_level {self.logging_level}
@@ -225,10 +225,10 @@ class UnifiedGenotyper(Tool):
         return r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[gatk]}
             -T UnifiedGenotyper
-            -R {s[reference_fasta_path]}
-            --dbsnp {s[dbsnp_path]}
+            -R {s[reference_fasta]}
+            --dbsnp {s[dbsnp_vcf]}
             -glm {p[glm]}
             -o $tmpDir/out.vcf
             -A Coverage
@@ -288,9 +288,9 @@ class VariantQualityScoreRecalibration(Tool):
         cmd_VQSR = r"""
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[gatk]}
             -T VariantRecalibrator
-            -R {s[reference_fasta_path]}
+            -R {s[reference_fasta]}
             -recalFile    $tmpDir/out.recal
             -tranchesFile $tmpDir/out.tranches
             -rscriptFile  $tmpDir/out.R
@@ -302,25 +302,25 @@ class VariantQualityScoreRecalibration(Tool):
             """
         cmd_SNP = r"""
             --numBadVariants 3000
-            -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_path]}
-            -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[omni_path]}
-            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_path]}
-            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_path]};
+            -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_vcf]}
+            -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[1komni_vcf]}
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_vcf]}
+            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_vcf]};
 
             """
 
         cmd_INDEL = r"""
             --numBadVariants 3000
             --maxGaussians   1
-            -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_path]}
-            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_path]};
+            -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_vcf]}
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_vcf]};
 
             """
 
         cmd_apply_VQSR = r"""
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[gatk]}
             -T ApplyRecalibration
-            -R {s[reference_fasta_path]}
+            -R {s[reference_fasta]}
             -recalFile    $tmpDir/out.recal
             -tranchesFile $tmpDir/out.tranches
             -o            $tmpDir/out.vcf
@@ -369,9 +369,9 @@ class CombineVariants(Tool):
             ulimit -n 65535;
             echo "`whoami`@`hostname`: ulimit -n = `ulimit -n`";
 
-            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[GATK_path]}
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xms{min}M -Xmx{max}M -jar {s[gatk]}
             -T CombineVariants
-            -R {s[reference_fasta_path]}
+            -R {s[reference_fasta]}
             -o $tmpDir/out.vcf
             -genotypeMergeOptions UNSORTED
             -nt {self.cpu_req}
