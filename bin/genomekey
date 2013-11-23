@@ -8,7 +8,7 @@ from cosmos.Workflow       import cli
 from cosmos.lib.ezflow.dag import DAG,configure,add_run
 
 from genomekey.settings            import settings
-from genomekey.workflows.pipeline  import Pipeline
+from genomekey.workflows.pipeline  import pipeline
 
 
 ###############################
@@ -30,7 +30,7 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
     dag = DAG(ignore_stage_name_collisions=True)
 
     dag.sequence_(
-        Pipeline(input_bams),
+        pipeline(input_bams),
         configure(settings),
         add_run(workflow)
     )

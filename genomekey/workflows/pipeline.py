@@ -7,10 +7,6 @@ from cosmos.lib.ezflow.tool import INPUT
 from genomekey.tools        import pipes
 
 
-class BamException(Exception):pass
-class WorkflowException(Exception):pass
-
-
 def _getHeaderInfo(input_bam):
     if   input_bam[-3:] == 'bam': 
         header = pysam.Samfile(input_bam,'rb', check_sq = False).header
@@ -24,9 +20,9 @@ def _getHeaderInfo(input_bam):
            }
 
 def _getSeqName(header):
-    """Return sequence names (@SQ SN in header)
     """
-
+    Return sequence names (@SQ SN in header)
+    """
     seqNameList = []
     unMapped=''
     for sn in header['sq']:
@@ -39,13 +35,11 @@ def _getSeqName(header):
     return seqNameList
 
     
-def Pipeline(bams):
+def pipeline(bams):
 
     # split_ tuples
     interval = ('interval', range(1,23) + ['X', 'Y'])
-
-    glm = ('glm', ['SNP', 'INDEL'])
-
+    glm      = ('glm', ['SNP', 'INDEL'])
 
     bam_seq = None
     
