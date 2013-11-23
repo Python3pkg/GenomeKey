@@ -11,7 +11,6 @@ from cosmos.lib.ezflow.dag import DAG,configure,add_run
 from genomekey.wga_settings        import wga_settings
 from genomekey.workflows.pipeline  import Pipeline
 
-session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']
 
 ###############################
 # bam
@@ -42,18 +41,19 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
 ###############################
 
 def main():
-    from argparse import RawTextHelpFormatter
+
+    session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']
+
     parser = argparse.ArgumentParser(description='WGA')
     subparsers = parser.add_subparsers(title="Commands", metavar="<command>")
 
-    bam_sp = subparsers.add_parser('bam',help="Input is a bam or bam file list",description=bam.__doc__,formatter_class=RawTextHelpFormatter)
+    bam_sp = subparsers.add_parser('bam',help="Input is a bam or bam file list",description=bam.__doc__)
     cli.add_workflow_args(bam_sp)
     bam_sp.add_argument('-i', '--input_bam',     type=file,help='A path to a BAM file')
     bam_sp.add_argument('-il','--input_bam_list',type=file,help='A path to a file containing a list of paths to BAMs, separated by newlines')
     bam_sp.set_defaults(func=bam)
 
     wf,kwargs = cli.parse_args(parser)
-    #wf.log.info('wga_settings =\n{0}'.format(pprint.pformat(wga_settings,indent=2)))
     kwargs['func'](wf,**kwargs)
 
 

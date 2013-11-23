@@ -33,7 +33,7 @@ wga_settings = {
     'get_drmaa_native_specification'  : session.default_get_drmaa_native_specification
 }
 
-def get_drmaa_native_specification(jobAttempt):
+def _get_drmaa_native_specification(jobAttempt):
     task = jobAttempt.task
     DRM  = settings['DRM']
 
@@ -63,4 +63,4 @@ def get_drmaa_native_specification(jobAttempt):
         raise Exception('DRM not supported')
 
     
-wga_settings['get_drmaa_native_specification'] = get_drmaa_native_specification
+wga_settings['get_drmaa_native_specification'] = _get_drmaa_native_specification
