@@ -4,11 +4,10 @@ import ipdb
 import argparse
 
 from cosmos                import session
-from cosmos.config         import settings
 from cosmos.Workflow       import cli
 from cosmos.lib.ezflow.dag import DAG,configure,add_run
 
-from genomekey.wga_settings        import wga_settings
+from genomekey.settings            import settings
 from genomekey.workflows.pipeline  import Pipeline
 
 
@@ -31,8 +30,8 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
     dag = DAG(ignore_stage_name_collisions=True)
 
     dag.sequence_(
-        Pipeline(workflow,dag,settings,input_bams),
-        configure(wga_settings),
+        Pipeline(input_bams),
+        configure(settings),
         add_run(workflow)
     )
     
@@ -42,7 +41,7 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
 
 def main():
 
-    session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']
+    session.get_drmaa_native_specification = settings['get_drmaa_native_specification']
 
     parser = argparse.ArgumentParser(description='WGA')
     subparsers = parser.add_subparsers(title="Commands", metavar="<command>")

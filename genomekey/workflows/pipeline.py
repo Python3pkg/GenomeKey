@@ -39,7 +39,7 @@ def _getSeqName(header):
     return seqNameList
 
     
-def Pipeline(workflow, dag, settings, bams):
+def Pipeline(bams):
 
     # split_ tuples
     interval = ('interval', range(1,23) + ['X', 'Y'])
