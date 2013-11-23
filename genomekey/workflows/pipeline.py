@@ -8,8 +8,6 @@ from cosmos.Workflow.models import TaskFile
 from genomekey.tools              import pipes
 from genomekey.wga_settings       import wga_settings
 
-from genomekey       import log
-
 
 class BamException(Exception):pass
 class WorkflowException(Exception):pass
