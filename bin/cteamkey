@@ -1,24 +1,14 @@
 #!/usr/bin/env python
 
-import argparse
-import json
-import sys
-import glob, os
-import pprint
 import ipdb
+import argparse
 
+from cosmos          import session
+from cosmos.config   import settings
 from cosmos.Workflow import cli
-from cosmos.lib.ezflow.dag import DAG,add_,configure,add_run, map_
-from cosmos.lib.ezflow.tool import INPUT
-from cosmos.config import settings
-from cosmos import session
 
-from genomekey.workflows.pipeline2 import Pipeline,Pipeline2
-from genomekey.workflows.annotate import massive_annotation, get_db_names
-from genomekey.workflows.bam2fastq2 import Bam2Fastq, Bam2BWA
-from genomekey.tools import annovarext
-from genomekey.tools import unix
-from genomekey.wga_settings import wga_settings
+from genomekey.wga_settings        import wga_settings
+from genomekey.workflows.pipeline  import Pipeline
 
 session.get_drmaa_native_specification = wga_settings['get_drmaa_native_specification']
 
@@ -41,8 +31,7 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
     dag = DAG(ignore_stage_name_collisions=True)
 
     dag.sequence_(
-        Bam2BWA(workflow,dag,wga_settings,input_bams),
-        Pipeline2(),
+        Pipeline(workflow,dag,settings,input_bams),
         configure(wga_settings),
         add_run(workflow)
     )
@@ -65,7 +54,6 @@ def main():
     wf,kwargs = cli.parse_args(parser)
     wf.log.info('wga_settings =\n{0}'.format(pprint.pformat(wga_settings,indent=2)))
     kwargs['func'](wf,**kwargs)
-
 
 
 if __name__ == '__main__':
