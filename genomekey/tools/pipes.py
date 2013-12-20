@@ -5,7 +5,7 @@ class Bam_To_BWA(Tool):
     name = "BAM to BWA"
     cpu_req = 8
     mem_req = 14*1024
-    time_req = 12*60
+    time_req = 2*60
 
     inputs  = ['bam']
     outputs = ['bam', 'bai']
@@ -39,8 +39,8 @@ class Bam_To_BWA(Tool):
 
             {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
             
-            mv $tmpDir/out.bam $OUT.bam;
-            mv $tmpDir/out.bai $OUT.bai;
+            mv -f $tmpDir/out.bam $OUT.bam;
+            mv -f $tmpDir/out.bai $OUT.bai;
             #/bin/rm -rf $tmpDir;
             """
 
@@ -51,7 +51,7 @@ class MarkDuplicates(Tool):
     name     = "MarkDuplicates"
     cpu_req  = 2
     mem_req  = 5*1024   # will allow 11 jobs in a node, as mem_total = 59.3G
-    time_req = 12*60
+    time_req = 2*60
     inputs   = ['bam']
     outputs  = ['bam','bai','metrics']
     #persist  = True
@@ -78,9 +78,9 @@ class MarkDuplicates(Tool):
             QUIET=TRUE
             {inputs};
 
-            #mv $tmpDir/out.baa     $OUT.bam;
-            #mv $tmpDir/out.bai     $OUT.bai;
-            #mv $tmpDir/out.metrics $OUT.metrics;
+            #mv -f $tmpDir/out.baa     $OUT.bam;
+            #mv -f $tmpDir/out.bai     $OUT.bai;
+            #mv -f $tmpDir/out.metrics $OUT.metrics;
             /bin/rm -rf $tmpDir;
         """, {'inputs': _list2input_markdup(i['bam']), 'max':int(self.mem_req)}
 
@@ -92,6 +92,7 @@ class IndelRealigner(Tool):
     name    = "IndelRealigner"
     cpu_req = 4
     mem_req = 7*1024  # will allow 8 realign jobs in a node
+    time_req = 4*60
     inputs  = ['bam']
     outputs = ['bam','bai']
     logging_level ='INFO'
@@ -138,8 +139,8 @@ class IndelRealigner(Tool):
             {inputs};
 
 
-            #mv $tmpDir/out.bam $OUT.bam;
-            #mv $tmpDir/out.bai $OUT.bai;
+            #mv -f $tmpDir/out.bam $OUT.bam;
+            #mv -f $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
         """,{'inputs': _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
 
@@ -147,7 +148,8 @@ class IndelRealigner(Tool):
 class BaseQualityScoreRecalibration(Tool):
     name    = "BQSR"
     cpu_req = 3         # will allow 10 bqsr jobes in a node.
-    mem_req = 5*1024 
+    mem_req = 5*1024
+    time_req = 4*60 
     inputs  = ['bam']
     outputs = ['bam','bai']
     logging_level ='INFO'
@@ -186,8 +188,8 @@ class BaseQualityScoreRecalibration(Tool):
             --logging_level {self.logging_level}
             {inputs};
 
-            #mv $tmpDir/out.bam $OUT.bam;
-            #mv $tmpDir/out.bai $OUT.bai;
+            #mv -f $tmpDir/out.bam $OUT.bam;
+            #mv -f $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
 
@@ -195,6 +197,7 @@ class ReduceReads(Tool):
     name     = "ReduceReads"
     cpu_req  = 2
     mem_req  = 5*1024  # will allow 11 reducedRead jobs in a node.
+    time_req = 4*60
     inputs   = ['bam']
     outputs  = ['bam','bai']
     logging_level ='INFO'
@@ -220,8 +223,8 @@ class ReduceReads(Tool):
            --logging_level {self.logging_level}
            {inputs};
 
-           #mv $tmpDir/out.bam $OUT.bam;
-           #mv $tmpDir/out.bai $OUT.bai;
+           #mv -f $tmpDir/out.bam $OUT.bam;
+           #mv -f $tmpDir/out.bai $OUT.bai;
            /bin/rm -rf $tmpDir;
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
 
@@ -229,6 +232,7 @@ class UnifiedGenotyper(Tool):
     name     = "UnifiedGenotyper"
     cpu_req  = 4         # allow 8 ug jobs in a node
     mem_req  = 7*1024
+    time_req = 12*60
     inputs   = ['bam']
     outputs  = ['vcf','vcf.idx']
     logging_level ='INFO'
@@ -267,8 +271,8 @@ class UnifiedGenotyper(Tool):
             -baq CALCULATE_AS_NECESSARY
             {inputs};
             
-            mv $tmpDir/out.vcf      $OUT.vcf;
-            mv $tmpDir/out.vcf.idx  $OUT.vcf.idx;
+            mv -f $tmpDir/out.vcf      $OUT.vcf;
+            mv -f $tmpDir/out.vcf.idx  $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
@@ -287,6 +291,7 @@ class VariantQualityScoreRecalibration(Tool):
     name     = "VQSR"
     cpu_req  = 30
     mem_req  = 50*1024
+    time_req = 12*60
     inputs   = ['vcf']
     outputs  = ['vcf','vcf.idx','R']
     logging_level ='INFO'
@@ -321,7 +326,7 @@ class VariantQualityScoreRecalibration(Tool):
             -tranchesFile $tmpDir/out.tranches
             -rscriptFile  $tmpDir/out.R
             -nt {self.cpu_req}
-            -an ReadPosRankSum
+            -an DP
             -mode {p[glm]}                       
             {inputs}
             --logging_level {self.logging_level}
@@ -357,9 +362,9 @@ class VariantQualityScoreRecalibration(Tool):
             --logging_level {self.logging_level};
 
             # gluster is really slow on appending small chunks, like making an index file.;
-            mv $tmpDir/out.vcf     $OUT.vcf;
-            mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
-            mv $tmpDir/out.R       $OUT.R;
+            mv -f $tmpDir/out.vcf     $OUT.vcf;
+            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            mv -f $tmpDir/out.R       $OUT.R;
 
             #/bin/rm -rf $tmpDir;
             """
@@ -375,6 +380,7 @@ class CombineVariants(Tool):
     name     = "CombineVariants"
     cpu_req  = 30
     mem_req  = 50*1024
+    time_req = 2*60
     inputs   = ['vcf']
     outputs  = ['vcf','vcf.idx']
     logging_level ='INFO'
@@ -409,8 +415,49 @@ class CombineVariants(Tool):
             --logging_level {self.logging_level}
             {inputs};
 
-            mv $tmpDir/out.vcf     $OUT.vcf;
-            mv $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            mv -f $tmpDir/out.vcf     $OUT.vcf;
+            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']]), 'max':int(self.mem_req)}
+
+
+#######################
+## Annotation
+#######################
+class Vcf2Anno_in(Tool):
+    name = "Convert VCF to Annovar"
+    inputs = ['vcf']
+    outputs = ['anno_in']
+    forward_input=True
+    time_req = 12*60
+
+    def cmd(self,i,s,p):
+        return "{s[annovarext]} vcf2anno '{i[vcf][0]}' > $OUT.anno_in"
+
+class Annotate(Tool):
+    name = "Annotate"
+    inputs = ['anno_in']
+    outputs = ['dir']
+    forward_input=True
+    time_req = 12*60
+    mem_req = 12*1024
+
+    def cmd(self,i,s,p):
+        return r"""
+            {s[annovarext]} anno {p[build]} {p[dbname]} {i[anno_in][0]} $OUT.dir
+        """
+
+class MergeAnnotations(Tool):
+    name = "Merge Annotations"
+    inputs = ['anno_in','dir']
+    outputs = ['dir']
+    mem_req = 40*1024
+    time_req = 12*60
+    forward_input=True
+    
+    def cmd(self,i,s,p):
+        return ('{s[annovarext]} merge {i[anno_in][0]} $OUT.dir {annotated_dir_output}',
+                { 'annotated_dir_output' : ' '.join(map(str,i['dir'])) }
+        )
+

@@ -44,6 +44,8 @@ def pipeline(bams):
     chrom = ('chrom', ['1', '2'])
     glm = ('glm', ['SNP', 'INDEL'])
 
+    dbnames = ('dbname', ['dbSNP135','CytoBand','Target_Scan','mirBase','Self_Chain'])
+
     bam_seq = None
     
     for b in bams:
@@ -72,9 +74,15 @@ def pipeline(bams):
 
         map_(pipes.ReduceReads),
 
-        split_([glm], pipes.UnifiedGenotyper),
+        reduce_split_(['chrom'], [glm], pipes.UnifiedGenotyper),
 
         reduce_(['glm'], pipes.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
 
-        reduce_(['vcf'], pipes.CombineVariants, "Combine into VCF")
+        reduce_(['vcf'],  pipes.CombineVariants, "Merge VCF"),
+
+        map_(pipes.Vcf2Anno_in),
+        
+        split_([dbnames], pipes.Annotate, tag={'build':'hg19'}),
+        
+        reduce_(['vcf'],  pipes.MergeAnnotations)
         )

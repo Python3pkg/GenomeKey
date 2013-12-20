@@ -50,6 +50,8 @@ settings = {
     'picard_dir'            : opj(tools_path, 'picard'),  
     'samtools'              : opj(tools_path, 'samtools.huge'),         
 
+    'annovarext'            : opj(tools_path, 'annovarext'),
+
     'reference_fasta'       : opj(ref_path,   'human_g1k_v37.fasta'),
     'dbsnp_vcf'             : opj(ref_path,   'dbsnp_137.b37.excluding_sites_after_129.vcf'),
     'hapmap_vcf'            : opj(ref_path,   'hapmap_3.3.b37.vcf'),
