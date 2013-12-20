@@ -16,7 +16,7 @@ def _getHeaderInfo(input_bam):
         raise TypeError, 'input file is not a bam or sam'
 
     return {'rg': [ [tags['ID'], tags['SM'], tags.get('LB','noLBinfo'), tags.get('PL','noPLinfo') ] for tags in header['RG']],
-            'sq': [ [tags['SN'], tags['LN']]                                                        for tags in header['SQ']]
+            'sq': [ [tags['SN']                                                                   ] for tags in header['SQ']]
            }
 
 def _getSeqName(header):
@@ -31,15 +31,18 @@ def _getSeqName(header):
         else:
             seqNameList.append(sn[0])  # first column is seqName
 
-    seqNameList.append(unMapped)
+    if unMapped != '': 
+        seqNameList.append(unMapped)
+
     return seqNameList
 
     
 def pipeline(bams):
 
     # split_ tuples
-    interval = ('interval', range(1,23) + ['X', 'Y'])
-    glm      = ('glm', ['SNP', 'INDEL'])
+    #interval = ('interval', range(1,23) + ['X', 'Y'])
+    chrom = ('chrom', ['1', '2'])
+    glm = ('glm', ['SNP', 'INDEL'])
 
     bam_seq = None
     
@@ -52,7 +55,7 @@ def pipeline(bams):
         # if seqName is empty, then let's assume that the input is unaligned bam
         sample_name = os.path.basename(b).partition('.')[0]
         s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
-                       split_([ ('rgid', rgid), ('sn', sn) ], pipes.Bam_To_BWA))
+                       split_([ ('rgId', rgid), ('prevSn', sn) ], pipes.Bam_To_BWA))
 
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = sequence_(bam_seq, s, combine=True)
@@ -61,17 +64,17 @@ def pipeline(bams):
     return sequence_(
         bam_seq,
 
-        reduce_split_(['bam','rgid'], [interval], pipes.IndelRealigner),
+        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
 
         map_(pipes.MarkDuplicates),
 
-        map_(pipes.BaseQualityScoreRecalibration),        
+        reduce_(['bam','chrom'], pipes.BaseQualityScoreRecalibration),
 
-        reduce_split_(['bam'],      [interval], pipes.ReduceReads),
+        map_(pipes.ReduceReads),
 
-        reduce_split_(['interval'], [glm],      pipes.UnifiedGenotyper),
+        split_([glm], pipes.UnifiedGenotyper),
 
-        reduce_(['glm'],                        pipes.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
+        reduce_(['glm'], pipes.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
 
-        reduce_(['vcf'], pipes.CombineVariants, "Combine into Master VCFs")
+        reduce_(['vcf'], pipes.CombineVariants, "Combine into VCF")
         )

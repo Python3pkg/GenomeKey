@@ -51,7 +51,7 @@ settings = {
     'samtools'              : opj(tools_path, 'samtools.huge'),         
 
     'reference_fasta'       : opj(ref_path,   'human_g1k_v37.fasta'),
-    'dbsnp_vcf'             : opj(ref_path,   'dbsnp_137.b37.vcf'),
+    'dbsnp_vcf'             : opj(ref_path,   'dbsnp_137.b37.excluding_sites_after_129.vcf'),
     'hapmap_vcf'            : opj(ref_path,   'hapmap_3.3.b37.vcf'),
     'mills_vcf'             : opj(ref_path,   'Mills_and_1000G_gold_standard.indels.b37.vcf'),
     '1ksnp_vcf'             : opj(ref_path,   '1000G_phase1.snps.high_confidence.b37.vcf'),
