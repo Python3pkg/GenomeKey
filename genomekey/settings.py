@@ -45,10 +45,10 @@ opj = os.path.join
 settings = {
     'java'                  : opj(tools_path, 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts'),
 
-    'bwa'                   : opj(tools_path, 'bwa.huge'),              
+    'bwa'                   : opj(tools_path, 'bwa'),              
     'gatk'                  : opj(tools_path, 'gatk.jar'),
     'picard_dir'            : opj(tools_path, 'picard'),  
-    'samtools'              : opj(tools_path, 'samtools.huge'),         
+    'samtools'              : opj(tools_path, 'samtools'),
 
     'annovarext'            : opj(tools_path, 'annovarext'),
 
