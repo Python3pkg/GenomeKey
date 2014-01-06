@@ -50,7 +50,7 @@ class MarkDuplicates(Tool):
     mem_req  = 5*1024   # will allow 11 jobs in a node, as mem_total = 59.3G
     time_req = 2*60
     inputs   = ['bam']
-    outputs  = ['bam','bai','metrics']
+    outputs  = ['bam','metrics']
     #persist  = True
         
     def cmd(self,i,s,p):
@@ -85,7 +85,7 @@ class IndelRealigner(Tool):
     mem_req = 7*1024  # will allow 8 realign jobs in a node
     time_req = 4*60
     inputs  = ['bam']
-    outputs = ['bam','bai']
+    outputs = ['bam']
 
     # RealignerTargetCreator: no -nct available, -nt = 24 recommended
     # IndelRealigner: no -nt/-nct available
@@ -132,7 +132,7 @@ class BaseQualityScoreRecalibration(Tool):
     mem_req = 5*1024
     time_req = 4*60 
     inputs  = ['bam']
-    outputs = ['bam','bai']
+    outputs = ['bam']
 
     # no -nt, -nct = 4
     def cmd(self,i,s,p):
@@ -173,7 +173,7 @@ class ReduceReads(Tool):
     mem_req  = 5*1024  # will allow 11 reducedRead jobs in a node.
     time_req = 4*60
     inputs   = ['bam']
-    outputs  = ['bam','bai','zip']
+    outputs  = ['bam','zip']
 
     # no -nt, no -nct available
     # -known should be SNPs, not indels: non SNP variants will be ignored.
