@@ -1,4 +1,4 @@
-CTEMKEY
+PILOT
 ===============================
 
-Tailored version of GenomeKey
+AWS specific version of Genomekey, for pilot study

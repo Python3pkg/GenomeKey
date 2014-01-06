@@ -12,6 +12,9 @@ class Bam_To_BWA(Tool):
 
     def cmd(self,i,s,p):
         return r"""
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
+            cd $tmpDir;
+
             rg=`{s[samtools]} view -H {i[bam][0]} | grep "{p[rgId]}"`;
             echo "RG = $rg";
 
@@ -29,9 +32,13 @@ class Bam_To_BWA(Tool):
             |
             {s[samtools]} view -Shu -
             |
-            {s[samtools]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $OUT.bam;
+            {s[samtools]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $tmpDir/out.bam;
 
-            {s[samtools]} index $OUT.bam $OUT.bai;            
+            {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
+
+            mv -f $tmpDir/out.bam $OUT.bam;
+            mv -f $tmpDir/out.bai $OUT.bai;
+            /bin/rm -rf $tmpDir;
             """
 
 def _list2input_markdup(l):
@@ -48,6 +55,8 @@ class MarkDuplicates(Tool):
         
     def cmd(self,i,s,p):
         return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Xmx{max}M -jar {s[picard_dir]}/MarkDuplicates.jar
@@ -86,6 +95,8 @@ class IndelRealigner(Tool):
 
     def cmd(self,i,s,p):
         return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
@@ -126,6 +137,8 @@ class BaseQualityScoreRecalibration(Tool):
     # no -nt, -nct = 4
     def cmd(self,i,s,p):
         return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
@@ -168,6 +181,8 @@ class ReduceReads(Tool):
     # do fastqc before reducing it
     def cmd(self,i,s,p):
         return r"""
+           export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+           export HUGETLB_SHM=yes;
            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
            {s[fastqc]} -t {self.cpu_req} --noextract {i['bam']} --outdir $tmpDir
@@ -196,6 +211,8 @@ class UnifiedGenotyper(Tool):
     # -nt, -nct available
     def cmd(self,i,s,p):
         return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
@@ -203,7 +220,7 @@ class UnifiedGenotyper(Tool):
             -R {s[reference_fasta]}
             --dbsnp {s[dbsnp_vcf]}
             -glm {p[glm]}
-            -o $OUT.vcf
+            -o $tmpDir/out.vcf
             -L {p[chrom]}
             -nt {self.cpu_req}
             -nct 2
@@ -219,6 +236,8 @@ class UnifiedGenotyper(Tool):
             -baq CALCULATE_AS_NECESSARY
             {inputs};
             
+            mv -f $tmpDir/out.vcf     $OUT.vcf;
+            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
@@ -253,14 +272,16 @@ class VariantQualityScoreRecalibration(Tool):
         ## removed -an QD for 'NaN LOD value assigned' error
 
         cmd_VQSR = r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T VariantRecalibrator
             -R {s[reference_fasta]}
-            -recalFile    $OUT.recal
-            -tranchesFile $OUT.tranches
-            -rscriptFile  $OUT.R
+            -recalFile    $tmpDir/out.recal
+            -tranchesFile $tmpDir/out.tranches
+            -rscriptFile  $tmpDir/out.R
             -nt {self.cpu_req}
             -an DP -an FS -an ReadPosRankSum -an MQRankSum -an QD
             -mode {p[glm]}                       
@@ -296,9 +317,9 @@ class VariantQualityScoreRecalibration(Tool):
             {inputs}
 
             # gluster is really slow on appending small chunks, like making an index file.;
-            #mv -f $tmpDir/out.vcf     $OUT.vcf;
-            #mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
-            #mv -f $tmpDir/out.R       $OUT.R;
+            mv -f $tmpDir/out.vcf     $OUT.vcf;
+            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            mv -f $tmpDir/out.R       $OUT.R;
 
             /bin/rm -rf $tmpDir;
             """
@@ -330,16 +351,20 @@ class CombineVariants(Tool):
             REQUIRE_UNIQUE - Require that all samples/genotypes be unique between all inputs.
         """
         return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T CombineVariants
             -R {s[reference_fasta]}
-            -o $OUT.vcf
+            -o $tmpDir/out.vcf
             -genotypeMergeOptions UNSORTED
             -nt {self.cpu_req}
             {inputs};
 
+            mv -f $tmpDir/out.vcf     $OUT.vcf;
+            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']]), 'max':int(self.mem_req)}
