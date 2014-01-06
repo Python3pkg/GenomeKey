@@ -12,21 +12,15 @@ class Bam_To_BWA(Tool):
 
     def cmd(self,i,s,p):
         return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_MORECORE=yes;
-
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
-            cd $tmpDir;
-
             rg=`{s[samtools]} view -H {i[bam][0]} | grep "{p[rgId]}"`;
             echo "RG = $rg";
 
             set -o pipefail && 
             {s[samtools]} view -h -u -r {p[rgId]} {i[bam][0]} {p[prevSn]}
             |
-            /WGA/tools/htscmd.huge bamshuf -Oun 128 - _tmp
+            {s[htscmd]} bamshuf -Oun 128 - _tmp
             |
-            /WGA/tools/htscmd.huge bam2fq -a -
+            {s[htscmd]} bam2fq -a -
             |
             {s[bwa]} mem -p -M -t {self.cpu_req} -v 1
             -R "$rg"
@@ -35,13 +29,9 @@ class Bam_To_BWA(Tool):
             |
             {s[samtools]} view -Shu -
             |
-            {s[samtools]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $tmpDir/out.bam;
+            {s[samtools]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $OUT.bam;
 
-            {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
-            
-            mv -f $tmpDir/out.bam $OUT.bam;
-            mv -f $tmpDir/out.bai $OUT.bai;
-            #/bin/rm -rf $tmpDir;
+            {s[samtools]} index $OUT.bam $OUT.bai;            
             """
 
 def _list2input_markdup(l):
@@ -58,11 +48,6 @@ class MarkDuplicates(Tool):
         
     def cmd(self,i,s,p):
         return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_MORECORE=yes;
-            export HUGETLB_SHM=yes;
-            export HUGETLB_SHARE=1;
-
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Xmx{max}M -jar {s[picard_dir]}/MarkDuplicates.jar
@@ -78,9 +63,6 @@ class MarkDuplicates(Tool):
             QUIET=TRUE
             {inputs};
 
-            #mv -f $tmpDir/out.baa     $OUT.bam;
-            #mv -f $tmpDir/out.bai     $OUT.bai;
-            #mv -f $tmpDir/out.metrics $OUT.metrics;
             /bin/rm -rf $tmpDir;
         """, {'inputs': _list2input_markdup(i['bam']), 'max':int(self.mem_req)}
 
@@ -95,7 +77,6 @@ class IndelRealigner(Tool):
     time_req = 4*60
     inputs  = ['bam']
     outputs = ['bam','bai']
-    logging_level ='INFO'
 
     # RealignerTargetCreator: no -nct available, -nt = 24 recommended
     # IndelRealigner: no -nt/-nct available
@@ -103,14 +84,8 @@ class IndelRealigner(Tool):
     # see: http://gatkforums.broadinstitute.org/discussion/1975/recommendations-for-parallelizing-gatk-tools
     # will replace ; with CR/LF at process_cmd() in cosmos/utils/helper.py
 
-    # quick patch for presentation: USE_READS => KNOWNS_ONLY
     def cmd(self,i,s,p):
         return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_MORECORE=yes;
-            export HUGETLB_SHM=yes;
-            export HUGETLB_SHARE=1;
-
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
@@ -121,9 +96,7 @@ class IndelRealigner(Tool):
             --known {s[mills_vcf]}
             --num_threads {self.cpu_req}
             -L {p[chrom]}
-            --logging_level {self.logging_level}
             {inputs};
-
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T IndelRealigner
@@ -132,16 +105,13 @@ class IndelRealigner(Tool):
             -targetIntervals $tmpDir/{p[chrom]}.intervals
             -known {s[1kindel_vcf]}
             -known {s[mills_vcf]}
-            -model KNOWNS_ONLY
+            -model USE_READS
             -compress 0
             -L {p[chrom]}
-            --logging_level {self.logging_level}
             {inputs};
 
-
-            #mv -f $tmpDir/out.bam $OUT.bam;
-            #mv -f $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
+
         """,{'inputs': _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
 
 
@@ -152,16 +122,10 @@ class BaseQualityScoreRecalibration(Tool):
     time_req = 4*60 
     inputs  = ['bam']
     outputs = ['bam','bai']
-    logging_level ='INFO'
 
     # no -nt, -nct = 4
     def cmd(self,i,s,p):
         return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_MORECORE=yes;
-            export HUGETLB_SHM=yes;
-            export HUGETLB_SHARE=1;
-
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
@@ -174,7 +138,6 @@ class BaseQualityScoreRecalibration(Tool):
             -knownSites {s[mills_vcf]}
             -nct {self.cpu_req}
             -L {p[chrom]}
-            --logging_level {self.logging_level}
             {inputs};
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
@@ -185,12 +148,10 @@ class BaseQualityScoreRecalibration(Tool):
             -BQSR $tmpDir/{p[chrom]}.grp
             -nct {self.cpu_req}
             -L {p[chrom]}
-            --logging_level {self.logging_level}
             {inputs};
 
-            #mv -f $tmpDir/out.bam $OUT.bam;
-            #mv -f $tmpDir/out.bai $OUT.bai;
             /bin/rm -rf $tmpDir;
+
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
 
 class ReduceReads(Tool):
@@ -199,19 +160,17 @@ class ReduceReads(Tool):
     mem_req  = 5*1024  # will allow 11 reducedRead jobs in a node.
     time_req = 4*60
     inputs   = ['bam']
-    outputs  = ['bam','bai']
-    logging_level ='INFO'
+    outputs  = ['bam','bai','zip']
 
     # no -nt, no -nct available
     # -known should be SNPs, not indels: non SNP variants will be ignored.
+
+    # do fastqc before reducing it
     def cmd(self,i,s,p):
         return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_MORECORE=yes;
-            export HUGETLB_SHM=yes;
-            export HUGETLB_SHARE=1;
-
            tmpDir=`mktemp -d --tmpdir=/mnt`;
+
+           {s[fastqc]} -t {self.cpu_req} --noextract {i['bam']} --outdir $tmpDir
 
            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
            -T ReduceReads           
@@ -220,11 +179,9 @@ class ReduceReads(Tool):
            -known {s[1ksnp_vcf]}
            -o $OUT.bam
            -L {p[chrom]}
-           --logging_level {self.logging_level}
            {inputs};
 
-           #mv -f $tmpDir/out.bam $OUT.bam;
-           #mv -f $tmpDir/out.bai $OUT.bai;
+           mv $tmpDir/*.zip $OUT.zip
            /bin/rm -rf $tmpDir;
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
 
@@ -235,18 +192,10 @@ class UnifiedGenotyper(Tool):
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['vcf','vcf.idx']
-    logging_level ='INFO'
-    
-    # -nt, -nct available
 
-    # quick-patch for presentation: -nt 32
+    # -nt, -nct available
     def cmd(self,i,s,p):
         return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_MORECORE=yes;
-            export HUGETLB_SHM=yes;
-            export HUGETLB_SHARE=1;
-
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
@@ -254,11 +203,10 @@ class UnifiedGenotyper(Tool):
             -R {s[reference_fasta]}
             --dbsnp {s[dbsnp_vcf]}
             -glm {p[glm]}
-            -o $tmpDir/out.vcf
+            -o $OUT.vcf
             -L {p[chrom]}
-            -nt 32
+            -nt {self.cpu_req}
             -nct 2
-            --logging_level {self.logging_level}
             -A Coverage
             -A AlleleBalance
             -A AlleleBalanceBySample
@@ -271,8 +219,6 @@ class UnifiedGenotyper(Tool):
             -baq CALCULATE_AS_NECESSARY
             {inputs};
             
-            mv -f $tmpDir/out.vcf      $OUT.vcf;
-            mv -f $tmpDir/out.vcf.idx  $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
@@ -281,9 +227,6 @@ class UnifiedGenotyper(Tool):
 class VariantQualityScoreRecalibration(Tool):
     """
     VQSR
-
-    Might want to set different values for capture vs whole genome
-
     Note that HaplotypeScore is no longer applicable to indels
     see http://gatkforums.broadinstitute.org/discussion/2463/unified-genotyper-no-haplotype-score-annotated-for-indels
 
@@ -294,10 +237,9 @@ class VariantQualityScoreRecalibration(Tool):
     time_req = 12*60
     inputs   = ['vcf']
     outputs  = ['vcf','vcf.idx','R']
-    logging_level ='INFO'
 
-#    persist  = True
-#    forward_input = True
+#   persist  = True
+#   forward_input = True
     
     default_params = { 'inbreeding_coeff' : False}
 
@@ -310,29 +252,23 @@ class VariantQualityScoreRecalibration(Tool):
         ## 
         ## removed -an QD for 'NaN LOD value assigned' error
 
-        # original annotation: -an DP -an FS -an ReadPosRankSum -an MQRankSum
         cmd_VQSR = r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_MORECORE=yes;
-            export HUGETLB_SHM=yes;
-            export HUGETLB_SHARE=1;
-
             tmpDir=`mktemp -d --tmpdir=/mnt`;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T VariantRecalibrator
             -R {s[reference_fasta]}
-            -recalFile    $tmpDir/out.recal
-            -tranchesFile $tmpDir/out.tranches
-            -rscriptFile  $tmpDir/out.R
+            -recalFile    $OUT.recal
+            -tranchesFile $OUT.tranches
+            -rscriptFile  $OUT.R
             -nt {self.cpu_req}
-            -an DP
+            -an DP -an FS -an ReadPosRankSum -an MQRankSum -an QD
             -mode {p[glm]}                       
             {inputs}
-            --logging_level {self.logging_level}
             """
+
         cmd_SNP = r"""
-            --numBadVariants 3000
+            --numBadVariants 1000
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_vcf]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[1komni_vcf]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_vcf]}
@@ -341,8 +277,7 @@ class VariantQualityScoreRecalibration(Tool):
             """
 
         cmd_INDEL = r"""
-            --numBadVariants 3000
-            --maxGaussians   1
+            --numBadVariants 1000
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_vcf]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_vcf]};
 
@@ -352,21 +287,20 @@ class VariantQualityScoreRecalibration(Tool):
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T ApplyRecalibration
             -R {s[reference_fasta]}
-            -recalFile    $tmpDir/out.recal
-            -tranchesFile $tmpDir/out.tranches
-            -o            $tmpDir/out.vcf
+            -recalFile    $OUT.recal
+            -tranchesFile $OUT.tranches
+            -o            $OUT.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
             -nt {self.cpu_req}
             {inputs}
-            --logging_level {self.logging_level};
 
             # gluster is really slow on appending small chunks, like making an index file.;
-            mv -f $tmpDir/out.vcf     $OUT.vcf;
-            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
-            mv -f $tmpDir/out.R       $OUT.R;
+            #mv -f $tmpDir/out.vcf     $OUT.vcf;
+            #mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            #mv -f $tmpDir/out.R       $OUT.R;
 
-            #/bin/rm -rf $tmpDir;
+            /bin/rm -rf $tmpDir;
             """
 
         if p['glm'] == 'SNP': 
@@ -396,27 +330,16 @@ class CombineVariants(Tool):
             REQUIRE_UNIQUE - Require that all samples/genotypes be unique between all inputs.
         """
         return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_MORECORE=yes;
-            export HUGETLB_SHM=yes;
-            export HUGETLB_SHARE=1;
-
             tmpDir=`mktemp -d --tmpdir=/mnt`;
-
-            ulimit -n 65535;
-            echo "`whoami`@`hostname`: ulimit -n = `ulimit -n`";
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T CombineVariants
             -R {s[reference_fasta]}
-            -o $tmpDir/out.vcf
+            -o $OUT.vcf
             -genotypeMergeOptions UNSORTED
             -nt {self.cpu_req}
-            --logging_level {self.logging_level}
             {inputs};
 
-            mv -f $tmpDir/out.vcf     $OUT.vcf;
-            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
 
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']]), 'max':int(self.mem_req)}
