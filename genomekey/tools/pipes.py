@@ -173,7 +173,7 @@ class ReduceReads(Tool):
     mem_req  = 5*1024  # will allow 11 reducedRead jobs in a node.
     time_req = 4*60
     inputs   = ['bam']
-    outputs  = ['bam','zip']
+    outputs  = ['bam', 'zip']
 
     # no -nt, no -nct available
     # -known should be SNPs, not indels: non SNP variants will be ignored.
@@ -185,7 +185,7 @@ class ReduceReads(Tool):
            export HUGETLB_SHM=yes;
            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-           {s[fastqc]} -t {self.cpu_req} --noextract {i['bam']} --outdir $tmpDir
+           {s[fastqc]} -t {self.cpu_req} --noextract {i[bam]} --outdir $tmpDir
 
            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
            -T ReduceReads           
@@ -308,9 +308,9 @@ class VariantQualityScoreRecalibration(Tool):
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T ApplyRecalibration
             -R {s[reference_fasta]}
-            -recalFile    $OUT.recal
-            -tranchesFile $OUT.tranches
-            -o            $OUT.vcf
+            -recalFile    $tmpDir/out.recal
+            -tranchesFile $tmpDir/out.tranches
+            -o            $tmpDir/out.vcf
             --ts_filter_level 99.9
             -mode {p[glm]}
             -nt {self.cpu_req}
