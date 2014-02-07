@@ -1,70 +1,88 @@
-from genomekey.tools import gatk, picard, bwa, misc, bamUtil,pipes
-from cosmos.lib.ezflow.dag import add_, map_, reduce_, split_, reduce_split_, sequence_, apply_
-from genomekey.workflows.annotate import massive_annotation
-from genomekey.wga_settings import wga_settings
+import os
+import pysam
 
-def Pipeline():
-    is_capture = wga_settings['capture']
-    testing = wga_settings['test']
+from cosmos.lib.ezflow.dag  import DAG, add_, split_, sequence_, map_, reduce_, reduce_split_, apply_
+from cosmos.lib.ezflow.tool import INPUT
+
+from genomekey.tools        import pipes
+
+
+def _getHeaderInfo(input_bam):
+    if   input_bam[-3:] == 'bam': 
+        header = pysam.Samfile(input_bam,'rb', check_sq = False).header
+    elif input_bam[-3:] == 'sam': 
+        header = pysam.Samfile(input_bam,'r' , check_sq = False).header
+    else:
+        raise TypeError, 'input file is not a bam or sam'
+
+    return {'rg': [ [tags['ID'], tags['SM'], tags.get('LB','noLBinfo'), tags.get('PL','noPLinfo') ] for tags in header['RG']],
+            'sq': [ [tags['SN']                                                                   ] for tags in header['SQ']]
+           }
+
+def _getSeqName(header):
+    """
+    Return sequence names (@SQ SN in header)
+    """
+    seqNameList = []
+    unMapped=''
+    for sn in header['sq']:
+        if (sn[0].startswith('GL')) or (sn[0].startswith('chrUn')):
+            unMapped += " %s" % sn[0]
+        else:
+            seqNameList.append(sn[0])  # first column is seqName
+
+    if unMapped != '': 
+        seqNameList.append(unMapped)
+
+    return seqNameList
+
+    
+def pipeline(bams):
 
     # split_ tuples
-    if testing:
-        intervals = ('interval', [20])
-    else:
-        intervals = ('interval',range(1,23) + ['X', 'Y'])
-
+    #interval = ('interval', range(1,23) + ['X', 'Y'])
+    chrom = ('chrom', ['1', '2'])
     glm = ('glm', ['SNP', 'INDEL'])
 
-    align_to_reference = sequence_(
-        apply_(
-#           reduce_(['sample_name', 'library'], misc.FastqStats),
-            reduce_(['sample_name', 'library', 'platform', 'platform_unit', 'region', 'bam', 'rgid'], pipes.AlignAndClean)
-        ),
-    )
+    dbnames = ('dbname', ['dbSNP135','CytoBand','Target_Scan','mirBase','Self_Chain'])
 
-    preprocess_alignment = sequence_(
-        reduce_(['sample_name', 'library'], picard.MarkDuplicates),
-        apply_(
-#           map_(picard.CollectMultipleMetrics),
-            split_([intervals],gatk.RealignerTargetCreator) #if not is_capture or testing else map_(gatk.RealignerTargetCreator)
-        ),
-        map_(gatk.IndelRealigner),
-        map_(gatk.BQSR),
-        apply_(
-#            reduce_(['sample_name'], gatk.BQSRGatherer),
-            map_(gatk.ApplyBQSR) #TODO I add BQSRGatherer as a parent with a hack inside ApplyBQSR.cmd
-        )
-    )
+    bam_seq = None
+    
+    for b in bams:
+        header = _getHeaderInfo(b)
+        sn     = _getSeqName(header)
 
-    call_variants = sequence_(
-        # apply_(
-        #     reduce_split_([],[intervals,glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
-        #     combine=True
-        # ) if is_capture
-        # else
-        apply_(
-            #reduce_(['interval'],gatk.HaplotypeCaller,tag={'vcf':'HaplotypeCaller'}),
-            reduce_split_(['interval'], [glm], gatk.UnifiedGenotyper, tag={'vcf': 'UnifiedGenotyper'}),
-            combine=True
-        ),
-        reduce_(['vcf'], gatk.CombineVariants, 'Combine Into Raw VCFs'),
-        split_([glm],gatk.VQSR),
-        map_(gatk.Apply_VQSR),
-        reduce_(['vcf'], gatk.CombineVariants, "Combine into Master VCFs")
-    )
+        rgid = [ h[0] for h in header['rg']]
 
-    if is_capture:
-        return sequence_(
-            align_to_reference,
-            preprocess_alignment,
-            call_variants,
-            massive_annotation
-        )
-    else:
-        return sequence_(
-            align_to_reference,
-            preprocess_alignment,
-            reduce_split_(['sample_name'],[intervals],gatk.ReduceReads),
-            call_variants,
-            massive_annotation
+        # if seqName is empty, then let's assume that the input is unaligned bam
+        sample_name = os.path.basename(b).partition('.')[0]
+        s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
+                       split_([ ('rgId', rgid), ('prevSn', sn) ], pipes.Bam_To_BWA))
+
+        if bam_seq is None:   bam_seq = s
+        else:                 bam_seq = sequence_(bam_seq, s, combine=True)
+
+
+    return sequence_(
+        bam_seq,
+
+        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
+
+        map_(pipes.MarkDuplicates),
+
+        reduce_(['bam','chrom'], pipes.BaseQualityScoreRecalibration),
+
+        map_(pipes.ReduceReads),
+
+        reduce_split_(['chrom'], [glm], pipes.UnifiedGenotyper),
+
+        reduce_(['glm'], pipes.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
+
+        reduce_(['vcf'],  pipes.CombineVariants, "Merge VCF"),
+
+        map_(pipes.Vcf2Anno_in),
+        
+        split_([dbnames], pipes.Annotate, tag={'build':'hg19'}),
+        
+        reduce_(['vcf'],  pipes.MergeAnnotations)
         )

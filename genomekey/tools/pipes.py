@@ -1,104 +1,11 @@
-from cosmos.Workflow.models import TaskFile
-from . import picard, bamUtil, samtools, bwa
-import os
-opj = os.path.join
-    
-
-    
-class FilterBamByRG_To_FastQ(samtools.FilterBamByRG,picard.REVERTSAM,bamUtil.Bam2FastQ):
-    name     = "BAM to FASTQ"
-    cpu_req  = 1 # if it's split by sqsn
-    mem_req  = 7*1024
-    time_req = 12*60
-    inputs   = ['bam']
-    outputs  = ['1.fastq','2.fastq']
-
-    # def cmd(self,i,s,p):
-    #     return r"""
-    #         set -o pipefail &&
-    #         {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]}
-    #         |
-    #         {self.bin}
-    #         INPUT=/dev/stdin
-    #         OUTPUT=/dev/stdout
-    #         VALIDATION_STRINGENCY=SILENT
-    #         MAX_RECORDS_IN_RAM=4000000
-    #         COMPRESSION_LEVEL=0
-    #         |
-    #         {s[bamUtil_path]} bam2FastQ
-    #         --in -.ubam
-    #         --firstOut $OUT.1.fastq.gz
-    #         --secondOut $OUT.2.fastq.gz
-    #         --unpairedOut $OUT.unpaired.fastq.gz
-    #     """
-
-    # samtools option
-    # -f 0x1 : the read is paired in sequencing
-    # -h     : Include the header in the output
-    # -u     : Output uncompressed BAM
-    # -r STR : Only output reads in read group STR
-
-    def cmd(self,i,s,p):
-        return r"""
-            set -o pipefail && {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sqsn]}
-            |
-            {self.bin} INPUT=/dev/stdin OUTPUT=/dev/stdout
-            VALIDATION_STRINGENCY=SILENT
-            MAX_RECORDS_IN_RAM=4000000
-            COMPRESSION_LEVEL=0
-            |
-            {s[bamUtil_path]} bam2FastQ --in -.ubam
-            --firstOut    $OUT.1.fastq
-            --secondOut   $OUT.2.fastq
-            --unpairedOut /dev/null
-        """
-
-class AlignAndClean(bwa.MEM,picard.AddOrReplaceReadGroups,picard.CollectMultipleMetrics):
-    name     = "BWA Alignment"
-    cpu_req  = 8             
-    mem_req  = 14*1024       
-    time_req = 12*60
-    inputs   = ['fastq']
-    outputs  = ['bam','bai']
-
-    def cmd(self,i,s,p):
-        return r"""
-            # -v 2: see BWA error or warning messages only
-            # Need to create index in SortSam => gatk complains if not.;
-
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
-
-            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[bwa_path]} mem -M -t {self.cpu_req} -v 2
-            -R "@RG\tID:{p[rgid]}\tLB:{p[library]}\tSM:{p[sample_name]}\tPL:{p[platform]}"
-            {s[reference_fasta_path]}
-            {i[fastq][0]} 
-            {i[fastq][1]}
-            |
-            {s[java]} -Xms2G -Xmx2G 
-            -jar {s[Picard_dir]}/SortSam.jar
-            TMP_DIR=$tmpDir
-            INPUT=/dev/stdin
-            OUTPUT=$tmpDir/out.bam
-            SORT_ORDER=coordinate
-            MAX_RECORDS_IN_RAM=1000000
-            VALIDATION_STRINGENCY=SILENT
-            QUIET=True
-            VERBOSITY=WARNING
-            CREATE_INDEX=True
-            COMPRESSION_LEVEL=0;
-       
-            mv $tmpDir/out.bam $OUT.bam;
-            mv $tmpDir/out.bai $OUT.bai;
-            /bin/rm -rf $tmpDir;
-            """
+from cosmos.lib.ezflow.tool import Tool
 
 
-class Bam_To_BWA(bwa.MEM):
+class Bam_To_BWA(Tool):
     name = "BAM to BWA"
     cpu_req = 8
     mem_req = 14*1024
-    time_req = 12*60
+    time_req = 2*60
 
     inputs  = ['bam']
     outputs = ['bam', 'bai']
@@ -108,97 +15,397 @@ class Bam_To_BWA(bwa.MEM):
             tmpDir=`mktemp -d --tmpdir=/mnt`;
             cd $tmpDir;
 
-            rg=`{s[samtools_path]} view -H {i[bam][0]} | grep "{p[rgid]}"`;
+            rg=`{s[samtools]} view -H {i[bam][0]} | grep "{p[rgId]}"`;
             echo "RG = $rg";
 
             set -o pipefail && 
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
+            {s[samtools]} view -h -u -r {p[rgId]} {i[bam][0]} {p[prevSn]}
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            /WGA/tools/htscmd.huge bamshuf -Oun 128 - _tmp
+            {s[htscmd]} bamshuf -Oun 128 - _tmp
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            /WGA/tools/htscmd.huge bam2fq -a -
+            {s[htscmd]} bam2fq -a -
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[bwa_path]} mem -p -M -t {self.cpu_req} -v 1
+            {s[bwa]} mem -p -M -t {self.cpu_req} -v 1
             -R "$rg"
-            {s[reference_fasta_path]}
+            {s[reference_fasta]}
             - 
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[samtools_path]} view -Shu -
+            {s[samtools]} view -Shu -
             |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[samtools_path]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $tmpDir/out.bam;
+            {s[samtools]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $tmpDir/out.bam;
 
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[samtools_path]} index $tmpDir/out.bam $tmpDir/out.bai;
-            
-       
-            mv $tmpDir/out.bam $OUT.bam;
-            mv $tmpDir/out.bai $OUT.bai;
-            #/bin/rm -rf $tmpDir;
+            {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
+
+            mv -f $tmpDir/out.bam $OUT.bam;
+            mv -f $tmpDir/out.bai $OUT.bai;
+            /bin/rm -rf $tmpDir;
             """
 
+def _list2input_markdup(l):
+    return " ".join(map(lambda x: 'INPUT='+str(x)+'\n', l))
 
-class Bam_To_FastQ(picard.REVERTSAM):
-    name     = "BAM to FASTQ"
-#    cpu_req  = 3        # max 10 jobs per node: don't recommend to lower this b/c IO overhead, not cpu overhead
-#    mem_req  = 3*1024   # max 19 jobs per node: 2G caused crowded traffic.
-
-    #01. extreme: 1 job per node - can help recude max wall time, but not practical
-    #cpu_req  = 20
-    #mem_req  = 25*1024
-
-    #02. next: 3 jobs per node - took 37min for 5 exome, (1exome = 7.5min)
-    cpu_req = 10
-    mem_req = 15*1024
-
-    #03. 5 jobs per node - took 40min for 5 exome
-    #cpu_req = 6
-    #mem_req = 10*1024
-
-    time_req = 12*60
+class MarkDuplicates(Tool):
+    name     = "MarkDuplicates"
+    cpu_req  = 2
+    mem_req  = 5*1024   # will allow 11 jobs in a node, as mem_total = 59.3G
+    time_req = 2*60
     inputs   = ['bam']
-    outputs  = [TaskFile(name='dir', persist=True)]
+    outputs  = ['bam','metrics']
+    #persist  = True
+        
+    def cmd(self,i,s,p):
+        return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-    # samtools option
-    # -f 0x1 : the read is paired in sequencing
-    # -h     : Include the header in the output
-    # -u     : Output uncompressed BAM
-    # -r STR : Only output reads in read group STR
-    
-    # picard option
-    # MAX_RECORDS_IN_RAM: default 500000 at 2GB memory.
+            {s[java]} -Xmx{max}M -jar {s[picard_dir]}/MarkDuplicates.jar
+            TMP_DIR=$tmpDir
+            OUTPUT=$OUT.bam
+            METRICS_FILE=$OUT.metrics
+            ASSUME_SORTED=True
+            CREATE_INDEX=True
+            COMPRESSION_LEVEL=0
+            MAX_RECORDS_IN_RAM=1000000
+            VALIDATION_STRINGENCY=SILENT
+            VERBOSITY=WARNING
+            QUIET=TRUE
+            {inputs};
+
+            /bin/rm -rf $tmpDir;
+        """, {'inputs': _list2input_markdup(i['bam']), 'max':int(self.mem_req)}
+
+
+def _list2input_gatk(l):
+    return "-I " +"\n-I ".join(map(lambda x: str(x), l))
+
+class IndelRealigner(Tool):
+    name    = "IndelRealigner"
+    cpu_req = 4
+    mem_req = 7*1024  # will allow 8 realign jobs in a node
+    time_req = 4*60
+    inputs  = ['bam']
+    outputs = ['bam']
+
+    # RealignerTargetCreator: no -nct available, -nt = 24 recommended
+    # IndelRealigner: no -nt/-nct available
+
+    # see: http://gatkforums.broadinstitute.org/discussion/1975/recommendations-for-parallelizing-gatk-tools
+    # will replace ; with CR/LF at process_cmd() in cosmos/utils/helper.py
 
     def cmd(self,i,s,p):
         return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
             tmpDir=`mktemp -d --tmpdir=/mnt`;
- 
-            set -o pipefail && LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW 
-            {s[samtools_path]} view -h -u -r {p[rgid]} {i[bam][0]} {p[sn]}
-            |
-            {s[java]} -Xms4G -Xmx{self.mem_req}M
-            -jar {s[Picard_dir]}/RevertSam.jar
-            TMP_DIR=$tmpDir
-            INPUT=/dev/stdin 
-            OUTPUT=/dev/stdout
-            SORT_ORDER=queryname
-            QUIET=True
-            VALIDATION_STRINGENCY=SILENT
-            VERBOSITY=WARNING
-            CREATE_INDEX=False
-            MAX_RECORDS_IN_RAM=1000000
-            COMPRESSION_LEVEL=0
-            |
-            LD_LIBRARY_PATH=/usr/local/lib64 LD_PRELOAD=libhugetlbfs.so HUGETLB_MORECORE=yes HUGETLB_ELFMAP=RW
-            {s[bamUtil_path]} bam2FastQ --in -.ubam
-            --firstOut    $OUT.dir/1.fastq
-            --secondOut   $OUT.dir/2.fastq
-            --unpairedOut /dev/null;
 
-            #mv $tmpDir/?.fastq $OUT.dir;
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
+            -T RealignerTargetCreator
+            -R {s[reference_fasta]}
+            -o $tmpDir/{p[chrom]}.intervals
+            --known {s[1kindel_vcf]}
+            --known {s[mills_vcf]}
+            --num_threads {self.cpu_req}
+            -L {p[chrom]}
+            {inputs};
+
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
+            -T IndelRealigner
+            -R {s[reference_fasta]}
+            -o $OUT.bam
+            -targetIntervals $tmpDir/{p[chrom]}.intervals
+            -known {s[1kindel_vcf]}
+            -known {s[mills_vcf]}
+            -model USE_READS
+            -compress 0
+            -L {p[chrom]}
+            {inputs};
+
             /bin/rm -rf $tmpDir;
+
+        """,{'inputs': _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
+
+
+class BaseQualityScoreRecalibration(Tool):
+    name    = "BQSR"
+    cpu_req = 3         # will allow 10 bqsr jobes in a node.
+    mem_req = 5*1024
+    time_req = 4*60 
+    inputs  = ['bam']
+    outputs = ['bam']
+
+    # no -nt, -nct = 4
+    def cmd(self,i,s,p):
+        return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
+
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
+            -T BaseRecalibrator
+            -R {s[reference_fasta]}
+            -o $tmpDir/{p[chrom]}.grp
+            -knownSites {s[dbsnp_vcf]}
+            -knownSites {s[1komni_vcf]}
+            -knownSites {s[1kindel_vcf]}
+            -knownSites {s[mills_vcf]}
+            -nct {self.cpu_req}
+            -L {p[chrom]}
+            {inputs};
+
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
+            -T PrintReads
+            -R {s[reference_fasta]}
+            -o $OUT.bam
+            -compress 0
+            -BQSR $tmpDir/{p[chrom]}.grp
+            -nct {self.cpu_req}
+            -L {p[chrom]}
+            {inputs};
+
+            /bin/rm -rf $tmpDir;
+
+        """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
+
+class ReduceReads(Tool):
+    name     = "ReduceReads"
+    cpu_req  = 2
+    mem_req  = 5*1024  # will allow 11 reducedRead jobs in a node.
+    time_req = 4*60
+    inputs   = ['bam']
+    outputs  = ['bam', 'zip']
+
+    # no -nt, no -nct available
+    # -known should be SNPs, not indels: non SNP variants will be ignored.
+
+    # do fastqc before reducing it
+    def cmd(self,i,s,p):
+        return r"""
+           export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+           export HUGETLB_SHM=yes;
+           tmpDir=`mktemp -d --tmpdir=/mnt`;
+
+           {s[fastqc]} -t {self.cpu_req} --noextract {i[bam]} --outdir $tmpDir
+
+           {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
+           -T ReduceReads           
+           -R {s[reference_fasta]}
+           -known {s[dbsnp_vcf]}
+           -known {s[1ksnp_vcf]}
+           -o $OUT.bam
+           -L {p[chrom]}
+           {inputs};
+
+           mv $tmpDir/*.zip $OUT.zip
+           /bin/rm -rf $tmpDir;
+        """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
+
+class UnifiedGenotyper(Tool):
+    name     = "UnifiedGenotyper"
+    cpu_req  = 4         # allow 8 ug jobs in a node
+    mem_req  = 7*1024
+    time_req = 12*60
+    inputs   = ['bam']
+    outputs  = ['vcf','vcf.idx']
+
+    # -nt, -nct available
+    def cmd(self,i,s,p):
+        return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
+
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
+            -T UnifiedGenotyper
+            -R {s[reference_fasta]}
+            --dbsnp {s[dbsnp_vcf]}
+            -glm {p[glm]}
+            -o $tmpDir/out.vcf
+            -L {p[chrom]}
+            -nt {self.cpu_req}
+            -nct 2
+            -A Coverage
+            -A AlleleBalance
+            -A AlleleBalanceBySample
+            -A DepthPerAlleleBySample
+            -A HaplotypeScore
+            -A InbreedingCoeff
+            -A QualByDepth
+            -A FisherStrand
+            -A MappingQualityRankSumTest
+            -baq CALCULATE_AS_NECESSARY
+            {inputs};
+            
+            mv -f $tmpDir/out.vcf     $OUT.vcf;
+            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            /bin/rm -rf $tmpDir;
+
+        """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
+    
+
+class VariantQualityScoreRecalibration(Tool):
+    """
+    VQSR
+    Note that HaplotypeScore is no longer applicable to indels
+    see http://gatkforums.broadinstitute.org/discussion/2463/unified-genotyper-no-haplotype-score-annotated-for-indels
+
+    """
+    name     = "VQSR"
+    cpu_req  = 30
+    mem_req  = 50*1024
+    time_req = 12*60
+    inputs   = ['vcf']
+    outputs  = ['vcf','vcf.idx','R']
+
+#   persist  = True
+#   forward_input = True
+    
+    default_params = { 'inbreeding_coeff' : False}
+
+    # -nt available, -nct not available
+    def cmd(self,i,s,p):
+
+        ## copied from gatk forum: http://gatkforums.broadinstitute.org/discussion/1259/what-vqsr-training-sets-arguments-should-i-use-for-my-specific-project
+        ##
+        ## --maxGaussians: default 10, default for INDEL 4, single sample for testing 1
+        ## 
+        ## removed -an QD for 'NaN LOD value assigned' error
+
+        cmd_VQSR = r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
+
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
+            -T VariantRecalibrator
+            -R {s[reference_fasta]}
+            -recalFile    $tmpDir/out.recal
+            -tranchesFile $tmpDir/out.tranches
+            -rscriptFile  $tmpDir/out.R
+            -nt {self.cpu_req}
+            -an DP -an FS -an ReadPosRankSum -an MQRankSum -an QD
+            -mode {p[glm]}                       
+            {inputs}
+            """
+
+        cmd_SNP = r"""
+            --numBadVariants 1000
+            -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_vcf]}
+            -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[1komni_vcf]}
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_vcf]}
+            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_vcf]};
+
+            """
+
+        cmd_INDEL = r"""
+            --numBadVariants 1000
+            -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_vcf]}
+            -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_vcf]};
+
+            """
+
+        cmd_apply_VQSR = r"""
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
+            -T ApplyRecalibration
+            -R {s[reference_fasta]}
+            -recalFile    $tmpDir/out.recal
+            -tranchesFile $tmpDir/out.tranches
+            -o            $tmpDir/out.vcf
+            --ts_filter_level 99.9
+            -mode {p[glm]}
+            -nt {self.cpu_req}
+            {inputs}
+
+            # gluster is really slow on appending small chunks, like making an index file.;
+            mv -f $tmpDir/out.vcf     $OUT.vcf;
+            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            mv -f $tmpDir/out.R       $OUT.R;
+
+            /bin/rm -rf $tmpDir;
+            """
+
+        if p['glm'] == 'SNP': 
+            cmd = cmd_VQSR + cmd_SNP   + cmd_apply_VQSR
+        else:
+            cmd = cmd_VQSR + cmd_INDEL + cmd_apply_VQSR
+
+        return cmd, {'inputs' : "\n".join(["-input {0}".format(vcf) for vcf in i['vcf']]), 'max':int(self.mem_req)}
+
+class CombineVariants(Tool):
+    name     = "CombineVariants"
+    cpu_req  = 30
+    mem_req  = 50*1024
+    time_req = 2*60
+    inputs   = ['vcf']
+    outputs  = ['vcf','vcf.idx']
+    logging_level ='INFO'
+
+    # -nt available, -nct not available
+    # Too many -nt (20?) will cause write error
+    def cmd(self,i,s,p):
         """
+        :param genotypemergeoptions: select from the following:
+            UNIQUIFY       - Make all sample genotypes unique by file. Each sample shared across RODs gets named sample.ROD.
+            PRIORITIZE     - Take genotypes in priority order (see the priority argument).
+            UNSORTED       - Take the genotypes in any order.
+            REQUIRE_UNIQUE - Require that all samples/genotypes be unique between all inputs.
+        """
+        return r"""
+            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
+            export HUGETLB_SHM=yes;
+            tmpDir=`mktemp -d --tmpdir=/mnt`;
+
+            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
+            -T CombineVariants
+            -R {s[reference_fasta]}
+            -o $tmpDir/out.vcf
+            -genotypeMergeOptions UNSORTED
+            -nt {self.cpu_req}
+            {inputs};
+
+            mv -f $tmpDir/out.vcf     $OUT.vcf;
+            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            /bin/rm -rf $tmpDir;
+
+        """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']]), 'max':int(self.mem_req)}
+
+
+#######################
+## Annotation
+#######################
+class Vcf2Anno_in(Tool):
+    name = "Convert VCF to Annovar"
+    inputs = ['vcf']
+    outputs = ['anno_in']
+    forward_input=True
+    time_req = 12*60
+
+    def cmd(self,i,s,p):
+        return "{s[annovarext]} vcf2anno '{i[vcf][0]}' > $OUT.anno_in"
+
+class Annotate(Tool):
+    name = "Annotate"
+    inputs = ['anno_in']
+    outputs = ['dir']
+    forward_input=True
+    time_req = 12*60
+    mem_req = 12*1024
+
+    def cmd(self,i,s,p):
+        return r"""
+            {s[annovarext]} anno {p[build]} {p[dbname]} {i[anno_in][0]} $OUT.dir
+        """
+
+class MergeAnnotations(Tool):
+    name = "Merge Annotations"
+    inputs = ['anno_in','dir']
+    outputs = ['dir']
+    mem_req = 40*1024
+    time_req = 12*60
+    forward_input=True
+    
+    def cmd(self,i,s,p):
+        return ('{s[annovarext]} merge {i[anno_in][0]} $OUT.dir {annotated_dir_output}',
+                { 'annotated_dir_output' : ' '.join(map(str,i['dir'])) }
+        )
+
