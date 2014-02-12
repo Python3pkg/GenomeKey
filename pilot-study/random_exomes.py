@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # simple script to read in csv and output new CSV with random number of bams
 
 import csv, random
