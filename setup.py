@@ -4,12 +4,12 @@ from genomekey import __version__
 
 README = open('README.rst').read()
 
-setup(name='CteamKey',
+setup(name='GenomeKey',
       version=__version__,
       description = "Next-generation Sequencing Analysis Pipeline",
       license='Non-commercial',
       long_description=README,
       packages=find_packages(),
-      scripts=['bin/cteamkey'],
+      scripts=['bin/genomekey'],
       install_requires=['pysam','ipdb']
 )
