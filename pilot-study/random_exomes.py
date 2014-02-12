@@ -1,15 +1,14 @@
 #!/usr/bin/env python
 # simple script to read in csv and output new CSV with random number of bams
 
-import csv, random
+import csv, random, sys
 
 number_bams_to_keep = 100
 number_bams_to_keep_string = str(number_bams_to_keep)
 
-input_file = 'exome.alignment.index'
-output_file_bams = 'exome.alignment.bams.index'
-output_file_random = number_bams_to_keep_string + '_random_bams.index'
-output_file_random_md5sum = number_bams_to_keep_string + '_random_bams.md5'
+input_file = sys.argv[1]
+output_file_random = number_bams_to_keep_string + '_' + input_file + '_random_bams.index'
+output_file_random_md5sum = number_bams_to_keep_string + '_' + input_file + '_random_bams.md5'
 
 # read in CSV and save mapped bams to list
 with open(input_file, 'rb') as f:
