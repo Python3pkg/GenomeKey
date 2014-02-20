@@ -12,16 +12,20 @@ library(lattice)
 cvr=read.table("20130502.exome.alignment.index.HsMetrics", header=TRUE, fill=TRUE)
 
 # get some overview and visualization of the distribution of the "mean coverage"
-summary(cvr$MEAN_BAIT_COVERAGE)
+stats = summary(cvr$MEAN_BAIT_COVERAGE)
+li = quantile(cvr$MEAN_BAIT_COVERAGE)
+# extract the quartile between 25-75% around the mean
+lower = li["25%"][[1]]
+higher = li["75%"][[1]]
+
 histogram(~MEAN_BAIT_COVERAGE, data=cvr)
 densityplot(~MEAN_BAIT_COVERAGE, data=cvr)
 
 # filter by populations
 # European populations info from: ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/README.populations
-sbt = subset(cvr, MEAN_BAIT_COVERAGE > 100 & MEAN_BAIT_COVERAGE < 120 & grepl("CEU|FIN|IBS|GBR|TSI", File_name))
-length(sbt$MEAN_BAIT_COVERAGE)
+sbt = subset(cvr, MEAN_BAIT_COVERAGE > lower & MEAN_BAIT_COVERAGE < higher & grepl("CEU|FIN|IBS|GBR|TSI", File_name))
+num.exomes = length(sbt$MEAN_BAIT_COVERAGE)
 
-# get the file names and write to 127_exomes.index
-head(sbt)
+# get the file names and write to <num.exomes>_exomes.index
 ex=(sbt$File_name)
-write.table((sbt$File_name), file="127_exomes.index", sep='\n', row.names=FALSE, col.names=FALSE, quote=FALSE)
+write.table((sbt$File_name), file=sprintf("%d_exomes.index", num.exomes), sep='\n', row.names=FALSE, col.names=FALSE, quote=FALSE)
