@@ -1,23 +1,24 @@
 #!/bin/bash
 
 #####################################################################################
-## Pilot study wrapper script													   ##
-## 1) dump the MySQL cosmos db													   ##
-## 2) whipe the db																   ##
-## 3) cp the outputs: dumped db; annotated vcf; output file to a single directory  ##
-## 4) compress all the outputes 												   ##
-## 5) push all to the pilot stydy S3 bucket 									   ##
-## 6) re-enitialyze cosmos db 													   ##
+## Pilot study wrapper script	
+## 1) dump the MySQL cosmos db	
+## 2) wipe the db
+## 3) do the genomekey run		
+## 4) cp the outputs: dumped db; annotated VCF; output file to a single directory
+## 5) compress all the outputs 
+## 6) push all to the pilot study S3 bucket
+## 7) re-initialize cosmos db
 #####################################################################################
 
-# 0) Create the outputes cp directory
+# 0) Create the output cp directory
 
 # mkdir /gluster/gv0/exports
 
 # 1) dump the MySQL cosmos db
 mysqldump -u cosmos -pcosmos cosmos > /gluster/gv0/exports/cosmos.sql
 
-# 2) whipe the db
+# 2) wipe the db
 
 MYSQL=$(which mysql)
 AWK=$(which awk)
@@ -30,16 +31,18 @@ do
 	$MYSQL -u cosmos -pcosmos cosmos -e "drop table $t"
 done
 
-# 3) cp outputes
+# 3) do the genomekey run
+
+# 4) cp outputs
 cp 
 
-# 4) compress all the outputes
+# 5) compress all the outputes
 ls /gluster/gv0/exports/ >> /gluster/gv0/exports/backups.list #creat the list of files to compress
 tar -cZf --no-recursion /gluster/gv0/exports/backup/tgz 'cat backups.list'
 
-# 5) push all to the pilot stydy S3 bucket
+# 6) push all to the pilot study S3 bucket
 
-# 6) re-enitialyze cosmos db 
+# 7) re-initialize cosmos db 
 
 
 
