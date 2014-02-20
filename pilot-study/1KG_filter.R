@@ -19,11 +19,9 @@ densityplot(~MEAN_BAIT_COVERAGE, data=cvr)
 # filter by populations
 # European populations info from: ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/README.populations
 sbt = subset(cvr, MEAN_BAIT_COVERAGE > 100 & MEAN_BAIT_COVERAGE < 120 & grepl("CEU|FIN|IBS|GBR|TSI", File_name))
-#length(sbt$MEAN_BAIT_COVERAGE)
+length(sbt$MEAN_BAIT_COVERAGE)
 
 # get the file names and write to 127_exomes.index
-#head(sbt)
+head(sbt)
 ex=(sbt$File_name)
-write.table((sbt$File_name), file="127_exomes.index", sep='\n', row.names=FALSE, col.names=FALSE quote=FALSE)
-
-# note: this write an "x" character in the beginning of the file for some reason I ignore now!
+write.table((sbt$File_name), file="127_exomes.index", sep='\n', row.names=FALSE, col.names=FALSE, quote=FALSE)
