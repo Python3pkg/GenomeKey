@@ -43,8 +43,10 @@ def pipeline(bams):
     chrom = ('chrom', range(1,23) + ['X', 'Y'])
     glm = ('glm', ['SNP', 'INDEL'])
 
-    dbnames = ('dbname', ['dbSNP135','CytoBand','Target_Scan','mirBase','Self_Chain'])
-
+    dbnames = ('dbname', ['dbSNP135','CytoBand','Target_Scan','mirBase','Self_Chain','Repeat_Masker','TFBS','Segmental_Duplications','SIFT','COSMIC',
+                          'PolyPhen2','Mutation_Taster','GERP','PhyloP','LRT','Mce46way','Complete_Genomics_69','The_1000g_February_all','The_1000g_April_all',
+                          'NHLBI_Exome_Project_euro','NHLBI_Exome_Project_aa','NHLBI_Exome_Project_all','ENCODE_DNaseI_Hypersensitivity','ENCODE_Transcription_Factor',
+                          'UCSC_Gene','Refseq_Gene','Ensembl_Gene','CCDS_Gene','HGMD_INDEL','HGMD_SNP','GWAS_Catalog'])
     bam_seq = None
     
     for b in bams:
@@ -77,11 +79,11 @@ def pipeline(bams):
 
         reduce_(['glm'], pipes.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
 
-        reduce_(['vcf'],  pipes.CombineVariants, "Merge VCF")#,
+        reduce_(['vcf'],  pipes.CombineVariants, "Merge VCF"),
 
-#        map_(pipes.Vcf2Anno_in),
+        map_(pipes.Vcf2Anno_in),
         
-#        split_([dbnames], pipes.Annotate, tag={'build':'hg19'}),
+        split_([dbnames], pipes.Annotate, tag={'build':'hg19'}),
         
-#        reduce_(['vcf'],  pipes.MergeAnnotations)
+        reduce_(['vcf'],  pipes.MergeAnnotations)
         )
