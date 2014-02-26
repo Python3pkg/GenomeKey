@@ -362,7 +362,8 @@ class Vcf2Anno_in(Tool):
     def cmd(self,i,s,p):
         return cmd_init + r"""
 
-              {s[annovarext]} vcf2anno '{i[vcf][0]}' > $OUT.anno_in
+             {s[annovarext]} vcf2anno '{i[vcf][0]}' > $OUT.anno_in
+
 
               """
 
@@ -377,7 +378,7 @@ class Annotate(Tool):
     def cmd(self,i,s,p):
         return cmd_init + r"""
 
-              {s[annovarext]} anno {p[build]} {p[dbname]} {i[anno_in][0]} $OUT.dir
+             {s[annovarext]} anno {p[build]} {p[dbname]} {i[anno_in][0]} $OUT.dir
         
               """
 
