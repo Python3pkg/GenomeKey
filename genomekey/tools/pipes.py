@@ -1,44 +1,36 @@
 from cosmos.lib.ezflow.tool import Tool
 
+cmd_init = r"""
+            echo "$({s[date]}) $(hostname)" && set -e -o pipefail && tmpDir=$(mktemp -d --tmpdir={s[scratch]}) && cd $tmpDir;
+            """
 
 class Bam_To_BWA(Tool):
     name = "BAM to BWA"
-    cpu_req = 8
-    mem_req = 14*1024
+    cpu_req = 4           # default 8, but max 16 cpus for GCE
+    mem_req = 8*1024     
     time_req = 2*60
 
     inputs  = ['bam']
     outputs = ['bam', 'bai']
 
     def cmd(self,i,s,p):
-        return r"""
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
-            cd $tmpDir;
+        return cmd_init + r"""
 
-            rg=`{s[samtools]} view -H {i[bam][0]} | grep "{p[rgId]}"`;
-            echo "RG = $rg";
+            rg=$({s[samtools]} view -H {i[bam][0]} | grep {p[rgId]} | uniq | sed 's/\t/\\t/g') && echo "RG= $rg";
 
-            set -o pipefail && 
-            {s[samtools]} view -h -u -r {p[rgId]} {i[bam][0]} {p[prevSn]}
-            |
-            {s[htscmd]} bamshuf -Oun 128 - _tmp
-            |
-            {s[htscmd]} bam2fq -a -
-            |
-            {s[bwa]} mem -p -M -t {self.cpu_req} -v 1
-            -R "$rg"
-            {s[reference_fasta]}
-            - 
-            |
-            {s[samtools]} view -Shu -
-            |
+            {s[samtools]} view -h -u -r {p[rgId]} {i[bam][0]} {p[prevSn]}         |
+            {s[htscmd]} bamshuf -Oun 128 - _tmp                                   |
+            {s[htscmd]} bam2fq -a  -                                              |
+            {s[bwa]} mem -p -M -t {self.cpu_req} -R "$rg" {s[reference_fasta]} -  |
+            {s[samtools]} view -Shu -                                             |
             {s[samtools]} sort -o -l 0 -@ {self.cpu_req} -m 1500M - _tmp > $tmpDir/out.bam;
 
             {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
 
-            mv -f $tmpDir/out.bam $OUT.bam;
-            mv -f $tmpDir/out.bai $OUT.bai;
-            /bin/rm -rf $tmpDir;
+            echo "$({s[date]}) Moving files to main";
+            mv -f $tmpDir/out.bam $OUT.bam; mv -f $tmpDir/out.bai $OUT.bai;
+            echo "$({s[date]}) Moving done"
+
             """
 
 def _list2input_markdup(l):
@@ -46,33 +38,32 @@ def _list2input_markdup(l):
 
 class MarkDuplicates(Tool):
     name     = "MarkDuplicates"
-    cpu_req  = 2
+    cpu_req  = 2        # will allow  8 jobs in a node (max=16)
     mem_req  = 5*1024   # will allow 11 jobs in a node, as mem_total = 59.3G
     time_req = 2*60
     inputs   = ['bam']
-    outputs  = ['bam','metrics']
+    outputs  = ['bam','bai','metrics']
     #persist  = True
         
     def cmd(self,i,s,p):
-        return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_SHM=yes;
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
+        return cmd_init + r"""
 
             {s[java]} -Xmx{max}M -jar {s[picard_dir]}/MarkDuplicates.jar
             TMP_DIR=$tmpDir
-            OUTPUT=$OUT.bam
-            METRICS_FILE=$OUT.metrics
+            OUTPUT=$tmpDir/out.bam
+            METRICS_FILE=$tmpDir/out.metrics
             ASSUME_SORTED=True
             CREATE_INDEX=True
             COMPRESSION_LEVEL=0
             MAX_RECORDS_IN_RAM=1000000
             VALIDATION_STRINGENCY=SILENT
-            VERBOSITY=WARNING
-            QUIET=TRUE
+            VERBOSITY=INFO
             {inputs};
 
-            /bin/rm -rf $tmpDir;
+            echo "$({s[date]}) Moving files to main";
+            mv -f $tmpDir/out.bam $OUT.bam; mv -f $tmpDir/out.bai $OUT.bai; mv -f $tmpDir/out.metrics $OUT.metrics;
+            echo "$({s[date]}) Moving done"; /bin/rm -rf $tmpDir;
+
         """, {'inputs': _list2input_markdup(i['bam']), 'max':int(self.mem_req)}
 
 
@@ -81,11 +72,11 @@ def _list2input_gatk(l):
 
 class IndelRealigner(Tool):
     name    = "IndelRealigner"
-    cpu_req = 4
+    cpu_req = 4       # will allow 4 realign jobs in a node
     mem_req = 7*1024  # will allow 8 realign jobs in a node
     time_req = 4*60
     inputs  = ['bam']
-    outputs = ['bam']
+    outputs = ['bam','bai']
 
     # RealignerTargetCreator: no -nct available, -nt = 24 recommended
     # IndelRealigner: no -nt/-nct available
@@ -94,10 +85,7 @@ class IndelRealigner(Tool):
     # will replace ; with CR/LF at process_cmd() in cosmos/utils/helper.py
 
     def cmd(self,i,s,p):
-        return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_SHM=yes;
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
+        return cmd_init + r"""
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T RealignerTargetCreator
@@ -109,10 +97,12 @@ class IndelRealigner(Tool):
             -L {p[chrom]}
             {inputs};
 
+            echo "";
+
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T IndelRealigner
             -R {s[reference_fasta]}
-            -o $OUT.bam
+            -o $tmpDir/out.bam
             -targetIntervals $tmpDir/{p[chrom]}.intervals
             -known {s[1kindel_vcf]}
             -known {s[mills_vcf]}
@@ -121,25 +111,24 @@ class IndelRealigner(Tool):
             -L {p[chrom]}
             {inputs};
 
-            /bin/rm -rf $tmpDir;
+            echo "$({s[date]}) Moving files to main";
+            mv -f $tmpDir/out.bam $OUT.bam; mv -f $tmpDir/out.bai $OUT.bai;
+            echo "$({s[date]}) Moving done."; /bin/rm -rf $tmpDir;
 
         """,{'inputs': _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
 
 
 class BaseQualityScoreRecalibration(Tool):
     name    = "BQSR"
-    cpu_req = 3         # will allow 10 bqsr jobes in a node.
+    cpu_req = 4         # will allow 4 bqsr jobs in a node.
     mem_req = 5*1024
     time_req = 4*60 
     inputs  = ['bam']
-    outputs = ['bam']
+    outputs = ['bam','bai']
 
     # no -nt, -nct = 4
     def cmd(self,i,s,p):
-        return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_SHM=yes;
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
+        return cmd_init + r"""
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T BaseRecalibrator
@@ -156,64 +145,62 @@ class BaseQualityScoreRecalibration(Tool):
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T PrintReads
             -R {s[reference_fasta]}
-            -o $OUT.bam
+            -o $tmpDir/out.bam
             -compress 0
             -BQSR $tmpDir/{p[chrom]}.grp
             -nct {self.cpu_req}
             -L {p[chrom]}
             {inputs};
 
-            /bin/rm -rf $tmpDir;
+            echo "$({s[date]}) Moving files to main";
+            mv -f $tmpDir/out.bam $OUT.bam; mv -f $tmpDir/out.bai $OUT.bai;
+            echo "$({s[date]}) Moving done"; /bin/rm -rf $tmpDir;
+
 
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
 
 class ReduceReads(Tool):
     name     = "ReduceReads"
-    cpu_req  = 2
+    cpu_req  = 2       # will allow  8 reducedRead jobs in a node
     mem_req  = 5*1024  # will allow 11 reducedRead jobs in a node.
     time_req = 4*60
     inputs   = ['bam']
-    outputs  = ['bam', 'zip']
+    outputs  = ['bam','bai']
 
     # no -nt, no -nct available
     # -known should be SNPs, not indels: non SNP variants will be ignored.
 
-    # do fastqc before reducing it
-    def cmd(self,i,s,p):
-        return r"""
-           export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-           export HUGETLB_SHM=yes;
-           tmpDir=`mktemp -d --tmpdir=/mnt`;
 
-           {s[fastqc]} -t {self.cpu_req} --noextract {i[bam]} --outdir $tmpDir
+    # do fastqc before reducing it
+    # removed -known {s[1ksnp_vcf]} for now
+    def cmd(self,i,s,p):
+        return cmd_init + r"""
 
            {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
            -T ReduceReads           
            -R {s[reference_fasta]}
            -known {s[dbsnp_vcf]}
-           -known {s[1ksnp_vcf]}
-           -o $OUT.bam
+           -o $tmpDir/out.bam
            -L {p[chrom]}
            {inputs};
 
-           mv $tmpDir/*.zip $OUT.zip
-           /bin/rm -rf $tmpDir;
+            echo "$({s[date]}) Moving files to main";
+            mv -f $tmpDir/out.bam $OUT.bam; mv -f $tmpDir/out.bai $OUT.bai;
+            echo "$({s[date]}) Moving done"; /bin/rm -rf $tmpDir;
+
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
 
 class UnifiedGenotyper(Tool):
     name     = "UnifiedGenotyper"
-    cpu_req  = 4         # allow 8 ug jobs in a node
-    mem_req  = 7*1024
+    cpu_req  = 4         # will allow 4 unifiedGenotype jobs in a node
+    mem_req  = 7*1024    
     time_req = 12*60
     inputs   = ['bam']
     outputs  = ['vcf','vcf.idx']
 
     # -nt, -nct available
     def cmd(self,i,s,p):
-        return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_SHM=yes;
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
+        return cmd_init + r"""
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T UnifiedGenotyper
@@ -236,9 +223,9 @@ class UnifiedGenotyper(Tool):
             -baq CALCULATE_AS_NECESSARY
             {inputs};
             
-            mv -f $tmpDir/out.vcf     $OUT.vcf;
-            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
-            /bin/rm -rf $tmpDir;
+            echo "$({s[date]}) Moving files to main"; 
+            mv -f $tmpDir/out.vcf $OUT.vcf; mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
+            echo "$({s[date]}) Moving done"; /bin/rm -rf $tmpDir;
 
         """, {'inputs' : _list2input_gatk(i['bam']), 'max':int(self.mem_req)}
     
@@ -251,7 +238,7 @@ class VariantQualityScoreRecalibration(Tool):
 
     """
     name     = "VQSR"
-    cpu_req  = 30
+    cpu_req  = 16          # max CPU here
     mem_req  = 50*1024
     time_req = 12*60
     inputs   = ['vcf']
@@ -272,9 +259,7 @@ class VariantQualityScoreRecalibration(Tool):
         ## removed -an QD for 'NaN LOD value assigned' error
 
         cmd_VQSR = r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_SHM=yes;
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
+            set -e -o pipefail && tmpDir=$(mktemp -d --tmpdir={s[scratch]}) && cd $tmpDir;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T VariantRecalibrator
@@ -289,7 +274,6 @@ class VariantQualityScoreRecalibration(Tool):
             """
 
         cmd_SNP = r"""
-            --numBadVariants 1000
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_vcf]}
             -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[1komni_vcf]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_vcf]}
@@ -298,7 +282,6 @@ class VariantQualityScoreRecalibration(Tool):
             """
 
         cmd_INDEL = r"""
-            --numBadVariants 1000
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_vcf]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_vcf]};
 
@@ -317,23 +300,22 @@ class VariantQualityScoreRecalibration(Tool):
             {inputs}
 
             # gluster is really slow on appending small chunks, like making an index file.;
-            mv -f $tmpDir/out.vcf     $OUT.vcf;
-            mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
-            mv -f $tmpDir/out.R       $OUT.R;
+            echo "$({s[date]}) Moving files to main";
+            mv -f $tmpDir/out.vcf     $OUT.vcf; mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx; mv -f $tmpDir/out.R       $OUT.R;
+            echo "$({s[date]}) Moving done"; /bin/rm -rf $tmpDir;
 
-            /bin/rm -rf $tmpDir;
             """
 
         if p['glm'] == 'SNP': 
-            cmd = cmd_VQSR + cmd_SNP   + cmd_apply_VQSR
+            cmd = cmd_init + cmd_VQSR + cmd_SNP   + cmd_apply_VQSR
         else:
-            cmd = cmd_VQSR + cmd_INDEL + cmd_apply_VQSR
+            cmd = cmd_init + cmd_VQSR + cmd_INDEL + cmd_apply_VQSR
 
         return cmd, {'inputs' : "\n".join(["-input {0}".format(vcf) for vcf in i['vcf']]), 'max':int(self.mem_req)}
 
 class CombineVariants(Tool):
     name     = "CombineVariants"
-    cpu_req  = 30
+    cpu_req  = 16                 # max CPU here
     mem_req  = 50*1024
     time_req = 2*60
     inputs   = ['vcf']
@@ -350,10 +332,7 @@ class CombineVariants(Tool):
             UNSORTED       - Take the genotypes in any order.
             REQUIRE_UNIQUE - Require that all samples/genotypes be unique between all inputs.
         """
-        return r"""
-            export LD_PRELOAD=/usr/local/lib64/libhugetlbfs.so;
-            export HUGETLB_SHM=yes;
-            tmpDir=`mktemp -d --tmpdir=/mnt`;
+        return cmd_init + r"""
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{max}M -jar {s[gatk]}
             -T CombineVariants
@@ -363,9 +342,11 @@ class CombineVariants(Tool):
             -nt {self.cpu_req}
             {inputs};
 
+            echo "$({s[date]}) Moving files to main";
             mv -f $tmpDir/out.vcf     $OUT.vcf;
             mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
             /bin/rm -rf $tmpDir;
+            echo "$({s[date]}) Moving done"
 
         """, {'inputs' : "\n".join(["-V {0}".format(vcf) for vcf in i['vcf']]), 'max':int(self.mem_req)}
 
@@ -381,7 +362,11 @@ class Vcf2Anno_in(Tool):
     time_req = 12*60
 
     def cmd(self,i,s,p):
-        return "{s[annovarext]} vcf2anno '{i[vcf][0]}' > $OUT.anno_in"
+        return cmd_init + r"""
+
+              {s[annovarext]} vcf2anno '{i[vcf][0]}' > $OUT.anno_in
+
+              """
 
 class Annotate(Tool):
     name = "Annotate"
@@ -392,9 +377,11 @@ class Annotate(Tool):
     mem_req = 12*1024
 
     def cmd(self,i,s,p):
-        return r"""
-            {s[annovarext]} anno {p[build]} {p[dbname]} {i[anno_in][0]} $OUT.dir
-        """
+        return cmd_init + r"""
+
+              {s[annovarext]} anno {p[build]} {p[dbname]} {i[anno_in][0]} $OUT.dir
+        
+              """
 
 class MergeAnnotations(Tool):
     name = "Merge Annotations"
@@ -405,7 +392,9 @@ class MergeAnnotations(Tool):
     forward_input=True
     
     def cmd(self,i,s,p):
-        return ('{s[annovarext]} merge {i[anno_in][0]} $OUT.dir {annotated_dir_output}',
-                { 'annotated_dir_output' : ' '.join(map(str,i['dir'])) }
-        )
+        return cmd_init + r"""
+      
+              {s[annovarext]} merge {i[anno_in][0]} $OUT.dir {annotated_dir_output}
+
+              """, { 'annotated_dir_output' : ' '.join(map(str,i['dir'])) }
 

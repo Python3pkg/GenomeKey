@@ -5,7 +5,6 @@ from cosmos.config import settings as cosmos_settings
 
 def _get_drmaa_native_specification(jobAttempt):
     task = jobAttempt.task
-    DRM  = cosmos_settings['DRM']
 
     # did other attempts fail?
     # is_reattempt = task.jobAttempts.count() >1
@@ -15,36 +14,20 @@ def _get_drmaa_native_specification(jobAttempt):
     time_req = task.time_requirement
     queue    = task.workflow.default_queue
 
-    # orchestra-specific option
-    if cosmos_settings['server_name'] == 'orchestra':
-        if   time_req <= 10:        queue = 'mini'
-        elif time_req <= 12 * 60:   queue = 'short'
-        else:                       queue = 'long'
-                            
-    if DRM == 'LSF':
-        s = '-R "rusage[mem={0}] span[hosts=1]" -n {1}'.format(mem_req/cpu_req, cpu_req)
-
-        if time_req:  s += ' -W 0:{0}'.format(time_req)
-        if queue:     s += '   -q {0}'.format(queue)
-        return s
-    elif DRM == 'GE':
-        return '-l spock_mem={mem_req}M,num_proc={cpu_req}'.format(mem_req=mem_req, cpu_req=cpu_req)
-    else:
-        raise Exception('DRM not supported')
-
+    # GridEngine specific option
+    return '-l spock_mem={mem_req}M,num_proc={cpu_req}'.format(mem_req=mem_req, cpu_req=cpu_req)
     
-if cosmos_settings['server_name'] == 'orchestra':
-    ref_path   = '/groups/cbi/WGA/reference'   # Orchestra
-    tools_path = '/groups/cbi/WGA/tools'
-else:
-    ref_path   = '/WGA/reference'              # AWS
-    tools_path = '/WGA/tools'
 
 opj = os.path.join
 
-settings = {
-    'java'                  : opj(tools_path, 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts -XX:+UseLargePages'),
 
+ref_path = '/pseq/WGA/ref'  # In shared disk
+tools_path='/tools/'        # In boot   disk
+
+settings = {
+    'date'                  : '/bin/date "+%Y-%m-%d %H:%M:%S"',  
+    'java'                  : 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts',
+    'scratch'               : '/scratch',
     'htscmd'                : opj(tools_path, 'htscmd'),
     'bwa'                   : opj(tools_path, 'bwa'),              
     'gatk'                  : opj(tools_path, 'gatk.jar'),

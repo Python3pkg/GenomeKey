@@ -40,8 +40,7 @@ def _getSeqName(header):
 def pipeline(bams):
 
     # split_ tuples
-    #interval = ('interval', range(1,23) + ['X', 'Y'])
-    chrom = ('chrom', ['1', '2'])
+    chrom = ('chrom', range(1,23) + ['X', 'Y'])
     glm = ('glm', ['SNP', 'INDEL'])
 
     dbnames = ('dbname', ['dbSNP135','CytoBand','Target_Scan','mirBase','Self_Chain'])
@@ -78,11 +77,11 @@ def pipeline(bams):
 
         reduce_(['glm'], pipes.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
 
-        reduce_(['vcf'],  pipes.CombineVariants, "Merge VCF"),
+        reduce_(['vcf'],  pipes.CombineVariants, "Merge VCF")#,
 
-        map_(pipes.Vcf2Anno_in),
+#        map_(pipes.Vcf2Anno_in),
         
-        split_([dbnames], pipes.Annotate, tag={'build':'hg19'}),
+#        split_([dbnames], pipes.Annotate, tag={'build':'hg19'}),
         
-        reduce_(['vcf'],  pipes.MergeAnnotations)
+#        reduce_(['vcf'],  pipes.MergeAnnotations)
         )
