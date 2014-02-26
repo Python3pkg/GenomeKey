@@ -273,18 +273,16 @@ class VariantQualityScoreRecalibration(Tool):
             {inputs}
             """
 
+        # temporarily removed:             -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_vcf]};
         cmd_SNP = r"""
             -resource:hapmap,known=false,training=true,truth=true,prior=15.0 {s[hapmap_vcf]}
-            -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[1komni_vcf]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0  {s[dbsnp_vcf]}
-            -resource:1000G,known=false,training=true,truth=false,prior=10.0 {s[1ksnp_vcf]};
-
+            -resource:omni,known=false,training=true,truth=true,prior=12.0   {s[1komni_vcf]};
             """
 
         cmd_INDEL = r"""
             -resource:mills,known=false,training=true,truth=true,prior=12.0 {s[mills_vcf]}
             -resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {s[dbsnp_vcf]};
-
             """
 
         cmd_apply_VQSR = r"""

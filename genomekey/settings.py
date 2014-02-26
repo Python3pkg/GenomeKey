@@ -28,15 +28,15 @@ def _get_drmaa_native_specification(jobAttempt):
 svr  = cosmos_settings['server_name']
 
 if svr == 'orchestra':
-      ref_path = '/groups/cbi/WGA/reference'
+    ref_path   = '/groups/cbi/WGA/reference'
     tools_path = '/groups/cbi/WGA/tools'
 
 elif svr == 'aws':
-      ref_path = '/WGA/reference'
+    ref_path   = '/WGA/reference'
     tools_path = '/WGA/tools'
 
 elif svr == 'gce':
-      ref_path = '/pseq/WGA/ref'  # In shared disk
+    ref_path   = '/pseq/WGA/ref'  # In shared disk
     tools_path = '/tools/'        # In boot   disk
 else:
     raise Exception('Unknown server_name {0} in Cosmos configuration: must be one of [orchestra, aws, gce]'.format(svr))
