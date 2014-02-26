@@ -13,8 +13,8 @@ def _get_drmaa_native_specification(jobAttempt):
     queue    = task.workflow.default_queue
     
     if drm == 'LSF':           # for Orchestra Runs
-        if time_req <= 12*60 queue = 'short';
-        else:                queue = 'long';
+        if time_req <= 12*60: queue = 'short'
+        else:                 queue = 'long'
                 
         return '-R "rusage[mem={0}] span[hosts=1]" -n {1} -W 0:{2} -q {3}'.format(mem_req, cpu_req, time_req, queue)
 
