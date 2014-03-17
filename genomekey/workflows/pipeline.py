@@ -56,9 +56,9 @@ def pipeline(bams):
         rgid = [ h[0] for h in header['rg']]
 
         # Uncomment below for testing
-        sn    = ['chr22']
-        chrom = ('chrom',[22])
-        glm   = ('glm',['SNP'])
+        #sn    = ['22']
+        #chrom = ('chrom',[22])
+        #glm   = ('glm',['SNP'])
         
         # if seqName is empty, then let's assume that the input is unaligned bam
         sample_name = os.path.basename(b).partition('.')[0]

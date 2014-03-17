@@ -3,9 +3,6 @@ from cosmos.lib.ezflow.tool import Tool
 def _list2input(l, opt):
     return opt + ("\n"+opt).join(map(lambda x: str(x), l))
 
-def _list2input_markdup(l):
-    return " ".join(map(lambda x: 'INPUT='+str(x)+'\n', l))
-
 cmd_init = r"""
             set -e -o pipefail && tmpDir=$(mktemp -d --tmpdir={s[scratch]}) && export TMPDIR=$tmpDir;
             printf "%s %s\n" "{s[date]}" "$(hostname)";
@@ -29,7 +26,7 @@ cmd_out_vcf = r"""
            
 class Bam_To_BWA(Tool):
     name     = "BAM to BWA"
-    cpu_req  = 6           # orchestra: 4
+    cpu_req  = 8           # orchestra: 4
     mem_req  = 12*1024     # orchestra: 8GB
     time_req = 2*60
     inputs   = ['bam']
@@ -55,7 +52,7 @@ class Bam_To_BWA(Tool):
 
 class IndelRealigner(Tool):
     name     = "IndelRealigner"
-    cpu_req  = 6       
+    cpu_req  = 8       
     mem_req  = 12*1024  
     time_req = 4*60
     inputs   = ['bam']
@@ -101,8 +98,8 @@ class IndelRealigner(Tool):
 
 class MarkDuplicates(Tool):
     name     = "MarkDuplicates"
-    cpu_req  = 2        
-    mem_req  = 6*1024   
+    cpu_req  = 4        
+    mem_req  = 4*1024   
     time_req = 2*60
     inputs   = ['bam']
     outputs  = ['bam','bai','metrics']
@@ -129,7 +126,7 @@ class MarkDuplicates(Tool):
 
 class BaseQualityScoreRecalibration(Tool):
     name     = "BQSR"
-    cpu_req  = 6
+    cpu_req  = 8
     mem_req  = 12*1024
     time_req = 4*60 
     inputs   = ['bam']
@@ -171,7 +168,7 @@ class BaseQualityScoreRecalibration(Tool):
 # Mean to be used per sample
 class HaplotypeCaller(Tool):
     name     = "HaplotypeCaller"
-    cpu_req  = 6
+    cpu_req  = 8
     mem_req  = 12*1024
     time_req = 12*60
     inputs   = ['bam']
@@ -200,8 +197,8 @@ class HaplotypeCaller(Tool):
 # Joint Genotyping
 class GenotypeGVCFs(Tool):
     name = "GenotypeGVCFs"
-    cpu_req  = 6         # max cpu of a node
-    mem_req  = 12*1024   # max mem of a node
+    cpu_req  = 8        
+    mem_req  = 12*1024  
     time_req = 12*60
     inputs   = ['vcf']
     outputs  = ['vcf','vcf.idx']
@@ -237,8 +234,8 @@ class VariantQualityScoreRecalibration(Tool):
 
     """
     name     = "VQSR"
-    cpu_req  = 6           # max cpu of a node
-    mem_req  = 12*1024     # max mem of a node
+    cpu_req  = 8        
+    mem_req  = 12*1024  
     time_req = 12*60
     inputs   = ['vcf']
     outputs  = ['vcf','vcf.idx','R']
@@ -307,7 +304,7 @@ class VariantQualityScoreRecalibration(Tool):
 
 class CombineVariants(Tool):
     name     = "CombineVariants"
-    cpu_req  = 6                 # max CPU here
+    cpu_req  = 8                # max CPU here
     mem_req  = 12*1024
     time_req = 2*60
     inputs   = ['vcf']

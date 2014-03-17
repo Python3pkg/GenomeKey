@@ -68,3 +68,7 @@ settings = {
 
     'get_drmaa_native_specification'  : _get_drmaa_native_specification
 }
+
+if svr == 'aws':
+    settings['scratch'] = '/mnt'
+
