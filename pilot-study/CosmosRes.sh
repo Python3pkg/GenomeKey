@@ -1,41 +1,43 @@
 #!/bin/bash
 
-# $1 list
-# $2 output bucket
-# $3 port
+# $1:: list
+# $2:: output bucket
+# $3:: port
+# (respectively name, user and password::$4 $5 $6)
+# $7:: cosmos paths (temp and output)
+# $8:: server name
 
 # Step 0) Make an output dir
 
-mkdir ~/Out/"$1"
+mkdir $8/Out/"$1"
 
 # Step 1) Launch the run
 
-genomekey bam -n "$1" -il $1
+genomekey bam -n "$1" -il $1  #### Here we still need to test if the run was successful or not
 
-# Step 2) Launch the web-server
+# Step 2) Dump the DB (the username and the password are hard-coded here)
 
-cosmos runweb -p $3
+mysqldump -u $5 -p $6 –no-create-info $4 > ~/Out/"$1".sql
 
-# Step 3) Dump the DB (the username and the password are hard-coded here)
-
-mysqldump -u usernam -p password –no-create-info dbName > ~/Out/"$1".sql
-
-# Step 4) Reset cosmos DB
+# Step 3) Reset cosmos DB
 
 cosmos resetdb
 
-# Step 5) Copy files to S3
+# Step 4) Copy files to S3
 
   #cp the DB
-  aws s3 cp ~/Out/"$1"/ $2
+  aws s3 cp $8/Out/"$1"/ $2/"$1"/
 
   #cp the VCF
-  aws s3 cp /cosmos/output/directory
+  aws s3 cp $8/cosmos/out/stage_name/.../annotated.vcf $2/"$1"/
 
-# Step 6) Clean-up
+# Step 5) Clean-up
+if [$8 -eq orchestra]; then
+    rm -R $8/cosmos/out/*
+    rm -R $8/cosmos/tmp/*
+else
+    rm -R $8/cosmos_out/*
+    rm -R $8/cosmos/erik/*
+fi
 
-rm ~/Out/*
-
-rm /cosmos/output/directory/*
-
-rm /cosmos/temp/directory/*
+rm $8/Out/*
