@@ -13,7 +13,7 @@ def _get_drmaa_native_specification(jobAttempt):
     queue    = task.workflow.default_queue
     
     if drm == 'LSF':           # for Orchestra Runs
-        if time_req <= 12*60: queue = 'short'
+        if time_req <= 12*60: queue = 'rodeo_unlimited'
         else:                 queue = 'long'
                 
         return '-R "rusage[mem={0}] span[hosts=1]" -n {1} -W 0:{2} -q {3}'.format(mem_req, cpu_req, time_req, queue)
@@ -46,16 +46,15 @@ opj = os.path.join
 
 
 settings = {
-    'date'                  : '/bin/date "+%Y-%m-%d %H:%M:%S"',  
-    'java'                  : 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts',
-    'scratch'               : '/scratch',
+    'date'                  : '$(date "+%T %D")',
+    'java'                  : opj(tools_path, 'java -d64 -XX:ParallelGCThreads=2 -XX:+UseParallelOldGC -XX:+AggressiveOpts'),
+    'scratch'               : '/tmp',
 
-    'htscmd'                : opj(tools_path, 'htscmd'),
-    'bwa'                   : opj(tools_path, 'bwa'),              
-    'gatk'                  : opj(tools_path, 'gatk.jar'),
-    'picard_dir'            : opj(tools_path, 'picard'),  
-    'samtools'              : opj(tools_path, 'samtools'),
-    'fastqc'                : opj(tools_path, 'fastqc'),
+    'bamUtil'               : opj(tools_path, 'bamUtil.v1.0.11'),
+    'bwa'                   : opj(tools_path, 'bwa.v0.7.7'),              
+    'gatk'                  : opj(tools_path, 'gatk.v3.0.jar'),
+    'picard_dir'            : opj(tools_path, 'picard.v1.109'),  
+    'samtools'              : opj(tools_path, 'samtools.v0.1.19'),
 
     'annovarext'            : opj(tools_path, 'annovarext'),
 

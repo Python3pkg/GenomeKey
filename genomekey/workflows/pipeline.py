@@ -55,6 +55,11 @@ def pipeline(bams):
 
         rgid = [ h[0] for h in header['rg']]
 
+        # Uncomment below for testing
+        sn    = ['chr22']
+        chrom = ('chrom',[22])
+        glm   = ('glm',['SNP'])
+        
         # if seqName is empty, then let's assume that the input is unaligned bam
         sample_name = os.path.basename(b).partition('.')[0]
         s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
@@ -63,27 +68,31 @@ def pipeline(bams):
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = sequence_(bam_seq, s, combine=True)
 
-
-    return sequence_(
+    # Previous pipeline
+    pr_pipeline = sequence_(
         bam_seq,
-
         reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
+        map_(                                  pipes.MarkDuplicates),
+        reduce_(['bam','chrom'],               pipes.BaseQualityScoreRecalibration),
+        map_(                                  pipes.ReduceReads),
+        reduce_split_(['chrom'], [glm],        pipes.UnifiedGenotyper),
+        reduce_(['glm'],                       pipes.VariantQualityScoreRecalibration, tag={'vcf':'main'}),
+        reduce_(['vcf'],                       pipes.CombineVariants, "Merge VCF"),
+        map_(                                  pipes.Vcf2Anno_in),       
+        split_([dbnames],                      pipes.Annotate, tag={'build':'hg19'}),       
+        reduce_(['vcf'],                       pipes.MergeAnnotations)
+    )
 
-        map_(pipes.MarkDuplicates),
+    # HaplotypeCaller Pipeline: official for GATK 3.0
+    hc_pipeline = sequence_(
+        bam_seq,
+        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
+        map_(                                  pipes.MarkDuplicates),
+        reduce_(['bam','chrom'],               pipes.BaseQualityScoreRecalibration),
+        map_(                                  pipes.HaplotypeCaller),
+        reduce_(['chrom'],                     pipes.GenotypeGVCFs),
+        split_([glm],                          pipes.VariantQualityScoreRecalibration, tag={'vcf':'main'})
+    )
 
-        reduce_(['bam','chrom'], pipes.BaseQualityScoreRecalibration),
+    return hc_pipeline
 
-        map_(pipes.ReduceReads),
-
-        reduce_split_(['chrom'], [glm], pipes.UnifiedGenotyper),
-
-        reduce_(['glm'], pipes.VariantQualityScoreRecalibration, tag={'vcf':'master'}),
-
-        reduce_(['vcf'],  pipes.CombineVariants, "Merge VCF"),
-
-        map_(pipes.Vcf2Anno_in),
-        
-        split_([dbnames], pipes.Annotate, tag={'build':'hg19'}),
-        
-        reduce_(['vcf'],  pipes.MergeAnnotations)
-        )
