@@ -188,6 +188,8 @@ class HaplotypeCaller(Tool):
             -nct {self.cpu_req}
             --emitRefConfidence GVCF --variant_index_type LINEAR --variant_index_parameter 128000
             -A DepthPerAlleleBySample
+            -stand_call_conf 30
+            -stand_emit_conf 10
             {inputs};
 
             """
@@ -240,16 +242,13 @@ class VariantQualityScoreRecalibration(Tool):
     inputs   = ['vcf']
     outputs  = ['vcf','vcf.idx','R']
 
-#   default_params = { 'inbreeding_coeff' : False}
 
     # -nt available, -nct not available
     def cmd(self,i,s,p):
         """
         Check gatk forum: http://gatkforums.broadinstitute.org/discussion/1259/what-vqsr-training-sets-arguments-should-i-use-for-my-specific-project
-        
-        --maxGaussians: default 10, default for INDEL 4, single sample for testing 1
-         
-        - remove -an FS -an QD
+        --maxGaussians         8 (default), set    1 for small-scale test
+        --minNumBadVariants 1000 (default), set 3000 for small-scale test
         """
         cmd_VQSR = r"""
 
@@ -261,8 +260,11 @@ class VariantQualityScoreRecalibration(Tool):
             -tranchesFile $tmpDir/out.tranches
             -rscriptFile  $tmpDir/out.R
             -nt {self.cpu_req}
-            -an MQRankSum -an ReadPosRankSum -an DP
-            -mode {p[glm]}                       
+            -an MQRankSum -an ReadPosRankSum -an DP -an FS -an QD
+            -mode {p[glm]}
+            -L {p[chrom]}
+            --maxGaussians 1
+            --minNumBadVariants 3000
             {inputs}
             """
         cmd_SNP = r"""
@@ -289,17 +291,18 @@ class VariantQualityScoreRecalibration(Tool):
             --ts_filter_level 99.9
             -mode {p[glm]}
             -nt {self.cpu_req}
+            -L {p[chrom]}
             {inputs};
 
             mv -f $tmpDir/out.R $OUT.R;            
 
             """
         if p['glm'] == 'SNP':
-            cmd_train = cmd_SNP
+            cmd_rc = cmd_SNP
         else:
-            cmd_train = cmd_INDEL
+            cmd_rc = cmd_INDEL
             
-        return (cmd_init + cmd_VQSR + cmd_train + cmd_apply_VQSR + cmd_out_vcf), {'inputs' : _list2input(i['vcf'],"-input ")}
+        return (cmd_init + cmd_VQSR + cmd_rc + cmd_apply_VQSR + cmd_out_vcf), {'inputs' : _list2input(i['vcf'],"-input ")}
 
 
 class CombineVariants(Tool):

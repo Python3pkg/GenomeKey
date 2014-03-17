@@ -40,7 +40,9 @@ def _getSeqName(header):
 def pipeline(bams):
 
     # split_ tuples
-    chrom = ('chrom', range(1,23) + ['X', 'Y'])
+    chrom1 = ('chrom1', range(1,23) + ['X', 'Y', 'MT'])
+    chrom  = ('chrom',  range(1,23))
+
     glm = ('glm', ['SNP', 'INDEL'])
 
     dbnames = ('dbname', ['dbSNP135','CytoBand','Target_Scan','mirBase','Self_Chain','Repeat_Masker','TFBS','Segmental_Duplications','SIFT','COSMIC',
@@ -71,16 +73,16 @@ def pipeline(bams):
     # Previous pipeline
     pr_pipeline = sequence_(
         bam_seq,
-        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
-        map_(                                  pipes.MarkDuplicates),
-        reduce_(['bam','chrom'],               pipes.BaseQualityScoreRecalibration),
-        map_(                                  pipes.ReduceReads),
-        reduce_split_(['chrom'], [glm],        pipes.UnifiedGenotyper),
-        reduce_(['glm'],                       pipes.VariantQualityScoreRecalibration, tag={'vcf':'main'}),
-        reduce_(['vcf'],                       pipes.CombineVariants, "Merge VCF"),
-        map_(                                  pipes.Vcf2Anno_in),       
-        split_([dbnames],                      pipes.Annotate, tag={'build':'hg19'}),       
-        reduce_(['vcf'],                       pipes.MergeAnnotations)
+        reduce_split_(['bam','rgId'], [chrom1], pipes.IndelRealigner),
+        map_(                                   pipes.MarkDuplicates),
+        reduce_(['bam','chrom1'],               pipes.BaseQualityScoreRecalibration),
+        map_(                                   pipes.ReduceReads),
+        reduce_split_(['chrom1'], [glm],        pipes.UnifiedGenotyper),
+        reduce_(['glm'],                        pipes.VariantQualityScoreRecalibration, tag={'vcf':'main'}),
+        reduce_(['vcf'],                        pipes.CombineVariants, "Merge VCF"),
+        map_(                                   pipes.Vcf2Anno_in),       
+        split_([dbnames],                       pipes.Annotate, tag={'build':'hg19'}),       
+        reduce_(['vcf'],                        pipes.MergeAnnotations)
     )
 
     # HaplotypeCaller Pipeline: official for GATK 3.0
