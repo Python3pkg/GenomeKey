@@ -5,7 +5,7 @@ def _list2input(l, opt):
 
 cmd_init = r"""
             set -e -o pipefail && tmpDir=$(mktemp -d --tmpdir={s[scratch]}) && export TMPDIR=$tmpDir;
-            printf "%s %s\n" "{s[date]}" "$(hostname)";
+            printf "%s %s at %s\n" "{s[date]}" "$(hostname)" "$tmpDir";
             """
 cmd_out  = r"""
 

@@ -34,14 +34,14 @@ def _getSeqName(header):
     if unMapped != '': 
         seqNameList.append(unMapped)
 
-    return seqNameList
+        return seqNameList
 
     
 def pipeline(bams):
 
     # split_ tuples
-    chrom1 = ('chrom1', range(1,23) + ['X', 'Y', 'MT'])
-    chrom  = ('chrom',  range(1,23))
+    #chrom  = ('chrom', range(1,23) + ['X', 'Y', 'MT'])
+    chrom  = ('chrom', range(1,23))
 
     glm = ('glm', ['SNP', 'INDEL'])
 
@@ -75,9 +75,9 @@ def pipeline(bams):
         bam_seq,
         reduce_split_(['bam','rgId'], [chrom1], pipes.IndelRealigner),
         map_(                                   pipes.MarkDuplicates),
-        reduce_(['bam','chrom1'],               pipes.BaseQualityScoreRecalibration),
+        reduce_(['bam','chrom'],                pipes.BaseQualityScoreRecalibration),
         map_(                                   pipes.ReduceReads),
-        reduce_split_(['chrom1'], [glm],        pipes.UnifiedGenotyper),
+        reduce_split_(['chrom'], [glm],         pipes.UnifiedGenotyper),
         reduce_(['glm'],                        pipes.VariantQualityScoreRecalibration, tag={'vcf':'main'}),
         reduce_(['vcf'],                        pipes.CombineVariants, "Merge VCF"),
         map_(                                   pipes.Vcf2Anno_in),       
