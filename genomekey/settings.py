@@ -69,6 +69,7 @@ settings = {
     'get_drmaa_native_specification'  : _get_drmaa_native_specification
 }
 
-if svr == 'aws':
+if   svr == 'aws':
     settings['scratch'] = '/mnt'
-
+elif svr == 'gce':
+    settings['scratch'] = '/scratch'
