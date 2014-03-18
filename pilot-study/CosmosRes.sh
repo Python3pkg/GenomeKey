@@ -9,7 +9,7 @@
 
 # Notify the user of the start
 
-echo "Genomekey run `$1` failed" | mail -s "GenomeKey `$1` run Started" "$9"
+echo "Genomekey run `$1` started" | mail -s "GenomeKey `$1` run Started" "$9"
 
 # Step 0) Make an output dir
 
@@ -21,6 +21,8 @@ genomekey bam -n "$1" -il $1  #### Here we still need to test if the run was suc
 
 if [$? -eq 0]; then
 
+   echo "Genomekey run `$1` was successful" | mail -s "GenomeKey run Successful" "$9"
+   
     # Step 2) Dump the DB (the username and the password are hard-coded here)
 
     mysqldump -u $5 -p $6 –no-create-info $4 > ~/Out/"$1".sql
@@ -47,7 +49,7 @@ if [$? -eq 0]; then
     fi
 
     rm $8/Out/*
-
+    echo "Genomekey run `$1` data successfully backup on S3" | mail -s "GenomeKey Backup" "$9"
 else
     echo "Genomekey run `$1` failed" | mail -s "GenomeKey run Failure" "$9"
 fi
