@@ -1,6 +1,7 @@
 from distutils.core import setup
 from setuptools import find_packages
-from genomekey import __version__
+
+__version__ = '0.5'
 
 README = open('README.rst').read()
 

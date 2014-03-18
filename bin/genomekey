@@ -10,6 +10,14 @@ from cosmos.lib.ezflow.dag import DAG,configure,add_run
 from genomekey.settings            import settings
 from genomekey.workflows.pipeline  import pipeline
 
+import logging
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+ch.setFormatter(logging.Formatter('%(levelname)s: %(asctime)s: %(message)s',"%Y-%m-%d %H:%M:%S"))
+log.addHandler(ch)
 
 ###############################
 # bam
