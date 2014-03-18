@@ -34,7 +34,7 @@ def _getSeqName(header):
     if unMapped != '': 
         seqNameList.append(unMapped)
 
-        return seqNameList
+    return seqNameList
 
     
 def pipeline(bams):
