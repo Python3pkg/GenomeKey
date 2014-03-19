@@ -9,12 +9,13 @@
 #
 ##################
 ###Example:
-# > ./w.sh lists s3://COSMOS_Pilot/Out/ port
+# > ./w.sh lists s3://COSMOS_Pilot/Out/ port eg@email.com
 #
 ##################
 # $1: list of lists
 # $2 output bucket
 # $3 port
+# $4 email address
 
 #change permissions on the files
 chmod +x ./CosmosRes.sh
@@ -46,7 +47,7 @@ fi
 
 while read F
 do
-./CosmosRes.sh $F $2 $3 $NAME $USER $PASSWORD
+./CosmosRes.sh $F $2 $3 $NAME $USER $PASSWORD $server_name $scratch $4
 done <$1
 
 ################

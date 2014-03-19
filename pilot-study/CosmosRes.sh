@@ -7,6 +7,10 @@
 # $7:: cosmos paths (temp and output)
 # $8:: server name
 
+# Notify the user of the start
+
+echo "Genomekey run `$1` started" | mail -s "GenomeKey `$1` run Started" "$9"
+
 # Step 0) Make an output dir
 
 mkdir $8/Out/"$1"
@@ -15,29 +19,37 @@ mkdir $8/Out/"$1"
 
 genomekey bam -n "$1" -il $1  #### Here we still need to test if the run was successful or not
 
-# Step 2) Dump the DB (the username and the password are hard-coded here)
+if [$? -eq 0]; then
 
-mysqldump -u $5 -p $6 –no-create-info $4 > ~/Out/"$1".sql
+   echo "Genomekey run `$1` was successful" | mail -s "GenomeKey run Successful" "$9"
+   
+    # Step 2) Dump the DB (the username and the password are hard-coded here)
 
-# Step 3) Reset cosmos DB
+    mysqldump -u $5 -p $6 –no-create-info $4 > ~/Out/"$1".sql
 
-cosmos resetdb
+    # Step 3) Reset cosmos DB
 
-# Step 4) Copy files to S3
+    cosmos resetdb
 
-  #cp the DB
-  aws s3 cp $8/Out/"$1"/ $2/"$1"/
+    # Step 4) Copy files to S3
 
-  #cp the VCF
-  aws s3 cp $8/cosmos/out/stage_name/.../annotated.vcf $2/"$1"/
+      #cp the DB
+      aws s3 cp $8/Out/"$1"/ $2/"$1"/
 
-# Step 5) Clean-up
-if [$8 -eq orchestra]; then
-    rm -R $8/cosmos/out/*
-    rm -R $8/cosmos/tmp/*
+      #cp the VCF
+      aws s3 cp $8/cosmos/out/stage_name/.../annotated.vcf $2/"$1"/
+
+    # Step 5) Clean-up
+    if [$8 -eq orchestra]; then
+        rm -R $8/cosmos/out/*
+        rm -R $8/cosmos/tmp/*
+    else
+        rm -R $8/cosmos_out/*
+        rm -R $8/cosmos/erik/*
+    fi
+
+    rm $8/Out/*
+    echo "Genomekey run `$1` data successfully backup on S3" | mail -s "GenomeKey Backup" "$9"
 else
-    rm -R $8/cosmos_out/*
-    rm -R $8/cosmos/erik/*
+    echo "Genomekey run `$1` failed" | mail -s "GenomeKey run Failure" "$9"
 fi
-
-rm $8/Out/*
