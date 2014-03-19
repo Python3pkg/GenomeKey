@@ -52,7 +52,7 @@ settings = {
 
     'bamUtil'               : opj(tools_path, 'bamUtil.v1.0.11'),
     'bwa'                   : opj(tools_path, 'bwa.v0.7.7'),              
-    'gatk'                  : opj(tools_path, 'gatk.v3.0.jar'),
+    'gatk'                  : opj(tools_path, 'gatk.v3.1.1.jar'),
     'picard_dir'            : opj(tools_path, 'picard.v1.109'),  
     'samtools'              : opj(tools_path, 'samtools.v0.1.19'),
 
@@ -66,10 +66,10 @@ settings = {
     '1komni_vcf'            : opj(ref_path,   '1000G_omni2.5.b37.vcf'),
     '1kindel_vcf'           : opj(ref_path,   '1000G_phase1.indels.b37.vcf'),
 
-    'get_drmaa_native_specification'  : _get_drmaa_native_specification
+    'drmaa_spec'            : _get_drmaa_native_specification
 }
 
 if   svr == 'aws':
     settings['scratch'] = '/mnt'
 elif svr == 'gce':
-    settings['scratch'] = '/scratch'
+    settings['scratch'] = '/mnt'

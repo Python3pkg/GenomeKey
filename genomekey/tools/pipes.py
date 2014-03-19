@@ -26,7 +26,7 @@ cmd_out_vcf = r"""
            
 class Bam_To_BWA(Tool):
     name     = "BAM to BWA"
-    cpu_req  = 8           # orchestra: 4
+    cpu_req  = 4           # orchestra: 4
     mem_req  = 12*1024     # orchestra: 8GB
     time_req = 2*60
     inputs   = ['bam']
@@ -52,7 +52,7 @@ class Bam_To_BWA(Tool):
 
 class IndelRealigner(Tool):
     name     = "IndelRealigner"
-    cpu_req  = 8       
+    cpu_req  = 4       
     mem_req  = 12*1024  
     time_req = 4*60
     inputs   = ['bam']
@@ -98,7 +98,7 @@ class IndelRealigner(Tool):
 
 class MarkDuplicates(Tool):
     name     = "MarkDuplicates"
-    cpu_req  = 4        
+    cpu_req  = 2        
     mem_req  = 4*1024   
     time_req = 2*60
     inputs   = ['bam']
@@ -126,7 +126,7 @@ class MarkDuplicates(Tool):
 
 class BaseQualityScoreRecalibration(Tool):
     name     = "BQSR"
-    cpu_req  = 8
+    cpu_req  = 4
     mem_req  = 12*1024
     time_req = 4*60 
     inputs   = ['bam']
@@ -168,7 +168,7 @@ class BaseQualityScoreRecalibration(Tool):
 # Mean to be used per sample
 class HaplotypeCaller(Tool):
     name     = "HaplotypeCaller"
-    cpu_req  = 8
+    cpu_req  = 4
     mem_req  = 12*1024
     time_req = 12*60
     inputs   = ['bam']
@@ -199,7 +199,7 @@ class HaplotypeCaller(Tool):
 # Joint Genotyping
 class GenotypeGVCFs(Tool):
     name = "GenotypeGVCFs"
-    cpu_req  = 8        
+    cpu_req  = 4        
     mem_req  = 12*1024  
     time_req = 12*60
     inputs   = ['vcf']
@@ -236,7 +236,7 @@ class VariantQualityScoreRecalibration(Tool):
 
     """
     name     = "VQSR"
-    cpu_req  = 8        
+    cpu_req  = 4        
     mem_req  = 12*1024  
     time_req = 12*60
     inputs   = ['vcf']
@@ -307,7 +307,7 @@ class VariantQualityScoreRecalibration(Tool):
 
 class CombineVariants(Tool):
     name     = "CombineVariants"
-    cpu_req  = 8                # max CPU here
+    cpu_req  = 4                # max CPU here
     mem_req  = 12*1024
     time_req = 2*60
     inputs   = ['vcf']
