@@ -5,7 +5,7 @@ def _list2input(l, opt):
 
 cmd_init = r"""
             set -e -o pipefail && tmpDir=$(mktemp -d --tmpdir={s[scratch]}) && export TMPDIR=$tmpDir;
-            printf "%s %s at %s\n" "{s[date]}" "$(hostname)" "$tmpDir";
+            printf "%s %s at %s\n" "{s[date]}" "$(hostname)" "$tmpDir" | tee /dev/stderr;
             """
 cmd_out  = r"""
 
@@ -27,22 +27,23 @@ cmd_out_vcf = r"""
 class Bam_To_BWA(Tool):
     name     = "BAM to BWA"
     cpu_req  = 4           # orchestra: 4
-    mem_req  = 12*1024     # orchestra: 8GB
+    mem_req  = 12*1024     # max mem used (RSS): 12.4 Gb?
     time_req = 2*60
     inputs   = ['bam']
     outputs  = ['bam', 'bai']
 
     def cmd(self,i,s,p):
+        # removed -m MEM option in samtools sort
         cmd_main = r"""
 
             rg=$({s[samtools]} view -H {i[bam][0]} | grep {p[rgId]} | uniq | sed 's/\t/\\t/g') && echo "RG= $rg";
 
             {s[samtools]} view -hur {p[rgId]} {i[bam][0]} {p[prevSn]} |
-            {s[samtools]} sort -n -o -l 0 -@ {self.cpu_req} -m 2000M - _shuf |
+            {s[samtools]} sort -n -o -l 0 -@ {self.cpu_req} - $tmpDir/_shuf |
             {s[bamUtil]} bam2FastQ --in -.ubam --readname --noeof --firstOut /dev/stdout --merge --unpairedout $tmpDir/un.fq 2> /dev/null |
             {s[bwa]} mem -p -M -t {self.cpu_req} -R "$rg" {s[reference_fasta]} - |
             {s[samtools]} view -Shu - |
-            {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} -m 2000M - _sort > $tmpDir/out.bam;
+            {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - $tmpDir/_sort > $tmpDir/out.bam;
 
             [[ -a $tmpDir/out.bam ]] && {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
             

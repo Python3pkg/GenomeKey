@@ -58,8 +58,8 @@ def pipeline(bams):
         rgid = [ h[0] for h in header['rg']]
 
         # Uncomment below for testing
-        #sn    = ['22']
-        #chrom = ('chrom',[22])
+        #sn    = ['chr1','chr2']
+        #chrom = ('chrom',[1,2])
         #glm   = ('glm',['SNP'])
         
         # if seqName is empty, then let's assume that the input is unaligned bam
