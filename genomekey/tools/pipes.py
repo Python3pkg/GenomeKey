@@ -185,6 +185,7 @@ class HaplotypeCaller(Tool):
             -R {s[reference_fasta]}
             -D {s[dbsnp_vcf]}
             -o $tmpDir/out.vcf
+            -pairHMM VECTOR_LOGLESS_CACHING
             -L {p[chrom]}
             -nct {self.cpu_req}
             --emitRefConfidence GVCF --variant_index_type LINEAR --variant_index_parameter 128000
