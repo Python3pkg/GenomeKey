@@ -1,4 +1,4 @@
-PILOT
-===============================
+GenomeKey
+=========
 
-AWS specific version of Genomekey, for pilot study
+Now works on orchestra, AWS and Google Cloud.  Tuned for pilot-study
