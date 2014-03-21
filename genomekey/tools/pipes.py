@@ -78,7 +78,7 @@ class IndelRealigner(Tool):
             -L {p[chrom]}
             {inputs};
 
-            printf "\n%s RealignerTargetCreator ended.\n" "{s[date]}" | tee /dev/stderr;
+            printf "\n%s RealignerTargetCreator ended.\n" "{s[date]}" | tee -a /dev/stderr;
 
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{self.mem_req}M
             -jar {s[gatk]}
@@ -150,7 +150,7 @@ class BaseQualityScoreRecalibration(Tool):
             -L {p[chrom]}
             {inputs};
 
-            printf "\n%s BaseRecalibrator ended\n" "{s[date]}" | tee /dev/stderr;
+            printf "\n%s BaseRecalibrator ended\n" "{s[date]}" | tee -a /dev/stderr;
             
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{self.mem_req}M
             -jar {s[gatk]}
@@ -280,7 +280,7 @@ class VariantQualityScoreRecalibration(Tool):
             """
         cmd_apply_VQSR = r"""
 
-            printf "\n%s\n" "{s[date]}" | tee /dev/stderr;
+            printf "\n%s\n" "{s[date]}" | tee -a /dev/stderr;
             
             {s[java]} -Djava.io.tmpdir=$tmpDir -Xmx{self.mem_req}M
             -jar {s[gatk]}
@@ -380,7 +380,7 @@ class MergeAnnotations(Tool):
     mem_req = 40*1024
     time_req = 12*60
     forward_input=True
-    
+    5F
     def cmd(self,i,s,p):
         return cmd_init + r"""
       
