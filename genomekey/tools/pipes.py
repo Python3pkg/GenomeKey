@@ -381,7 +381,7 @@ class MergeAnnotations(Tool):
     mem_req = 40*1024
     time_req = 12*60
     forward_input=True
-    5F
+    
     def cmd(self,i,s,p):
         return cmd_init + r"""
       
