@@ -37,7 +37,7 @@ def _getSeqName(header):
     return seqNameList
 
     
-def pipeline(bams):
+def pipeline(bams, tiny_bam=False):
 
     # split_ tuples
     #chrom  = ('chrom', range(1,23) + ['X', 'Y', 'MT'])
@@ -57,11 +57,15 @@ def pipeline(bams):
 
         rgid = [ h[0] for h in header['rg']]
 
-        # Uncomment below for testing
-        #sn    = ['chr1','chr2']
-        #chrom = ('chrom',[1,2])
-        #glm   = ('glm',['SNP'])
-        
+        # restrict output for testing
+        if tiny_bam:
+            sn    = ['chr1']
+            chrom = ('chrom',[1])
+            glm   = ('glm',['SNP'])
+            skip_VQSR = ('skip_VQSR', [True])
+        else:
+            skip_VQSR = ('skip_VQSR', [False])
+                         
         # if seqName is empty, then let's assume that the input is unaligned bam
         sample_name = os.path.basename(b).partition('.')[0]
         s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
@@ -93,7 +97,7 @@ def pipeline(bams):
         reduce_(['bam','chrom'],               pipes.BaseQualityScoreRecalibration),
         map_(                                  pipes.HaplotypeCaller),
         reduce_(['chrom'],                     pipes.GenotypeGVCFs),
-        split_([glm],                          pipes.VariantQualityScoreRecalibration, tag={'vcf':'main'})
+        split_([glm, skip_VQSR],               pipes.VariantQualityScoreRecalibration, tag={'vcf':'main'})
     )
 
     return hc_pipeline

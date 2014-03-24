@@ -303,8 +303,12 @@ class VariantQualityScoreRecalibration(Tool):
             cmd_rc = cmd_SNP
         else:
             cmd_rc = cmd_INDEL
-            
-        return (cmd_init + cmd_VQSR + cmd_rc + cmd_apply_VQSR + cmd_out_vcf), {'inputs' : _list2input(i['vcf'],"-input ")}
+
+        if p['skip_VQSR']:
+            return " cp {i[vcf][0]} $OUT.vcf; cp {i[vcf][0]}.idx $OUT.vcf.idx; touch $OUT.R"
+        else:
+            return (cmd_init + cmd_VQSR + cmd_rc + cmd_apply_VQSR + cmd_out_vcf), {'inputs' : _list2input(i['vcf'],"-input ")}
+
 
 
 class CombineVariants(Tool):
