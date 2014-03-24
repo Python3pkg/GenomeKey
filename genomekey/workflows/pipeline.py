@@ -37,7 +37,7 @@ def _getSeqName(header):
     return seqNameList
 
     
-def pipeline(bams, tiny_bam=False):
+def pipeline(bams, test_bam=False):
 
     # split_ tuples
     #chrom  = ('chrom', range(1,23) + ['X', 'Y', 'MT'])
@@ -58,7 +58,7 @@ def pipeline(bams, tiny_bam=False):
         rgid = [ h[0] for h in header['rg']]
 
         # restrict output for testing
-        if tiny_bam:
+        if test_bam:
             sn    = ['chr1']
             chrom = ('chrom',[1])
             glm   = ('glm',['SNP'])
