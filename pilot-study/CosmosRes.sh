@@ -20,15 +20,15 @@ mkdir -p $8/Out/"$1"
 
 # Step 1) Launch the run
 
-genomekey bam -n "$1" -il $1 $10  #### Here we still need to test if the run was successful or not
+genomekey bam -n "$1" -il $1 ${10}  #### Here we still need to test if the run was successful or not
 
-if [$? -eq 0]; then
+if [ $? -eq 0 ]; then
 
-   echo "Genomekey run `$1` was successful" | mail -s "GenomeKey run Successful" "$9"
+    echo "Genomekey run \"$1\" was successful" | mail -s "GenomeKey run Successful" "$9"
    
     # Step 2) Dump the DB (the username and the password are hard-coded here)
 
-    mysqldump -u $5 -p $6 –no-create-info $4 > ~/Out/"$1".sql
+    mysqldump -u $5 -p $6 –no-create-info $4 > $8/Out/"$1".sql
 
     # Step 3) Reset cosmos DB
 
