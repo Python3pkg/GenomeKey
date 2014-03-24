@@ -14,7 +14,7 @@ from genomekey.workflows.pipeline  import pipeline
 # bam
 ###############################
 
-def bam(workflow,input_bam,input_bam_list,**kwargs):
+def bam(workflow,input_bam,input_bam_list,tiny_bam,**kwargs):
     """
     Input file is a bam with properly annotated readgroups.
 
@@ -29,7 +29,7 @@ def bam(workflow,input_bam,input_bam_list,**kwargs):
     dag = DAG(ignore_stage_name_collisions=True)
 
     dag.sequence_(
-        pipeline(input_bams),
+        pipeline(input_bams, tiny_bam=tiny_bam),
         configure(genomekey_settings),
         add_run(workflow)
     )
@@ -50,6 +50,7 @@ def main():
     cli.add_workflow_args(bam_sp)
     bam_sp.add_argument('-i', '--input_bam',     type=file,help='A path to a BAM file')
     bam_sp.add_argument('-il','--input_bam_list',type=file,help='A path to a file containing a list of paths to BAMs, separated by newlines')
+    bam_sp.add_argument('-t','--tiny_bam',action='store_true',help='Only do steps for a chr1 tiny BAM file, strictly for testing only')
     bam_sp.set_defaults(func=bam)
 
     wf,kwargs = cli.parse_args(parser)
