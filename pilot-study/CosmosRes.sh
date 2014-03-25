@@ -2,7 +2,7 @@
 
 List=$1  # list
 OutBucket=$2  # output bucket
-DBname=$DBname
+DBname=$3
 DBuser=$4
 DBpasswd=$5    # (rectively name, user and password::$3 $4 $5)
 default_root_output_dir=$6  # root of scratch directory; cosmos paths (temp and output)
@@ -20,7 +20,7 @@ mkdir -p $HOME/Out/"$List"
 
 # Step 1) Launch the run
 
-genomekey bam -n "$List" -il $List ${Gkargs}  #### Here we still need to test if the run was successful or not
+genomekey bam -n "$List" -il $List ${GKargs}  #### Here we still need to test if the run was successful or not
 
 if [ $? -eq 0 ]; then
 
