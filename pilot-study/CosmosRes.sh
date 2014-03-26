@@ -12,26 +12,35 @@ COSMOS_DEFAULT_ROOT_OUTPUT_DIR=$6  # root of scratch directory; COSMOS paths (te
 COSMOS_WORKING_DIRECTORY=$7        # COSMOS working directory
 EMAIL=$8                           # email address to send report
 GK_ARGS=$9                         # extra args to GenomeKey  (give an empty string if none needed)
+GK_PATH=${10}
+TOOLS_PATH=${11}
 
+##################
 # Download the data from S3
 mkdir -p ${COSMOS_WORKING_DIRECTORY}/"${S3LIST}"/Inputs/ #making an Input directory under ${COSMOS_WORKING_DIRECTORY}
 
 while read F
 do
 aws s3 cp $F ${COSMOS_WORKING_DIRECTORY}/"${S3LIST}"/Inputs/
-done <$LISTS
+done <$S3LIST
 
-ls ${COSMOS_WORKING_DIRECTORY}/"${S3LIST}"/Inputs/ >> ${COSMOS_WORKING_DIRECTORY}/"${S3LIST}"/Inputs/"${S3LIST}".idx #creating the local list
+ls ${COSMOS_WORKING_DIRECTORY}/"${S3LIST}"/Inputs/ >> ${COSMOS_WORKING_DIRECTORY}/"${S3LIST}"/Inputs/"${S3LIST}".idx #creating the local files index
 
 LIST=${COSMOS_WORKING_DIRECTORY}/"${S3LIST}"/Inputs/"${S3LIST}".idx
 
+##################
+# Generating the index files
+while read F
+do
+${TOOLS_PATH}/samtools.v0.1.19 index $F ${COSMOS_WORKING_DIRECTORY}/"${S3LIST}"/Inputs/
+done <$LIST
 # Notify the user of the start
 
 echo "GenomeKey run \"${S3LIST}\" started" | mail -s "GenomeKey \"${S3LIST}\" run Started" "${EMAIL}"
 
 # Step 2) Launch the run
 
-genomekey bam -n "${S3LIST}" -il ${LIST} ${GK_ARGS}  #### Here we still need to test if the run was successful or not
+${GK_PATH}/bin/genomekey bam -n "${S3LIST}" -il ${LIST} ${GK_ARGS}  #### Here we still need to test if the run was successful or not
 
 if [ $? -eq 0 ]; then
 
