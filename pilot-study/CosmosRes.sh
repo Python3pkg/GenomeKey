@@ -1,58 +1,62 @@
 #!/bin/bash
+# Script to automate COSMOS runs and backing up to AWS S3
+# Author: Yassine Souilmi
+# March 2014
 
-List=$1  # list
-OutBucket=$2  # output bucket
-DBname=$3
-DBuser=$4
-DBpasswd=$5    # (rectively name, user and password::$3 $4 $5)
-default_root_output_dir=$6  # root of scratch directory; cosmos paths (temp and output)
-working_directory=$7
-Email=$8  # email address
-GKargs=$9 # extra args to genomekey  (give an empty string if none needed)
+LIST=$1  # list
+OUTBUCKET=$2                       # output AWS S3 bucket
+DBNAME=$3
+DBUSER=$4
+DBPASSWD=$5    
+COSMOS_DEFAULT_ROOT_OUTPUT_DIR=$6  # root of scratch directory; COSMOS paths (temp and output)
+COSMOS_WORKING_DIRECTORY=$7        # COSMOS working directory
+EMAIL=$8                           # email address to send report
+GK_ARGS=$9                         # extra args to GenomeKey  (give an empty string if none needed)
 
 # Notify the user of the start
 
-echo "Genomekey run \"$List\" started" | mail -s "GenomeKey \"$List\" run Started" "$Email"
+echo "GenomeKey run \"${LIST}\" started" | mail -s "GenomeKey \"${LIST}\" run Started" "${EMAIL}"
 
 # Step 0) Make an output dir
-
-mkdir -p $HOME/Out/"$List"
+# FIXME: remove
+#mkdir -p $HOME/Out/"${LIST}"
 
 # Step 1) Launch the run
 
-genomekey bam -n "$List" -il $List ${GKargs}  #### Here we still need to test if the run was successful or not
+genomekey bam -n "${LIST}" -il ${LIST} ${GK_ARGS}  #### Here we still need to test if the run was successful or not
 
 if [ $? -eq 0 ]; then
 
-    echo "Genomekey run \"$List\" was successful" | mail -s "GenomeKey run Successful" "$Email"
+    echo "GenomeKey run \"${LIST}\" was successful" | mail -s "GenomeKey run Successful" "${EMAIL}"
 
-    # Step 2) Dump the DB (the username and the password are hard-coded here)
-
-    mysqldump -u $DBuser -p $DBpasswd --no-create-info $DBname > $HOME/Out/"$List".sql
+    # Step 2) Dump the DB 
+    cmd="mysqldump -u ${DBUSER} -p${DBPASSWD} --no-create-info ${DBNAME} > ${COSMOS_WORKING_DIRECTORY}/\"${LIST}\".sql"
+    echo $cmd
+    eval $cmd
 
     # Step 3) Reset cosmos DB
-
+    # FIXME: need to force a reset by overriding the interactive yes/no prompt
     cosmos resetdb
 
     # Step 3) Copy files to S3
 
-      #cp the DB
-      aws s3 cp $HOME/Out/"$List".sql $OutBucket/"$List"/
+    #cp the MySQL DB
+    aws s3 cp ${COSMOS_WORKING_DIRECTORY}/"${LIST}".sql ${OUTBUCKET}"${LIST}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
-      #cp the BAM after BQSR
-      aws s3 cp $default_root_output_dir/"$List"/BQSR/ $OutBucket/"$List"/ --recursive
+    #cp the BAM after BQSR
+    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${LIST}"/BQSR/ ${OUTBUCKET}"${LIST}"/BQSR/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
-      #cp the gVCF
-      aws s3 cp $default_root_output_dir/"$List"/HaplotypeCaller/ $OutBucket/"$List"/ --recursive
+    #cp the gVCF
+    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${LIST}"/HaplotypeCaller/ ${OUTBUCKET}"${LIST}"/HaplotypeCaller/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
-      #cp the masterVCF
-      # aws s3 cp $default_root_output_dir/"$List"/MasterVCF/ $OutBucket/"$List"/ --recursive #stage not available yet
+    #cp the masterVCF
+    # aws s3 cp $default_root_output_dir/"${LIST}"/MasterVCF/ ${OUTBUCKET}"${LIST}"/ --recursive #stage not available yet
 
     # Step 3) Clean-up
-    rm -R -f $default_root_output_dir/*
-    rm -R -f $working_directory/*
+    rm -R -f ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/*
+    rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
 
-    echo "Genomekey run \"$List\" data successfully backup on S3" | mail -s "GenomeKey Backup" "$Email"
+    echo "Genomekey run \"${LIST}\" data successfully backup on S3" | mail -s "GenomeKey Backup" "${EMAIL}"
 else
-    echo "Genomekey run \"$List\" failed" | mail -s "GenomeKey run Failure" "$Email"
+    echo "Genomekey run \"${LIST}\" failed" | mail -s "GenomeKey run Failure" "${EMAIL}"
 fi
