@@ -28,11 +28,22 @@ fi
 #change permissions on the files
 chmod +x ./CosmosRes.sh
 #getting the DB info from the Cosmos config file
-~/.cosmos/ config.ini
+source ~/.cosmos/config.ini
 
 #getting the tools path from the GenomeKey settings
-${GK_PATH}/genomekey/settings.py
+#source ${GK_PATH}/genomekey/settings.py
+if [$server_name -eq "orchestra"]; then
 
+    TOOLS_PATH=/groups/cbi/WGA/tools
+
+  elif [$server_name -eq "aws"]; then
+
+    tools_path=/WGA/tools
+fi
+
+echo $NAME $USER $PASSWORD $default_root_output_dir $working_directory ${EMAIL} $tools_path
+
+exit
 ################
 #Launching the webserver
 
@@ -43,7 +54,7 @@ cosmos runweb -p ${PORT}
 
 while read F
 do
-./CosmosRes.sh $F ${OUTBUCKET} $NAME $USER $PASSWORD $default_root_output_dir $working_directory ${EMAIL} ${GKARGS} ${GK_PATH} $tools_path
+./CosmosRes.sh $F ${OUTBUCKET} $NAME $USER $PASSWORD $default_root_output_dir $working_directory ${EMAIL} ${GKARGS} ${GK_PATH} $TOOLS_PATH
 done <${LISTS}
 
 ################
