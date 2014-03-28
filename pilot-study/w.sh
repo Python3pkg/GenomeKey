@@ -38,7 +38,7 @@ if [$server_name -eq "orchestra"]; then
 
   elif [$server_name -eq "aws"]; then
 
-    tools_path=/WGA/tools
+    TOOLS_PATH=/WGA/tools
 fi
 
 echo $NAME $USER $PASSWORD $default_root_output_dir $working_directory ${EMAIL} $tools_path
