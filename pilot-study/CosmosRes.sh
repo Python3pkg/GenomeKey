@@ -27,7 +27,7 @@ mkdir -p ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/ #making an Input direc
 while read F
 do
 aws s3 cp $F ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/
-done <$S3LIST
+done <${S3LIST}
 
 ls ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/ >> ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx #creating the local files index
 
@@ -45,7 +45,7 @@ done <$LIST
 
 # Step 2) Launch the run
 
-${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -il ${LIST} ${GK_ARGS}  #### Here we still need to test if the run was successful or not
+${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -il ${LIST} ${GK_ARGS} >1 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out >2 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".err #### Here we still need to test if the run was successful or not
 
 if [ $? -eq 0 ]; then
 
@@ -63,14 +63,17 @@ if [ $? -eq 0 ]; then
     # Copy files to S3
 
     #cp the MySQL DB
-    aws s3 cp ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".sql ${OUTBUCKET}"${LIST}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".sql ${OUTBUCKET}/Out"${LIST}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
     #cp the BAM after BQSR
-    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/BQSR/ ${OUTBUCKET}"${S3LIST}"/BQSR/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/BQSR/ ${OUTBUCKET}/Out"${RUNNAME}"/BQSR/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
     #cp the gVCF
-    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/HaplotypeCaller/ ${OUTBUCKET}"${RUNNAME}"/HaplotypeCaller/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/HaplotypeCaller/ ${OUTBUCKET}/Out"${RUNNAME}"/HaplotypeCaller/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
+    #cp std.out std.err for the cosmos run
+    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out ${OUTBUCKET}/Out"${RUNNAME}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".err ${OUTBUCKET}/Out"${RUNNAME}"/  --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
     #cp the masterVCF
     # aws s3 cp $default_root_output_dir/"${LIST}"/MasterVCF/ ${OUTBUCKET}"${LIST}"/ --recursive #stage not available yet
 
