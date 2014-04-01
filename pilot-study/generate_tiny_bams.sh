@@ -18,10 +18,7 @@ for i in $(seq 1 $END)
 do 
     # zero-pad output
     printf -v j "%02d" $i
-    cmd="samtools view -H ${INPUT_BAM} | sed \"s/${ID}/${ID}-${j}/g\" | samtools reheader - ${INPUT_BAM} > ${OUTPUT_BAM_PREFIX}-${j}.bam"
+    cmd="samtools view -H ${INPUT_BAM} | sed \"s/${ID}/${j}.${ID}/g\" | samtools reheader - ${INPUT_BAM} > ${OUTPUT_BAM_PREFIX}-${j}.bam"
     echo $cmd
     eval $cmd
 done
-
-
-
