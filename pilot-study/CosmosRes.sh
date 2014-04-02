@@ -23,6 +23,7 @@ echo $COSMOS_WORKING_DIRECTORY
 ##################
 # Download the data from S3
 mkdir -p ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/ #making an Input directory under ${COSMOS_WORKING_DIRECTORY}
+cd ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/
 
 while read F
 do
@@ -37,7 +38,7 @@ LIST=${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
 # Generating the index files
 while read F
 do
-${TOOLS_PATH}/samtools.v0.1.19 index $F ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/
+${TOOLS_PATH}/samtools index $F ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/
 done <$LIST
 # Notify the user of the start
 
@@ -45,16 +46,16 @@ done <$LIST
 
 # Step 2) Launch the run
 
-${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -il ${LIST} ${GK_ARGS} >1 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out >2 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".err #### Here we still need to test if the run was successful or not
+${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -il ${LIST} ${GK_ARGS} &>1 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out 
 
 if [ $? -eq 0 ]; then
 
     #echo "GenomeKey run \"${RUNNAME}\" was successful" | mail -s "GenomeKey run Successful" "${EMAIL}"
 
     # Dump the DB
-    cmd="mysqldump -u ${DBUSER} -p${DBPASSWD} --no-create-info ${DBNAME} > ${COSMOS_WORKING_DIRECTORY}/\"${RUNNAME}\".sql"
-    echo $cmd
-    eval $cmd
+   # cmd="mysqldump -u ${DBUSER} -p${DBPASSWD} --no-create-info ${DBNAME} > ${COSMOS_WORKING_DIRECTORY}/\"${RUNNAME}\".sql"
+   # echo $cmd
+   # eval $cmd
 
     # Reset cosmos DB
 
@@ -63,7 +64,7 @@ if [ $? -eq 0 ]; then
     # Copy files to S3
 
     #cp the MySQL DB
-    aws s3 cp ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".sql ${OUTBUCKET}/Out"${LIST}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    # aws s3 cp ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".sql ${OUTBUCKET}/Out"${LIST}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
     #cp the BAM after BQSR
     aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/BQSR/ ${OUTBUCKET}/Out"${RUNNAME}"/BQSR/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
