@@ -1,3 +1,3 @@
-s3://COSMOS_Pilot/111582.v2.bam
-s3://COSMOS_Pilot/120099.v2.bam
-s3://COSMOS_Pilot/125731.v2.bam
+s3://COSMOS_Pilot/tiny_bams/tinytestbam-01.bam
+s3://COSMOS_Pilot/tiny_bams/tinytestbam-02.bam
+s3://COSMOS_Pilot/tiny_bams/tinytestbam-03.bam
