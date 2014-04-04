@@ -55,8 +55,9 @@ done <${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
 echo "GenomeKey run \"${RUNNAME}\" started" | mail -s "GenomeKey \"${RUNNAME}\" run Started" "${EMAIL}"
 
 # Step 2) Launch the run
-# give '-y' option which assumes "yes" answers to re-running workflows
-cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -y -il ${COSMOS_WORKING_DIRECTORY}/${RUNNAME}/Inputs/${RUNNAME}.idx ${GK_ARGS} &> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
+# give '-y' option which assumes "yes" answers to re-running/deleting workflows
+# also '-r' to restart workflow from scratch by deleting existing files
+cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -il ${COSMOS_WORKING_DIRECTORY}/${RUNNAME}/Inputs/${RUNNAME}.idx ${GK_ARGS} &> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
 echo $cmd
 eval $cmd
 
