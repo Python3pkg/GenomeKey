@@ -20,47 +20,44 @@ echo $RUNNAME
 
 echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR
 echo $COSMOS_WORKING_DIRECTORY
+
 ##################
 # Download the data from S3
-mkdir -p ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/ #making an Input directory under ${COSMOS_WORKING_DIRECTORY}
+mkdir -p $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/ #making an Input directory under ${COSMOS_WORKING_DIRECTORY}
 
 while read F
 do
-aws s3 cp $F ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/
-done <${S3LIST}
+    aws s3 cp $F $COSMOS_WORKING_DIRECTORY/${RUNNAME}/Inputs/
+    
+    aws s3 cp "$F".bai $COSMOS_WORKING_DIRECTORY/${RUNNAME}/Inputs/
+done <$S3LIST
 
-ls ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/ >> ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs_"${RUNNAME}".idx #creating the local files index
+#getting the local list of files
 
-LIST=awk '{print "${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"$NF}' ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs_"${RUNNAME}".idx # making sure we're getting the full path
+ls $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/ >> ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx #creating the local files index
 
 ##################
 # Generating the index files
 while read F
 do
-${TOOLS_PATH}/samtools index $F
-done <$LIST
-# Notify the user of the start
+${TOOLS_PATH}/samtools index ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"$F"
+done <${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
 
+# Notify the user of the start
 echo "GenomeKey run \"${RUNNAME}\" started" | mail -s "GenomeKey \"${RUNNAME}\" run Started" "${EMAIL}"
 
 # Step 2) Launch the run
 
-${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -il ${LIST} ${GK_ARGS} &>1 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out 
+${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -il ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx ${GK_ARGS} #&>1 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out 
 
 if [ $? -eq 0 ]; then
 
     echo "GenomeKey run \"${RUNNAME}\" was successful" | mail -s "GenomeKey run Successful" "${EMAIL}"
 
-    # Dump the DB
-   # cmd="mysqldump -u ${DBUSER} -p${DBPASSWD} --no-create-info ${DBNAME} > ${COSMOS_WORKING_DIRECTORY}/\"${RUNNAME}\".sql"
-   # echo $cmd
-   # eval $cmd
+   # Dump the DB
+    mysqldump -u ${DBUSER} -p${DBPASSWD} --no-create-info ${DBNAME} > ${COSMOS_WORKING_DIRECTORY}/\"${RUNNAME}\".sql
 
-    # Reset cosmos DB
-
-    yes | cosmos resetdb
-
-    # Copy files to S3
+   # Copy files to S3
 
     #cp the MySQL DB
     # aws s3 cp ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".sql ${OUTBUCKET}/Out"${LIST}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
@@ -81,8 +78,12 @@ if [ $? -eq 0 ]; then
     # Clean-up
     rm -R -f ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/*
     rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
+    
+    # Reset cosmos DB
+    yes | cosmos resetdb
+ 
 
-    #echo "Genomekey run \"${S3LIST}\" data successfully backup on S3" | mail -s "GenomeKey Backup" "${EMAIL}"
+   echo "Genomekey run \"${S3LIST}\" data successfully backup on S3" | mail -s "GenomeKey Backup" "${EMAIL}"
 else
-    #echo "Genomekey run \"${S3LIST}\" failed" | mail -s "GenomeKey run Failure" "${EMAIL}"
+    echo "Genomekey run \"${S3LIST}\" failed" | mail -s "GenomeKey run Failure" "${EMAIL}"
 fi
