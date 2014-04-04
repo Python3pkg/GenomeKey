@@ -32,16 +32,13 @@ source $HOME/.cosmos/config.ini
 
 #getting the tools path from the GenomeKey settings
 #source ${GK_PATH}/genomekey/settings.py
-if [ "${server_name} == "orchestra" ]; then
-
+if [ "${server_name}" = "orchestra" ]; then
     TOOLS_PATH=/groups/cbi/WGA/tools
-
-  elif [ "${server_name} == "aws" ]; then
-
+elif [ "${server_name}" = "aws" ]; then
     TOOLS_PATH=/WGA/tools
 fi
 
-echo ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory} ${EMAIL} ${TOOLS_PATH} ${GK_PATH} ${GK_ARGS}
+echo ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory} ${EMAIL} ${TOOLS_PATH} ${GK_PATH} ${GK_ARGS} ${TOOLS_PATH}
 
 ################
 # Starting the run

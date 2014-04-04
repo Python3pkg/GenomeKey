@@ -3,7 +3,7 @@
 # Author: Yassine Souilmi
 # March 2014
 
-S3LIST=$1  # list
+S3LIST=$1                          # input list
 OUTBUCKET=$2                       # output AWS S3 bucket
 DBNAME=$3
 DBUSER=$4
@@ -23,7 +23,10 @@ echo $COSMOS_WORKING_DIRECTORY
 
 ##################
 # Download the data from S3
-mkdir -p $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/ #making an Input directory under ${COSMOS_WORKING_DIRECTORY}
+# first make sure the directory is empty
+# FIXME: this is a bit fragile (see FIXME, below)
+rm -rf $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/
+mkdir -p $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/ # now recreate directory
 
 while read F
 do
@@ -32,23 +35,30 @@ do
     aws s3 cp "$F".bai $COSMOS_WORKING_DIRECTORY/${RUNNAME}/Inputs/
 done <$S3LIST
 
-#getting the local list of files
-
-ls $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/ >> ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx #creating the local files index
+# getting the local list of files
+# FIXME: this is extremely fragile, requires that
+# no other files may have got inadvertantly added to
+# this directory, also "ls" not best command for this
+ls $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/*.bam > ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx #creating the local files index
 
 ##################
 # Generating the index files
 while read F
 do
-${TOOLS_PATH}/samtools index ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"$F"
+	#cmd="${TOOLS_PATH}/samtools index ${COSMOS_WORKING_DIRECTORY}/\"${RUNNAME}\"/Inputs/\"$F\""
+	cmd="${TOOLS_PATH}/samtools index ${F}"
+	echo $cmd
+	eval $cmd
 done <${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
 
 # Notify the user of the start
 echo "GenomeKey run \"${RUNNAME}\" started" | mail -s "GenomeKey \"${RUNNAME}\" run Started" "${EMAIL}"
 
 # Step 2) Launch the run
-
-${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -il ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx ${GK_ARGS} &>1 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out 
+# give '-y' option which assumes "yes" answers to re-running workflows
+cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -y -il ${COSMOS_WORKING_DIRECTORY}/${RUNNAME}/Inputs/${RUNNAME}.idx ${GK_ARGS} &> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
+echo $cmd
+eval $cmd
 
 if [ $? -eq 0 ]; then
 
