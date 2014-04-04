@@ -57,7 +57,8 @@ echo "GenomeKey run \"${RUNNAME}\" started" | mail -s "GenomeKey \"${RUNNAME}\" 
 # Step 2) Launch the run
 # give '-y' option which assumes "yes" answers to re-running/deleting workflows
 # also '-r' to restart workflow from scratch by deleting existing files
-cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -il ${COSMOS_WORKING_DIRECTORY}/${RUNNAME}/Inputs/${RUNNAME}.idx ${GK_ARGS} &> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
+GK_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
+cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -il ${COSMOS_WORKING_DIRECTORY}/${RUNNAME}/Inputs/${RUNNAME}.idx ${GK_ARGS} &> ${GK_OUTPUT}"
 echo $cmd
 eval $cmd
 
@@ -65,27 +66,29 @@ if [ $? -eq 0 ]; then
 
     echo "GenomeKey run \"${RUNNAME}\" was successful" | mail -s "GenomeKey run Successful" "${EMAIL}"
 
-   # Dump the DB
-    mysqldump -u ${DBUSER} -p${DBPASSWD} --no-create-info ${DBNAME} > ${COSMOS_WORKING_DIRECTORY}/\"${RUNNAME}\".sql
+    # Dump the DB
+    SQL_OUTPUT="${COSMOS_WORKING_DIRECTORY}/${RUNNAME}.sql"
+    cmd="mysqldump -u ${DBUSER} -p${DBPASSWD} --no-create-info ${DBNAME} > ${SQL_OUTPUT}"
+    echo $cmd
+    eval $cmd
 
-   # Copy files to S3
+    # Copy files to S3
+    RUNNAME_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/${RUNNAME}"
+    S3_OUTPUT="${OUTBUCKET}/Out${RUNNAME}"
+    S3_PERMS="--grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
 
     #cp the MySQL DB
-    aws s3 cp ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".sql ${OUTBUCKET}/Out"${LIST}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp ${SQL_OUTPUT} ${OUTBUCKET}/Out"${LIST}"/ ${S3_PERMS}
 
     #cp the BAM after BQSR
-    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/BQSR/ ${OUTBUCKET}/Out"${RUNNAME}"/BQSR/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp ${RUNNAME_OUTPUT}/BQSR/ ${S3_OUTPUT}/BQSR/ --recursive ${S3_PERMS}
 
     #cp the gVCF
-    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/HaplotypeCaller/ ${OUTBUCKET}/Out"${RUNNAME}"/HaplotypeCaller/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp ${RUNNAME_OUTPUT}/HaplotypeCaller/ ${S3_OUTPUT}/HaplotypeCaller/ --recursive ${S3_PERMS}
 
-    #cp std.out std.err for the cosmos run
-    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out ${OUTBUCKET}/Out"${RUNNAME}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
-    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".err ${OUTBUCKET}/Out"${RUNNAME}"/  --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    # both stdout stderr for GenomeKey are in the one file
+    aws s3 cp ${GK_OUTPUT} ${S3_OUTPUT}/ ${S3_PERMS}
    
-    #cp the GenomeKey out
-    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out ${OUTBUCKET}"${RUNNAME}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
-
     # Clean-up
     rm -R -f ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/*
     rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
