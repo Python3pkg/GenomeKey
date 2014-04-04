@@ -48,7 +48,7 @@ echo "GenomeKey run \"${RUNNAME}\" started" | mail -s "GenomeKey \"${RUNNAME}\" 
 
 # Step 2) Launch the run
 
-${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -il ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx ${GK_ARGS} #&>1 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out 
+${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -il ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx ${GK_ARGS} &>1 ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out 
 
 if [ $? -eq 0 ]; then
 
@@ -60,7 +60,7 @@ if [ $? -eq 0 ]; then
    # Copy files to S3
 
     #cp the MySQL DB
-    # aws s3 cp ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".sql ${OUTBUCKET}/Out"${LIST}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
+    aws s3 cp ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".sql ${OUTBUCKET}/Out"${LIST}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
     #cp the BAM after BQSR
     aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/BQSR/ ${OUTBUCKET}/Out"${RUNNAME}"/BQSR/ --recursive --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
@@ -72,8 +72,8 @@ if [ $? -eq 0 ]; then
     aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out ${OUTBUCKET}/Out"${RUNNAME}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
     aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".err ${OUTBUCKET}/Out"${RUNNAME}"/  --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
    
-    #cp the masterVCF
-    # aws s3 cp $default_root_output_dir/"${LIST}"/MasterVCF/ ${OUTBUCKET}"${LIST}"/ --recursive #stage not available yet
+    #cp the GenomeKey out
+    aws s3 cp ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK"${RUNNAME}".out ${OUTBUCKET}"${RUNNAME}"/ --grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers
 
     # Clean-up
     rm -R -f ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/*
