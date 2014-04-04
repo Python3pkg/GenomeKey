@@ -74,11 +74,11 @@ if [ $? -eq 0 ]; then
 
     # Copy files to S3
     RUNNAME_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/${RUNNAME}"
-    S3_OUTPUT="${OUTBUCKET}/Out/${RUNNAME}"
+    S3_OUTPUT="${OUTBUCKET}Out/${RUNNAME}"
     S3_PERMS="--grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
 
     #cp the MySQL DB
-    aws s3 cp ${SQL_OUTPUT} ${OUTBUCKET}/Out/"${LIST}"/ ${S3_PERMS}
+    aws s3 cp ${SQL_OUTPUT} ${OUTBUCKET}Out/"${LIST}"/ ${S3_PERMS}
 
     #cp the BAM after BQSR
     aws s3 cp ${RUNNAME_OUTPUT}/BQSR/ ${S3_OUTPUT}/BQSR/ --recursive ${S3_PERMS}
