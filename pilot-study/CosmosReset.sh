@@ -78,7 +78,7 @@ if [ $? -eq 0 ]; then
     S3_PERMS="--grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
 
     #cp the MySQL DB
-    aws s3 cp ${SQL_OUTPUT} ${OUTBUCKET}Out/"${LIST}"/ ${S3_PERMS}
+    aws s3 cp ${SQL_OUTPUT} ${S3_OUTPUT}/ ${S3_PERMS}
 
     #cp the BAM after BQSR
     aws s3 cp ${RUNNAME_OUTPUT}/BQSR/ ${S3_OUTPUT}/BQSR/ --recursive ${S3_PERMS}
