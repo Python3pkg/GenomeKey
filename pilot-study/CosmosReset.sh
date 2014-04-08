@@ -36,10 +36,14 @@ do
 done <$S3LIST
 
 # getting the local list of files
-# FIXME: this is extremely fragile, requires that
-# no other files may have got inadvertantly added to
-# this directory, also "ls" not best command for this
-ls $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/*.bam > ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx #creating the local files index
+#ls $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/*.bam > ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx #creating the local files index
+
+while read F
+do
+    BASENAME=$(basename $F .bam)
+
+    echo $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/$BASENAME'.bam' >> ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
+done <$S3LIST
 
 ##################
 # Generating the index files
