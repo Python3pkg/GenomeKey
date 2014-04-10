@@ -95,11 +95,6 @@ echo "log: $DATE : $ENDDATE : End : Creating bams indexes" >>  ${COSMOS_WORKING_
 # Notify the user of the start
 echo "GenomeKey run \"${RUNNAME}\" started" | mail -s "GenomeKey \"${RUNNAME}\" run Started" "${EMAIL}"
 
-DATE=$(date)
-ENDDATE=$(date +%s)
-echo "log: $DATE : $ENDDATE : End : Creating local files list"
-echo "log: $DATE : $ENDDATE : End : Creating local files list" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
-
 # Step 2) Launch the run
 # give '-y' option which assumes "yes" answers to re-running/deleting workflows
 # also '-r' to restart workflow from scratch by deleting existing files
@@ -187,7 +182,7 @@ if [ $? -eq 0 ]; then
     echo "log: $DATE : $ENDDATE : End :  Run Data wipe" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
 
 
-   echo "Genomekey run \"${S3LIST}\" data successfully backup on S3" | mail -s "GenomeKey Backup" "${EMAIL}"
+    echo "Genomekey run \"${S3LIST}\" data successfully backup on S3" | mail -s "GenomeKey Backup" "${EMAIL}"
 else
     echo "Genomekey run \"${S3LIST}\" failed" | mail -s "GenomeKey run Failure" "${EMAIL}"
 fi
