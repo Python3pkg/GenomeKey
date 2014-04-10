@@ -18,10 +18,14 @@ TOOLS_PATH=${11}
 RUNNAME=$(basename "$S3LIST")
 echo $RUNNAME
 
+# log file name
+# make unique by using timestamp in name
+LOG_FILE=${HOME}/"${RUNNAME}"-$(date +"%Y-%m-%d-%s").log
+
 DATE=$(date)
 STARTDATE=$(date +%s)
 echo "log: $DATE : $STARTDATE : Beginning :  Run $RUNNAME"
-echo "log: $DATE : $STARTDATE : Beginning :  Run $RUNNAME" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $STARTDATE : Beginning :  Run $RUNNAME" >  ${LOG_FILE}
 
 echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR
 echo $COSMOS_WORKING_DIRECTORY
@@ -33,7 +37,7 @@ echo $COSMOS_WORKING_DIRECTORY
 DATE=$(date)
 STARTDATE=$(date +%s)
 echo "log: $DATE : $STARTDATE : Beginning : Download from S3"
-echo "log: $DATE : $STARTDATE : Beginning : Download from S3" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $STARTDATE : Beginning : Download from S3" >>  ${LOG_FILE}
 
 rm -rf $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/
 mkdir -p $COSMOS_WORKING_DIRECTORY/"${RUNNAME}"/Inputs/ # now recreate directory
@@ -48,7 +52,7 @@ done <$S3LIST
 DATE=$(date)
 ENDDATE=$(date +%s)
 echo "log: $DATE : $ENDDATE : End : Download from S3"
-echo "log: $DATE : $ENDDATE : End : Download from S3" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $ENDDATE : End : Download from S3" >>  ${LOG_FILE}
 
 ###################
 # Getting the local list of files
@@ -57,7 +61,7 @@ echo "log: $DATE : $ENDDATE : End : Download from S3" >>  ${COSMOS_WORKING_DIREC
 DATE=$(date)
 STARTDATE=$(date +%s)
 echo "log: $DATE : $STARTDATE : Beginning : Creating local files list"
-echo "log: $DATE : $STARTDATE : Beginning : Creating local files list" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $STARTDATE : Beginning : Creating local files list" >>  ${LOG_FILE}
 
 while read F
 do
@@ -69,7 +73,7 @@ done <$S3LIST
 DATE=$(date)
 ENDDATE=$(date +%s)
 echo "log: $DATE : $ENDDATE : End : Creating local files list"
-echo "log: $DATE : $ENDDATE : End : Creating local files list" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $ENDDATE : End : Creating local files list" >>  ${LOG_FILE}
 
 ##################
 # Generating the index files
@@ -77,7 +81,7 @@ echo "log: $DATE : $ENDDATE : End : Creating local files list" >>  ${COSMOS_WORK
 DATE=$(date)
 STARTDATE=$(date +%s)
 echo "log: $DATE : $STARTDATE : Beginning : Creating bams indexes"
-echo "log: $DATE : $STARTDATE : Beginning : Creating bams indexes" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $STARTDATE : Beginning : Creating bams indexes" >>  ${LOG_FILE}
 
 while read F
 do
@@ -90,7 +94,7 @@ done <${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
 DATE=$(date)
 ENDDATE=$(date +%s)
 echo "log: $DATE : $ENDDATE : End : Creating bams indexes"
-echo "log: $DATE : $ENDDATE : End : Creating bams indexes" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $ENDDATE : End : Creating bams indexes" >>  ${LOG_FILE}
 ########################
 # Notify the user of the start
 echo "GenomeKey run \"${RUNNAME}\" started" | mail -s "GenomeKey \"${RUNNAME}\" run Started" "${EMAIL}"
@@ -102,7 +106,7 @@ echo "GenomeKey run \"${RUNNAME}\" started" | mail -s "GenomeKey \"${RUNNAME}\" 
 DATE=$(date)
 STARTDATE=$(date +%s)
 echo "log: $DATE : $STARTDATE : Beginning : GenomeKey run"
-echo "log: $DATE : $STARTDATE : Beginning : GenomeKey run" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $STARTDATE : Beginning : GenomeKey run" >>  ${LOG_FILE}
 
 GK_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
 cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -il ${COSMOS_WORKING_DIRECTORY}/${RUNNAME}/Inputs/${RUNNAME}.idx ${GK_ARGS} &> ${GK_OUTPUT}"
@@ -112,7 +116,7 @@ eval $cmd
 DATE=$(date)
 ENDDATE=$(date +%s)
 echo "log: $DATE : $ENDDATE : End : GenomeKey run"
-echo "log: $DATE : $ENDDATE : End : GenomeKey run" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $ENDDATE : End : GenomeKey run" >>  ${LOG_FILE}
 
 
 if [ $? -eq 0 ]; then
@@ -122,7 +126,7 @@ if [ $? -eq 0 ]; then
     DATE=$(date)
     STARTDATE=$(date +%s)
     echo "log: $DATE : $STARTDATE : Beginning : COSMOS sqldump"
-    echo "log: $DATE : $STARTDATE : Beginning : COSMOS sqldump" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+    echo "log: $DATE : $STARTDATE : Beginning : COSMOS sqldump" >>  ${LOG_FILE}
 
     # Dump the DB
     SQL_OUTPUT="${COSMOS_WORKING_DIRECTORY}/${RUNNAME}.sql"
@@ -133,14 +137,14 @@ if [ $? -eq 0 ]; then
     DATE=$(date)
     ENDDATE=$(date +%s)
     echo "log: $DATE : $ENDDATE : End : COSMOS sqldump"
-    echo "log: $DATE : $ENDDATE : End : COSMOS sqldump" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+    echo "log: $DATE : $ENDDATE : End : COSMOS sqldump" >>  ${LOG_FILE}
 
     # Copy files to S3
 
     DATE=$(date)
     STARTDATE=$(date +%s)
     echo "log: $DATE : $STARTDATE : Beginning : Push results to S3"
-    echo "log: $DATE : $STARTDATE : Beginning : Push results to S3" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log    
+    echo "log: $DATE : $STARTDATE : Beginning : Push results to S3" >>  ${LOG_FILE}    
 
     RUNNAME_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/${RUNNAME}"
     S3_OUTPUT="${OUTBUCKET}Out/${RUNNAME}"
@@ -161,14 +165,14 @@ if [ $? -eq 0 ]; then
     DATE=$(date)
     ENDDATE=$(date +%s)
     echo "log: $DATE : $ENDDATE : End :  Push results to S3"
-    echo "log: $DATE : $ENDDATE : End :  Push results to S3" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+    echo "log: $DATE : $ENDDATE : End :  Push results to S3" >>  ${LOG_FILE}
 
     # Clean-up
 
     DATE=$(date)
     STARTDATE=$(date +%s)
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe"
-    echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+    echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe" >>  ${LOG_FILE}
 
     rm -R -f ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/*
     rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
@@ -179,7 +183,7 @@ if [ $? -eq 0 ]; then
     DATE=$(date)
     ENDDATE=$(date +%s)
     echo "log: $DATE : $ENDDATE : End :  Run Data wipe"
-    echo "log: $DATE : $ENDDATE : End :  Run Data wipe" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+    echo "log: $DATE : $ENDDATE : End :  Run Data wipe" >>  ${LOG_FILE}
 
 
     echo "Genomekey run \"${S3LIST}\" data successfully backup on S3" | mail -s "GenomeKey Backup" "${EMAIL}"
@@ -191,7 +195,7 @@ fi
 DATE=$(date)
 ENDDATE=$(date +%s)
 echo "log: $DATE : $ENDDATE : End :  Run $RUNNAME"
-echo "log: $DATE : $ENDDATE : End :  Run $RUNNAME" >>  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log
+echo "log: $DATE : $ENDDATE : End :  Run $RUNNAME" >>  ${LOG_FILE}
 
 #cp the run log file to S3
-aws s3 cp  ${COSMOS_WORKING_DIRECTORY}/"${RUNNAME}".log ${S3_OUTPUT}/ ${S3_PERMS}
+aws s3 cp  ${LOG_FILE} ${S3_OUTPUT}/ ${S3_PERMS}
