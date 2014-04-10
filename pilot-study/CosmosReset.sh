@@ -178,7 +178,7 @@ if [ $? -eq 0 ]; then
     rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
     
     # Reset cosmos DB
-    yes | cosmos resetdb
+    echo "yes" | cosmos resetdb
  
     DATE=$(date)
     ENDDATE=$(date +%s)
