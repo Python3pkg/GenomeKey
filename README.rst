@@ -1,7 +1,4 @@
 GenomeKey
-=========
-
-GenomeKey
 ===============================
 
 GenomeKey is a Whole Genome Analysis pipeline, that can call variants from FASTQ or BAM files, as well as massively
@@ -23,7 +20,7 @@ Install
 
 1) Install Cosmos using virtualenvwrapper
 
-2) Clone git@github.com:egafni/GenomeKey.git
+2) Clone git@github.com:LPM-HMS/GenomeKey.git
 
 3) Activate Cosmos virtualenv
 
@@ -32,8 +29,6 @@ Install
 4) Add GenomeKey to your PYTHONPATH when you're in the cosmos virtualenv
 
     add2virtualenv /path/to/GenomeKey
-
-5) pip install spockpy pysam ordereddict ipdb
 
 
 Configuration
@@ -101,7 +96,7 @@ run this from the GenomeKey directory:
 
 .. code-block:: bash
 
-    $ genomekey -test bam -n 'Test GK' -il genomekey/test/bams.list
+    $ genomekey -t bam -n 'Test GK' -il genomekey/test/bams.list
 
 Issues
 ======
