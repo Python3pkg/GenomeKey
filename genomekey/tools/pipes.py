@@ -1,4 +1,4 @@
-from cosmos.lib.ezflow.tool import Tool
+from cosmos.lib.ezflow.tool import Tool, TaskFile
 
 def _list2input(l, opt):
     return opt + ("\n"+opt).join(map(lambda x: str(x), l))
@@ -173,7 +173,7 @@ class HaplotypeCaller(Tool):
     mem_req  = 12*1024
     time_req = 12*60
     inputs   = ['bam']
-    outputs  = ['vcf','vcf.idx']
+    outputs  = [TaskFile(name='vcf',persist=True),TaskFile(name='vcf.idx',persist=True)]
 
     # -nct available
     def cmd(self,i,s,p):
