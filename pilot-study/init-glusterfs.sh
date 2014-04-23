@@ -9,10 +9,16 @@ if [ `hostname` == "master" ]; then
         gluster peer probe "$node"
     done
     sudo mkdir -p /mnt/gv1
+    
     # ssh "node001" "sudo mkdir -p /mnt/gv2"   # if you want to add this storage to the volume
+    
     sudo gluster volume create ${GLUSTER_VOLUME} master:/mnt/gv1
+    
     # sudo gluster volume create ${GLUSTER_VOLUME} master:/mnt/gv1 node001:/mnt/gv2 # if you want to add master:/gv0 AND node001:/gv1
+    
     sleep 1
+    sleep 1
+    
     sudo gluster volume start  ${GLUSTER_VOLUME}
 fi
 

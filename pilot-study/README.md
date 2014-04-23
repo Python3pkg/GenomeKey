@@ -1,36 +1,93 @@
 #Pilot Study Cluster Setup
 
-##1 Setup the cluster##
+##1- Setup the cluster##
 
-TODO fill this out:
-* plugins, config, ports...
-* fix equals sign in cosmos config
+- The cluster should be launched using sge and sge_plus plugins (needs StarClusterExtenitions installed for sge_plus). 
 
-##2 Run init-glusterfs.sh##
+- The ports 22 (ssh), and 80 (or any other port that you decide to use with the webinterface should be open).
 
-* Copy to the master node and run the new version ```init-glusterfs.sh``` (also in this directory):
+- The user must be "ubuntu" since it's required by the AMI.
 
-* Where the gluster volume is named gv here and there's only one worker node.
+- Use the AMI **ami-5bd1c832** both for the master node and the worker nodes.
 
-* Run ```df -h``` on all compute nodes on order to check if the gluster volume was mounted correctly.
-
-
-##3 Edit the .cosmos/config file##
-
-* Copy the file ```cosmos-pilot.config``` (in this directory) to ```~/.cosmos/config``` on the master node.
-
-* This config file should already contain the fixes for the gluster volume name to match the new init-glusterfs.sh configuration and should look like:
+- Launch the cluster using: 
 
 ```
-default_root_output_dir=/gluster/gv
-working_directory=/mnt
+$ starcluster start -c pilot pilot # the first pilot is the configuration you specidied in the starcluster config file and the second is a name you choose to give to the cluster.
 ```
 
-##4 Setup AWS CLI##
+Once the setup is done you can access the masternode using: 
 
-* The AWS cli should be configured in order to be able to copy and backup the files from and to S3.
+```
+$ starcluster sshmaster pilot
+```
 
-* Run and copy in the Access Key ID and the Secret Access Key, choose us-east-1 as default zone and table as default output format.
+##2- Run init-glusterfs.sh##
+
+Copy and run the new version:
+
+```
+#!/bin/bash
+
+# Make sure /mnt was correctly setup before running this script
+
+GLUSTER_VOLUME=gv
+
+if [ `hostname` == "master" ]; then
+     for node in `cat /etc/hosts | awk '{print $1}'`; do 
+     gluster peer probe "$node"
+     done
+     
+    sudo mkdir -p /mnt/gv1
+    # ssh "node001" "sudo mkdir -p /mnt/gv2"   # if you want to add this storage to the volume
+      
+    sudo gluster volume create ${GLUSTER_VOLUME} master:/mnt/gv1
+    
+    # sudo gluster volume create ${GLUSTER_VOLUME} master:/mnt/gv1 node001:/mnt/gv2 # if you want to add master:/gv0 AND node001:/gv1
+      
+    sleep 1
+    sudo gluster volume start  ${GLUSTER_VOLUME}
+    
+fi
+	
+	# Do this here to save some time
+	
+for setting up glusterfs in the master node for i in master $(printf "node%03d " {1..1}); 
+    do
+	ssh "$i" "sudo mkdir -p /gluster/${GLUSTER_VOLUME}
+    	sudo mount -t glusterfs master:/${GLUSTER_VOLUME} /gluster/${GLUSTER_VOLUME}"
+    	ssh "$i" "sudo chown -R ubuntu:ubuntu /gluster/${GLUSTER_VOLUME}"
+	done
+
+```
+
+Where the gluster volume is named gv here and there's only one worker node.
+
+Run  on all compute nodes on order to check if the gluster volume was mounted correctly.
+
+```
+df -h
+```
+
+
+
+##3- Edit the .cosmos/config file##
+Fix the gluster volume name to match the new init-glusterfs.sh configuration 
+
+Should look like:
+
+```
+default_root_output_dir = /gluster/gv
+
+working_directory = /mnt
+
+```
+
+##4- Setup AWS CLI##
+
+The AWS cli should be configured in order to be able to copy and backup the files from and to S3.
+
+Run and copy in the Access Key ID and the Secret Access Key, choose us-east-1 as default zone and table as default output format.
 
 ```
 $ aws configure
@@ -38,4 +95,42 @@ $ aws configure
 > AWS Secret Access Key: *************xxx0232
 > Default region name: us-east-1
 > Default output forma: table
+
 ```
+
+
+#Testing Method#
+###**1- Configure starcluster**
+
+###**2- Setup glusterFS on the master and worker nodes**
+
+Make sure the volume is correctly mounted into all the worker nodes. The easiest way to do it is to write a test file from the master node to the gluster volume and check if the file is readable on all the nodes
+	
+###**3- Modify the ~/.cosmos/config file**
+
+The = singns problem should be fixed: replace all the " = " with "=".
+
+This is required by the shell script in order to be able to read the variables values from this file.
+
+###**4- Install Cosmos and GenomeKey**
+
+Run ```pip install .``` in Cosmos and GenomeKey directories respectively. The full path method seems to not work everytime, in addition the installation updates the packages installed on the virtual environment(django)--make sure you're doing that in the virtual environment (```workon cosmos```).
+
+###**5- Configure aws CLI**
+
+Make sure you have access to the pilot project s3 bucket.
+
+###**6- Systematic testing**
+
+#####*6-a- test with 3 tiny bams:*
+
+FIXME: Genomekey fails with only one tiny bam
+
+#####*6-b- test with 3 tiny bams with -di activated:*
+
+Testing the -di (delete intermediate) option to check if genomekey keeps the needed files: aligned bam(s) and the gVCFs.
+
+#####*6-c- test CosmosReset.sh:*
+Comment the mail ligns, this function is not available on AWS.
+
+#####*6-d- test automation.sh*
