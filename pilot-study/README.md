@@ -149,6 +149,6 @@ FIXME: Genomekey fails with only one tiny bam
 Testing the ```-di``` (delete intermediate) option to check if genomekey keeps the needed files: aligned bam(s) and the gVCFs.
 
 #####*7-c- test CosmosReset.sh:*
-Comment the mail lines, this function is not available on AWS.
+Currently the lines that send the emails are commented-out as outgoing mail is blocked on AWS.
 
 #####*7-d- test automation.sh*
