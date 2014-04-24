@@ -58,7 +58,6 @@ for setting up glusterfs in the master node for i in master $(printf "node%03d "
     	sudo mount -t glusterfs master:/${GLUSTER_VOLUME} /gluster/${GLUSTER_VOLUME}"
     	ssh "$i" "sudo chown -R ubuntu:ubuntu /gluster/${GLUSTER_VOLUME}"
 	done
-
 ```
 
 Where the gluster volume is named gv here and there's only one worker node.
@@ -69,19 +68,17 @@ Run  on all compute nodes on order to check if the gluster volume was mounted co
 df -h
 ```
 
-
-
 ##3- Edit the .cosmos/config file##
 Fix the gluster volume name to match the new init-glusterfs.sh configuration 
 
 Should look like:
 
 ```
-default_root_output_dir = /gluster/gv
-
-working_directory = /mnt
-
+default_root_output_dir=/gluster/gv
+working_directory=/mnt
 ```
+
+(These fixes should already be contained within the ```pilot-cosmos.config.ini``` file)
 
 ##4- Setup AWS CLI##
 
@@ -95,42 +92,63 @@ $ aws configure
 > AWS Secret Access Key: *************xxx0232
 > Default region name: us-east-1
 > Default output forma: table
-
 ```
-
 
 #Testing Method#
 ###**1- Configure starcluster**
 
+Login to the master node
+
 ###**2- Setup glusterFS on the master and worker nodes**
 
-Make sure the volume is correctly mounted into all the worker nodes. The easiest way to do it is to write a test file from the master node to the gluster volume and check if the file is readable on all the nodes
+Make sure the volume is correctly mounted into all the worker nodes. The easiest way to do it is to write a test file from the master node to the gluster volume and check if the file is readable on all the nodes.  In theory this should be a matter of running this script from the ```pilot-study``` directory:
+
+```
+cd ~/GenomeKey/pilot-study
+./init-glusterfs.sh
+```
+
+However, the commands may need to be run manually.
+
+###**3- Pull the latest GenomeKey from repo**
+
+```
+cd GenomeKey
+git pull
+````
+
+This is currently required to get latest changes in pilot-study directory that have been made since the creation of the AMI
+
 	
-###**3- Modify the ~/.cosmos/config file**
+###**4- Modify the ~/.cosmos/config file**
 
-The = singns problem should be fixed: replace all the " = " with "=".
+The default cosmos configuration file has a problem with the automation script, it needs replace all the " = " with "=".
+This is required by the shell script in order to be able to read the variables values from this file.  The version of the config has this fix and so it should be copied into place.
 
-This is required by the shell script in order to be able to read the variables values from this file.
+```
+cd GenomeKey/pilot-study
+cp pilot-cosmos.config.ini /home/ubuntu/.cosmos/config.ini
+```
 
-###**4- Install Cosmos and GenomeKey**
+###**5- Install Cosmos and GenomeKey**
 
 Run ```pip install .``` in Cosmos and GenomeKey directories respectively. The full path method seems to not work everytime, in addition the installation updates the packages installed on the virtual environment(django)--make sure you're doing that in the virtual environment (```workon cosmos```).
 
-###**5- Configure aws CLI**
+###**6- Configure aws CLI**
 
 Make sure you have access to the pilot project s3 bucket.
 
-###**6- Systematic testing**
+###**7- Systematic testing**
 
-#####*6-a- test with 3 tiny bams:*
+#####*7-a- test with 3 tiny bams:*
 
 FIXME: Genomekey fails with only one tiny bam
 
-#####*6-b- test with 3 tiny bams with -di activated:*
+#####*7-b- test with 3 tiny bams with -di activated:*
 
-Testing the -di (delete intermediate) option to check if genomekey keeps the needed files: aligned bam(s) and the gVCFs.
+Testing the ```-di``` (delete intermediate) option to check if genomekey keeps the needed files: aligned bam(s) and the gVCFs.
 
-#####*6-c- test CosmosReset.sh:*
-Comment the mail ligns, this function is not available on AWS.
+#####*7-c- test CosmosReset.sh:*
+Comment the mail lines, this function is not available on AWS.
 
-#####*6-d- test automation.sh*
+#####*7-d- test automation.sh*
