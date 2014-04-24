@@ -133,7 +133,7 @@ if [ $GK_EVAL -eq 0 ]; then
 
     # Dump the DB
     SQL_OUTPUT="${COSMOS_WORKING_DIRECTORY}/${RUNNAME}.sql"
-    cmd="mysqldump -u ${DBUSER} -p${DBPASSWD} --no-create-info ${DBNAME} > ${SQL_OUTPUT}"
+    cmd="mysqldump -u ${DBUSER} -p${DBPASSWD} ${DBNAME} > ${SQL_OUTPUT}"
     echo $cmd
     eval $cmd
 
@@ -152,6 +152,9 @@ if [ $GK_EVAL -eq 0 ]; then
     RUNNAME_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/${RUNNAME}"
     S3_OUTPUT="${OUTBUCKET}Out/${RUNNAME}"
     S3_PERMS="--grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
+
+    # rm the .bai files 
+    find ${RUNNAME_OUTPUT} -name ".bai" -type f -delete
 
     #cp everything    
     aws s3 cp ${RUNNAME_OUTPUT} ${S3_OUTPUT}/ --recursive ${S3_PERMS}
@@ -180,8 +183,8 @@ if [ $GK_EVAL -eq 0 ]; then
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe"
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe" >>  ${LOG_FILE}
 
-    #rm -R -f ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/*
-    #rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
+    rm -R -f ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/*
+    rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
     
     # Reset cosmos DB
     echo "yes" | cosmos resetdb
