@@ -131,7 +131,7 @@ class BaseQualityScoreRecalibration(Tool):
     mem_req  = 12*1024
     time_req = 4*60 
     inputs   = ['bam']
-    outputs  = ['bam','bai']
+    outputs  = [TaskFile(name='bam',persist=True),TaskFile(name='bai',persist=True)]
 
     # no -nt, -nct = 4
     def cmd(self,i,s,p):
