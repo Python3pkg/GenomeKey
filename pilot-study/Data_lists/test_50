@@ -15,8 +15,8 @@ s3://COSMOS_Pilot/tiny_bams/tinytestbam-45.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-46.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-47.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-48.bam
-s3://COSMOS_Pilot/tiny_bams/tinytestbam-49.bam
-s3://COSMOS_Pilot/tiny_bams/tinytestbam-50.bam
+s3://COSMOS_Pilot/tiny_bams/tinytestbam-05.bam
+s3://COSMOS_Pilot/tiny_bams/tinytestbam-08.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-51.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-52.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-53.bam
@@ -28,7 +28,7 @@ s3://COSMOS_Pilot/tiny_bams/tinytestbam-58.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-59.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-60.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-61.bam
-s3://COSMOS_Pilot/tiny_bams/tinytestbam-62.bam
+s3://COSMOS_Pilot/tiny_bams/tinytestbam-11.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-63.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-64.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-65.bam
@@ -46,4 +46,3 @@ s3://COSMOS_Pilot/tiny_bams/tinytestbam-76.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-77.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-79.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-80.bam
-
