@@ -111,7 +111,7 @@ echo "log: $DATE : $STARTDATE : Beginning : GenomeKey run" >>  ${LOG_FILE}
 
 GK_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
 
-cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/${RUNNAME}/Inputs/${RUNNAME}.idx ${GK_ARGS} &> ${GK_OUTPUT}"
+cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -di -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/${RUNNAME}/Inputs/${RUNNAME}.idx ${GK_ARGS} &> ${GK_OUTPUT}"
 echo $cmd
 eval $cmd
 GK_EVAL=$?
@@ -154,7 +154,7 @@ if [ $GK_EVAL -eq 0 ]; then
     S3_PERMS="--grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
 
     # rm the .bai files 
-    find ${RUNNAME_OUTPUT} -name ".bai" -type f -delete
+    find ${RUNNAME_OUTPUT} -name "*.bai" -type f -delete
 
     #cp everything    
     aws s3 cp ${RUNNAME_OUTPUT} ${S3_OUTPUT}/ --recursive ${S3_PERMS}
