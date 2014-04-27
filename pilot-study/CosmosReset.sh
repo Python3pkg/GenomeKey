@@ -41,9 +41,19 @@ echo "log: $DATE : $STARTDATE : Beginning : Download from S3" >>  ${LOG_FILE}
 
 rm -rf $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/
 mkdir -pv $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/ # now recreate directory
+mkdir -pv $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
+
 
 while read F
 do
+	BASENAME=$(basename $F .bam)
+	if  [ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]
+	then
+		if [ ! -f /$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam ] 
+
+		aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
+	fi
+
     aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/
     
     #aws s3 cp "$F".bai $COSMOS_WORKING_DIRECTORY/${RUNNAME}/Inputs/
@@ -66,6 +76,11 @@ echo "log: $DATE : $STARTDATE : Beginning : Creating local files list" >>  ${LOG
 while read F
 do
     BASENAME=$(basename $F .bam)
+
+        if  [ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]
+        then
+                echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
+        fi
 
     echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
 done <$S3LIST
@@ -153,8 +168,9 @@ if [ $GK_EVAL -eq 0 ]; then
     S3_OUTPUT="${OUTBUCKET}Out/${RUNNAME}"
     S3_PERMS="--grants read=uri=http://acs.amazonaws.com/groups/global/AllUsers"
 
-    # rm the .bai files 
+    # rm the .bai and .idx files 
     find ${RUNNAME_OUTPUT} -name "*.bai" -type f -delete
+    find ${RUNNAME_OUTPUT} -name "*.idx" -type f -delete
 
     #cp everything    
     aws s3 cp ${RUNNAME_OUTPUT} ${S3_OUTPUT}/ --recursive ${S3_PERMS}
@@ -183,7 +199,7 @@ if [ $GK_EVAL -eq 0 ]; then
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe"
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe" >>  ${LOG_FILE}
 
-    rm -R -f ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/*
+    rm -R -f ${RUNNAME_OUTPUT}
     rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
     
     # Reset cosmos DB
