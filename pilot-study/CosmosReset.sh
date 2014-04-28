@@ -49,9 +49,10 @@ do
 	BASENAME=$(basename $F .bam)
 	if  [ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]
 	then
-		if [ ! -f /$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam ] 
+		if [ ! -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam ] 
 
 		aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
+		fi
 	fi
 
     aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/
