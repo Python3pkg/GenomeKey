@@ -16,8 +16,7 @@ if [ `hostname` == "master" ]; then
     
     # sudo gluster volume create ${GLUSTER_VOLUME} master:/mnt/gv1 node001:/mnt/gv2 # if you want to add master:/gv0 AND node001:/gv1
     
-    sleep 1
-    sleep 1
+    sleep 10
     
     sudo gluster volume start  ${GLUSTER_VOLUME}
 fi
