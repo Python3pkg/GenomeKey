@@ -67,7 +67,8 @@ def pipeline(bams, test_bam=False):
             skip_VQSR = ('skip_VQSR', [False])
                          
         # if seqName is empty, then let's assume that the input is unaligned bam
-        sample_name = os.path.basename(b).partition('.')[0]
+        # use everything before extension as part of tag
+        sample_name = os.path.splitext(os.path.basename(b))
         s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
                        split_([ ('rgId', rgid), ('prevSn', sn) ], pipes.Bam_To_BWA))
 
