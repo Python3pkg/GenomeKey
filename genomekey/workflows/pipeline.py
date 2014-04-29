@@ -68,7 +68,7 @@ def pipeline(bams, test_bam=False):
                          
         # if seqName is empty, then let's assume that the input is unaligned bam
         # use everything before extension as part of tag
-        sample_name = os.path.splitext(os.path.basename(b))
+        sample_name = os.path.splitext(os.path.basename(b))[0]
         s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
                        split_([ ('rgId', rgid), ('prevSn', sn) ], pipes.Bam_To_BWA))
 
