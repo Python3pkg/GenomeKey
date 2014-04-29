@@ -50,13 +50,14 @@ do
 	if  [ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]
 	then
 		if [ ! -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam ] 
-
-		aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
+		then
+			aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
 		fi
-	fi
 
-    aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/
-    
+	else
+		aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/
+	fi    
+
     #aws s3 cp "$F".bai $COSMOS_WORKING_DIRECTORY/${RUNNAME}/Inputs/
 done <$S3LIST
 
@@ -81,9 +82,11 @@ do
         if  [ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]
         then
                 echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
-        fi
 
-    echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
+	else
+		echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
+	fi
+
 done <$S3LIST
 
 DATE=$(date)
@@ -172,6 +175,9 @@ if [ $GK_EVAL -eq 0 ]; then
     # rm the .bai and .idx files 
     find ${RUNNAME_OUTPUT} -name "*.bai" -type f -delete
     find ${RUNNAME_OUTPUT} -name "*.idx" -type f -delete
+	
+    # rm input files
+    rm -rf $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/
 
     #cp everything    
     aws s3 cp ${RUNNAME_OUTPUT} ${S3_OUTPUT}/ --recursive ${S3_PERMS}
