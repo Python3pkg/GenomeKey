@@ -14,10 +14,9 @@
 ##################
 LISTS=$1     # $1: list of lists
 OUTBUCKET=$2 # $2 output bucket.. In the pilot study it's s3://COSMOS_Pilot/Out/
-PORT=$3      # $3 port
-EMAIL=$4     # $4 email address
-GK_ARGS=$5    # $5 extra args for genomekey
-GK_PATH=$6   # $6 the full path to the GenomeKey installation directory
+EMAIL=$3     # $4 email address
+GK_ARGS=$4    # $5 extra args for genomekey
+GK_PATH=$5   # $6 the full path to the GenomeKey installation directory
 
 ##################
 if [ $# -eq 4 ]; then

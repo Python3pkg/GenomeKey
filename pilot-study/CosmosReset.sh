@@ -41,25 +41,31 @@ echo "log: $DATE : $STARTDATE : Beginning : Download from S3" >>  ${LOG_FILE}
 
 rm -rf $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/
 mkdir -pv $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/ # now recreate directory
-mkdir -pv $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
 
+if [[ ! -d "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/" ]]
+then
+        mkdir -pv $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
+else
+        echo "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/ directory exists"
+fi
 
 while read F
 do
-	BASENAME=$(basename $F .bam)
-	if  [ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]
-	then
-		if [ ! -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam ] 
-		then
-			aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
-		fi
+        BASENAME=$(basename $F .bam)
+        if  [ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]
+        then
+                if [[ ! -f "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam" ]]
+                then
+                        aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
+                fi
 
-	else
-		aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/
-	fi    
+        else
+                aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/
+        fi
 
     #aws s3 cp "$F".bai $COSMOS_WORKING_DIRECTORY/${RUNNAME}/Inputs/
 done <$S3LIST
+
 
 DATE=$(date)
 ENDDATE=$(date +%s)
@@ -79,13 +85,13 @@ while read F
 do
     BASENAME=$(basename $F .bam)
 
-        if  [ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]
+        if  [[ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]]
         then
                 echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
 
-	else
-		echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
-	fi
+        else
+                echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
+        fi
 
 done <$S3LIST
 
@@ -102,13 +108,14 @@ STARTDATE=$(date +%s)
 echo "log: $DATE : $STARTDATE : Beginning : Creating bams indexes"
 echo "log: $DATE : $STARTDATE : Beginning : Creating bams indexes" >>  ${LOG_FILE}
 
+
 while read F
 do
-	
-	cmd="${TOOLS_PATH}/samtools.v0.1.19 index ${F}"
-	echo $cmd
-	eval $cmd
-	sleep 1
+                cmd="${TOOLS_PATH}/samtools.v0.1.19 index ${F}"
+                echo $cmd
+                eval $cmd
+                sleep 1
+
 done <${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
 
 DATE=$(date)
@@ -130,7 +137,7 @@ echo "log: $DATE : $STARTDATE : Beginning : GenomeKey run" >>  ${LOG_FILE}
 
 GK_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
 
-cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -di -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/${RUNNAME}/Inputs/${RUNNAME}.idx ${GK_ARGS} &> ${GK_OUTPUT}"
+cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -di -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx ${GK_ARGS} &> ${GK_OUTPUT}"
 echo $cmd
 eval $cmd
 GK_EVAL=$?
@@ -206,7 +213,7 @@ if [ $GK_EVAL -eq 0 ]; then
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe"
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe" >>  ${LOG_FILE}
 
-    rm -R -f ${RUNNAME_OUTPUT}
+    rm -R -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/
     rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
     
     # Reset cosmos DB
