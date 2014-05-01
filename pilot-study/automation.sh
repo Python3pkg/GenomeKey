@@ -15,12 +15,13 @@
 LISTS=$1     # $1: list of lists
 OUTBUCKET=$2 # $2 output bucket.. In the pilot study it's s3://COSMOS_Pilot/Out/
 EMAIL=$3     # $4 email address
-GK_ARGS=$4    # $5 extra args for genomekey
-GK_PATH=$5   # $6 the full path to the GenomeKey installation directory
+GK_ARGS=$5    # $5 extra args for genomekey
+GK_PATH=$4   # $6 the full path to the GenomeKey installation directory
 
 ##################
 if [ $# -eq 4 ]; then
     GK_ARGS=""
+    GK_PATH=$4	
 fi
 
 ################
@@ -44,7 +45,7 @@ echo ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory}
 
 while read F
 do
-${GK_PATH}/pilot-study/CosmosReset.sh $F ${OUTBUCKET} ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory} ${EMAIL} ${GK_ARGS} ${GK_PATH} ${TOOLS_PATH}
+${GK_PATH}/pilot-study/CosmosReset.sh $F ${OUTBUCKET} ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory} ${EMAIL} ${GK_PATH} ${TOOLS_PATH} ${GK_ARGS}
 done <${LISTS}
 
 ################

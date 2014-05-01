@@ -3,6 +3,8 @@
 # Author: Yassine Souilmi
 # March 2014
 
+# CosmosReset.sh $F ${OUTBUCKET} ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory} ${EMAIL} ${GK_PATH} ${TOOLS_PATH} ${GK_ARGS}
+
 S3LIST=$1                          # input list
 OUTBUCKET=$2                       # output AWS S3 bucket
 DBNAME=$3
@@ -11,9 +13,9 @@ DBPASSWD=$5
 COSMOS_DEFAULT_ROOT_OUTPUT_DIR=$6  # root of scratch directory; COSMOS paths (temp and output)
 COSMOS_WORKING_DIRECTORY=$7        # COSMOS working directory
 EMAIL=$8                           # email address to send report
-GK_ARGS=$9                         # extra args to GenomeKey  (give an empty string if none needed)
-GK_PATH=${10}
-TOOLS_PATH=${11}
+GK_ARGS=${11}                         # extra args to GenomeKey  (give an empty string if none needed)
+GK_PATH=$9
+TOOLS_PATH=${10}
 
 RUNNAME=$(basename "$S3LIST")
 echo $RUNNAME
