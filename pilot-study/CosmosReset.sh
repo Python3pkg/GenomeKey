@@ -213,7 +213,7 @@ if [ $GK_EVAL -eq 0 ]; then
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe"
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe" >>  ${LOG_FILE}
 
-    rm -R -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/
+    rm -R -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/*
     rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
     
     # Reset cosmos DB
