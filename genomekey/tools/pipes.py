@@ -44,16 +44,18 @@ class Bam_To_BWA(Tool):
             sizeEmpty=$(du -b $tmpDir/empty.ubam | cut -f 1);
             sizeTmpIn=$(du -b $tmpDir/tmpIn.ubam | cut -f 1);
 
-            if [[ "$sizeTmpIn" -gt "$sizeEmpty" ]]; then ;
-               {s[samtools]} sort -n -o -l 0 -@ {self.cpu_req} $tmpDir/tmp.ubam $tmpDir/_shuf |
-               {s[bamUtil]} bam2FastQ --in -.ubam --readname --noeof --firstOut /dev/stdout --merge --unpairedout $tmpDir/un.fq 2> /dev/null |
-               {s[bwa]} mem -p -M -t {self.cpu_req} -R "$rg" {s[reference_fasta]} - |
-               {s[samtools]} view -Shu - |
-               {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - $tmpDir/_sort > $tmpDir/out.bam;
+            [[ "$sizeTmpIn" -gt "$sizeEmpty" ]] &&
+            {s[samtools]} sort -n -o -l 0 -@ {self.cpu_req} $tmpDir/tmpIn.ubam $tmpDir/_shuf |
+            {s[bamUtil]} bam2FastQ --in -.ubam --readname --noeof --firstOut /dev/stdout --merge --unpairedout $tmpDir/un.fq 2> /dev/null |
+            {s[bwa]} mem -p -M -t {self.cpu_req} -R "$rg" {s[reference_fasta]} - |
+            {s[samtools]} view -Shu - |
+            {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - $tmpDir/_sort > $tmpDir/out.bam;
             
-               [[ -a $tmpDir/out.bam ]] && {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
-            else;
-            
+            # put tmpIn.ubam as output if there's no out.bam available;
+            [[ ! -a $tmpDir/out.bam ]] && mv $tmpDir/tmpIn.ubam $tmpDir/out.bam;
+
+            [[   -a $tmpDir/out.bam ]] && {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
+    
             """
         return (cmd_init + cmd_main + cmd_out)
 
