@@ -38,14 +38,21 @@ class Bam_To_BWA(Tool):
 
             rg=$({s[samtools]} view -H {i[bam][0]} | grep {p[rgId]} | uniq | sed 's/\t/\\t/g') && echo "RG= $rg";
 
-            {s[samtools]} view -hur {p[rgId]} {i[bam][0]} {p[prevSn]} |
-            {s[samtools]} sort -n -o -l 0 -@ {self.cpu_req} - $tmpDir/_shuf |
-            {s[bamUtil]} bam2FastQ --in -.ubam --readname --noeof --firstOut /dev/stdout --merge --unpairedout $tmpDir/un.fq 2> /dev/null |
-            {s[bwa]} mem -p -M -t {self.cpu_req} -R "$rg" {s[reference_fasta]} - |
-            {s[samtools]} view -Shu - |
-            {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - $tmpDir/_sort > $tmpDir/out.bam;
+            {s[samtools]} view -hur {p[rgId]} {i[bam][0]} 11111111111 > $tmpDir/empty.ubam 2> /dev/null;
+            {s[samtools]} view -hur {p[rgId]} {i[bam][0]} {p[prevSn]} > $tmpDir/tmpIn.ubam;
 
-            [[ -a $tmpDir/out.bam ]] && {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
+            sizeEmpty=$(du -b $tmpDir/empty.ubam | cut -f 1);
+            sizeTmpIn=$(du -b $tmpDir/tmpIn.ubam | cut -f 1);
+
+            if [[ "$sizeTmpIn" -gt "$sizeEmpty" ]]; then ;
+               {s[samtools]} sort -n -o -l 0 -@ {self.cpu_req} $tmpDir/tmp.ubam $tmpDir/_shuf |
+               {s[bamUtil]} bam2FastQ --in -.ubam --readname --noeof --firstOut /dev/stdout --merge --unpairedout $tmpDir/un.fq 2> /dev/null |
+               {s[bwa]} mem -p -M -t {self.cpu_req} -R "$rg" {s[reference_fasta]} - |
+               {s[samtools]} view -Shu - |
+               {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - $tmpDir/_sort > $tmpDir/out.bam;
+            
+               [[ -a $tmpDir/out.bam ]] && {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
+            else;
             
             """
         return (cmd_init + cmd_main + cmd_out)
