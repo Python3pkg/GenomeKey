@@ -65,7 +65,7 @@ def pipeline(bams, test_bam=False):
             skip_VQSR = ('skip_VQSR', [True])
         else:
             skip_VQSR = ('skip_VQSR', [False])
-                         
+
         # if seqName is empty, then let's assume that the input is unaligned bam
         # use everything before extension as part of tag
         sample_name = os.path.splitext(os.path.basename(b))[0]
