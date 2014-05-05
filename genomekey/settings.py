@@ -65,6 +65,7 @@ settings = {
     '1ksnp_vcf'             : opj(ref_path,   '1000G_phase1.snps.high_confidence.b37.vcf'),
     '1komni_vcf'            : opj(ref_path,   '1000G_omni2.5.b37.vcf'),
     '1kindel_vcf'           : opj(ref_path,   '1000G_phase1.indels.b37.vcf'),
+    'empty_bam'             : opj(ref_path,   'empty.bam'),
 
     'gatk_realigntarget'    : '',
     'gatk_indelrealign'     : '',
