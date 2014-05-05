@@ -26,6 +26,11 @@ def bam(workflow,input_bam,input_bam_list,test_bam,**kwargs):
     if len(input_bams) == 0:
         raise WorkflowException, 'At least 1 BAM input required'
 
+    # if we have a high coverage genome, override GATK options for realignment
+    if high_coverage:
+        genomekey_settings['gatk_realigntarget'] = '--mismatchFraction 0.30 --maxIntervalSize 650'
+        genomekey_settings['gatk_indelrealign'] = '--maxReadsInMemory 300000 --maxReadsForRealignment 500000 --maxReadsForConsensuses 500 --maxConsensuses 100'
+
     dag = DAG(ignore_stage_name_collisions=True)
 
     dag.sequence_(
@@ -51,6 +56,7 @@ def main():
     bam_sp.add_argument('-i', '--input_bam',     type=file,help='A path to a BAM file')
     bam_sp.add_argument('-il','--input_bam_list',type=file,help='A path to a file containing a list of paths to BAMs, separated by newlines')
     bam_sp.add_argument('-t','--test_bam',action='store_true',help='Only do stages on chr1, skips VQSR, strictly for testing only')
+    bam_sp.add_argument('-hc','--high_coverage',action='store_true',help='Special GATK options to handle high-coverage genomes')
     bam_sp.set_defaults(func=bam)
 
     wf,kwargs = cli.parse_args(parser)
