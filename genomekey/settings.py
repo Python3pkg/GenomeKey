@@ -66,6 +66,9 @@ settings = {
     '1komni_vcf'            : opj(ref_path,   '1000G_omni2.5.b37.vcf'),
     '1kindel_vcf'           : opj(ref_path,   '1000G_phase1.indels.b37.vcf'),
 
+    'gatk_realigntarget'    : '',
+    'gatk_indelrealign'     : '',
+
     'drmaa_spec'            : _get_drmaa_native_specification
 }
 

@@ -75,7 +75,7 @@ class IndelRealigner(Tool):
             --known {s[1kindel_vcf]}
             --known {s[mills_vcf]}
             --num_threads {self.cpu_req}
-            -L {p[chrom]}
+            -L {p[chrom]} {s[gatk_realigntarget]}
             {inputs};
 
             printf "\n%s RealignerTargetCreator ended.\n" "{s[date]}" | tee -a /dev/stderr;
@@ -90,7 +90,7 @@ class IndelRealigner(Tool):
             -known {s[mills_vcf]}
             -model USE_READS
             -compress 0
-            -L {p[chrom]}
+            -L {p[chrom]} {s[gatk_indelrealign]}
             {inputs};
 
         """
