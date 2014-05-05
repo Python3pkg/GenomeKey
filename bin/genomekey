@@ -14,7 +14,7 @@ from genomekey.workflows.pipeline  import pipeline
 # bam
 ###############################
 
-def bam(workflow,input_bam,input_bam_list,test_bam,**kwargs):
+def bam(workflow,input_bam,input_bam_list,test_bam,high_coverage,**kwargs):
     """
     Input file is a bam with properly annotated readgroups.
 
