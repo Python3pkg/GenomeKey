@@ -39,7 +39,7 @@ class Bam_To_BWA(Tool):
             rg=$({s[samtools]} view -H {i[bam][0]} | grep {p[rgId]} | uniq | sed 's/\t/\\t/g') && echo "RG= $rg";
 
             {s[samtools]} view -hur {p[rgId]} {i[bam][0]} 11111111111 > $tmpDir/empty.ubam 2> /dev/null;
-            {s[samtools]} view -hur {p[rgId]} {i[bam][0]} {p[prevSn]} > $tmpDir/tmpIn.ubam;
+            {s[samtools]} view -f 2 -hur {p[rgId]} {i[bam][0]} {p[prevSn]} > $tmpDir/tmpIn.ubam;
 
             sizeEmpty="$(du -b $tmpDir/empty.ubam | cut -f 1)";
             sizeTmpIn="$(du -b $tmpDir/tmpIn.ubam | cut -f 1)";
