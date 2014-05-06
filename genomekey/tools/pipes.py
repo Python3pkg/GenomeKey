@@ -52,7 +52,7 @@ class Bam_To_BWA(Tool):
             {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - $tmpDir/_sort > $tmpDir/out.bam;
             
             # If there's no out.bam available, put an empty bam as output
-            [[ ! -a $tmpDir/out.bam ]] && cp {s[empty_bam]}  $tmpDir/out.bam;
+            [[ ! -a $tmpDir/out.bam ]] && cp $tmpDir/empty.ubam $tmpDir/out.bam;
 
             {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
     
