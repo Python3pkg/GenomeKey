@@ -12,10 +12,10 @@ DBUSER=$4
 DBPASSWD=$5
 COSMOS_DEFAULT_ROOT_OUTPUT_DIR=$6  # root of scratch directory; COSMOS paths (temp and output)
 COSMOS_WORKING_DIRECTORY=$7        # COSMOS working directory
-EMAIL=$8                           # email address to send report
-GK_ARGS=${11}                         # extra args to GenomeKey  (give an empty string if none needed)
+EMAIL=$8                           # email address to send report 
 GK_PATH=$9
 TOOLS_PATH=${10}
+GK_ARGS=${11}                     # extra args to GenomeKey  (give an empty string if none needed)
 
 RUNNAME=$(basename "$S3LIST")
 echo $RUNNAME
@@ -41,38 +41,35 @@ STARTDATE=$(date +%s)
 echo "log: $DATE : $STARTDATE : Beginning : Download from S3"
 echo "log: $DATE : $STARTDATE : Beginning : Download from S3" >>  ${LOG_FILE}
 
-rm -rf $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/
-mkdir -pv $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/ # now recreate directory
+#rm -rf $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/
+#mkdir -pv $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/ # now recreate directory
 
-if [[ ! -d "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/" ]]
-then
-        mkdir -pv $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
-else
-        echo "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/ directory exists"
-fi
+INPUT_DIR=$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Inputs/$RUNNAME
+TRIO_DIR=$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
+
+mkdir -pv $TRIO_DIR
+mkdir -pv $INPUT_DIR
 
 while read F
 do
         BASENAME=$(basename $F .bam)
-        if  [ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]
+        if  [[ "${BASENAME%_*}" = "CEUTrioWEx" ]]
         then
-                if [[ ! -f "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam" ]]
+                if [[ ! -f "${TRIO_DIR}/${BASENAME}.bam" ]]
                 then
-                        aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
+                        aws s3 cp $F $TRIO_DIR
 		else
-			echo "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam already downloaded"
+			echo "${TRIO_DIR}/${BASENAME}.bam already downloaded"
                 fi
 
         else
-		if [[ ! -f "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/${BASENAME}.bam" ]]
+		if [[ ! -f "${INPUT_DIR}/${BASENAME}.bam" ]]
 		then
-                	aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/
+                	aws s3 cp $F ${INPUT_DIR}
 		else
-			echo "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/${BASENAME}.bam already downloaded"
+			echo "${INPUT_DIR}/${BASENAME}.bam already downloaded"
 		fi
         fi
-
-    #aws s3 cp "$F".bai $COSMOS_WORKING_DIRECTORY/${RUNNAME}/Inputs/
 done <$S3LIST
 
 
@@ -94,12 +91,12 @@ while read F
 do
     BASENAME=$(basename $F .bam)
 
-        if  [[ "${BASENAME%.*.*.*.*.*}" = "CEUTrio.HiSeq.WEx.b37_decoy" ]]
+        if  [[ "${BASENAME%_*}" = "CEUTrioWEx" ]]
         then
-                echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
+                echo ${TRIO_DIR}/${BASENAME}.'bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
 
         else
-                echo $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/$BASENAME'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
+                echo ${INPUT_DIR}/${BASENAME}'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
         fi
 
 done <$S3LIST
@@ -120,12 +117,16 @@ echo "log: $DATE : $STARTDATE : Beginning : Creating bams indexes" >>  ${LOG_FIL
 
 while read F
 do
+    if [[ ! -f "$(basename $F .bam).bam.bai" ]] && [[ ! -f "$(basename $F .bam).bai" ]]
+    then
                 cmd="${TOOLS_PATH}/samtools.v0.1.19 index ${F}"
                 echo $cmd
                 eval $cmd
                 sleep 1
-
-done <${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx
+    else
+	echo "$(basename $F .bam) index file exists"
+    fi
+done <${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
 
 DATE=$(date)
 ENDDATE=$(date +%s)
@@ -146,7 +147,7 @@ echo "log: $DATE : $STARTDATE : Beginning : GenomeKey run" >>  ${LOG_FILE}
 
 GK_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
 
-cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -di -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}"/Inputs/"${RUNNAME}".idx ${GK_ARGS} &> ${GK_OUTPUT}"
+cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -di -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx ${GK_ARGS} &> ${GK_OUTPUT}"
 echo $cmd
 eval $cmd
 GK_EVAL=$?
@@ -192,8 +193,11 @@ if [ $GK_EVAL -eq 0 ]; then
     find ${RUNNAME_OUTPUT} -name "*.bai" -type f -delete
     find ${RUNNAME_OUTPUT} -name "*.idx" -type f -delete
 	
+#FIXME:
+# all the paths should be corrected down here:
+    
     # rm input files
-    rm -rf $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/
+    #rm -rf $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/
 
     #cp everything    
     aws s3 cp ${RUNNAME_OUTPUT} ${S3_OUTPUT}/ --recursive ${S3_PERMS}
@@ -222,11 +226,11 @@ if [ $GK_EVAL -eq 0 ]; then
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe"
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe" >>  ${LOG_FILE}
 
-    rm -R -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/*
-    rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
+#    rm -R -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/*
+#    rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
     
     # Reset cosmos DB
-    echo "yes" | cosmos resetdb
+#    echo "yes" | cosmos resetdb
  
     DATE=$(date)
     ENDDATE=$(date +%s)

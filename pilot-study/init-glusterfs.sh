@@ -24,7 +24,7 @@ fi
 
 
 # Do this here to save some time for setting up glusterfs in the master node
-for i in master $(printf "node%03d " {1..${NUMBER_OF_NODES}});
+for node in `cat /etc/hosts | awk '{print $1}'`
 do
     ssh "$i" "sudo mkdir -p /gluster/${GLUSTER_VOLUME} && sudo mount -t glusterfs master:/${GLUSTER_VOLUME} /gluster/${GLUSTER_VOLUME}"
     ssh "$i" "sudo chown -R ubuntu:ubuntu /gluster/${GLUSTER_VOLUME}"

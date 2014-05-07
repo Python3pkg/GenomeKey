@@ -1,6 +1,6 @@
-s3://COSMOS_Pilot/tiny_bams/tinytestbam-01.bam
-s3://COSMOS_Pilot/tiny_bams/tinytestbam-02.bam
-s3://COSMOS_Pilot/tiny_bams/tinytestbam-03.bam
+s3://COSMOS_Pilot/tiny_bams/CEUTrioWEx_NA12878.bam
+s3://COSMOS_Pilot/tiny_bams/CEUTrioWEx_NA12891.bam
+s3://COSMOS_Pilot/tiny_bams/CEUTrioWEx_NA12892.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-05.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-07.bam
 s3://COSMOS_Pilot/tiny_bams/tinytestbam-08.bam
