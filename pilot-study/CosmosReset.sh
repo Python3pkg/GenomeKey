@@ -87,6 +87,8 @@ STARTDATE=$(date +%s)
 echo "log: $DATE : $STARTDATE : Beginning : Creating local files list"
 echo "log: $DATE : $STARTDATE : Beginning : Creating local files list" >>  ${LOG_FILE}
 
+rm -f ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
+
 while read F
 do
     BASENAME=$(basename $F .bam)
