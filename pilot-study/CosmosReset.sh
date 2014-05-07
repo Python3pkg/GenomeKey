@@ -59,10 +59,17 @@ do
                 if [[ ! -f "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam" ]]
                 then
                         aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/
+		else
+			echo "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/Trio/${BASENAME}.bam already downloaded"
                 fi
 
         else
-                aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/
+		if [[ ! -f "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/${BASENAME}.bam" ]]
+		then
+                	aws s3 cp $F $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/
+		else
+			echo "$COSMOS_DEFAULT_ROOT_OUTPUT_DIR/${RUNNAME}/Inputs/${BASENAME}.bam already downloaded"
+		fi
         fi
 
     #aws s3 cp "$F".bai $COSMOS_WORKING_DIRECTORY/${RUNNAME}/Inputs/
