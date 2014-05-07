@@ -95,7 +95,7 @@ do
 
         if  [[ "${BASENAME%_*}" = "CEUTrioWEx" ]]
         then
-                echo ${TRIO_DIR}/${BASENAME}.'bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
+                echo ${TRIO_DIR}/${BASENAME}'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
 
         else
                 echo ${INPUT_DIR}/${BASENAME}'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
@@ -119,7 +119,7 @@ echo "log: $DATE : $STARTDATE : Beginning : Creating bams indexes" >>  ${LOG_FIL
 
 while read F
 do
-    if [[ ! -f "$(basename $F .bam).bam.bai" ]] && [[ ! -f "$(basename $F .bam).bai" ]]
+    if [[ ! -f "$F.bai" ]] && [[ ! -f "$F.bai" ]]
     then
                 cmd="${TOOLS_PATH}/samtools.v0.1.19 index ${F}"
                 echo $cmd
@@ -149,7 +149,7 @@ echo "log: $DATE : $STARTDATE : Beginning : GenomeKey run" >>  ${LOG_FILE}
 
 GK_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
 
-cmd="${GK_PATH}/bin/genomekey bam -n \"${RUNNAME}\" -r -y -di -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx ${GK_ARGS} &> ${GK_OUTPUT}"
+cmd="${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -r -y -di -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx ${GK_ARGS} &> ${GK_OUTPUT}"
 echo $cmd
 eval $cmd
 GK_EVAL=$?
