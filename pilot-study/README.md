@@ -138,17 +138,12 @@ Run ```pip install .``` in Cosmos and GenomeKey directories respectively. The fu
 
 Make sure you have access to the pilot project s3 bucket.
 
-###**7- Systematic testing**
+###**7- Modify MySQL package limit**
+To overide the 16M package size limit of MySQL, edit my.cnf file:
 
-#####*7-a- test with 3 tiny bams:*
-
-FIXME: Genomekey fails with only one tiny bam
-
-#####*7-b- test with 3 tiny bams with -di activated:*
-
-Testing the ```-di``` (delete intermediate) option to check if genomekey keeps the needed files: aligned bam(s) and the gVCFs.
-
-#####*7-c- test CosmosReset.sh:*
-Currently the lines that send the emails are commented-out as outgoing mail is blocked on AWS.
-
-#####*7-d- test automation.sh*
+```
+[mysqld]
+max_allowed_packet= 500M
+wait_timeout= 6000
+```
+and restart mysql server.
