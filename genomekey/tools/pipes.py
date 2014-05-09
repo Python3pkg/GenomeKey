@@ -179,7 +179,7 @@ class BaseQualityScoreRecalibration(Tool):
 class HaplotypeCaller(Tool):
     name     = "HaplotypeCaller"
     cpu_req  = 4
-    mem_req  = 12*1024
+    mem_req  = 16*1024
     time_req = 12*60
     inputs   = ['bam']
     outputs  = [TaskFile(name='vcf',persist=True),TaskFile(name='vcf.idx',persist=True)]
