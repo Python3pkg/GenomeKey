@@ -146,4 +146,9 @@ To overide the 16M package size limit of MySQL, edit my.cnf file:
 max_allowed_packet= 500M
 wait_timeout= 6000
 ```
-and restart mysql server.
+and restart mysql server:
+
+```
+sudo service mysql restart
+```
+
