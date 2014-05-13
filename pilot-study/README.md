@@ -143,8 +143,15 @@ To overide the 16M package size limit of MySQL, edit my.cnf file:
 
 ```
 [mysqld]
-max_allowed_packet= 500M
-wait_timeout= 6000
+key_buffer              = 500M
+max_allowed_packet      = 2048M
+thread_stack            = 10M
+thread_cache_size       = 24
+wait_timeout            = 12000
+
+innodb_additional_mem_pool_size = 20M
+innodb_buffer_pool_size = 4G
+innodb_flush_method     = O_DIRECT
 ```
 and restart mysql server:
 
