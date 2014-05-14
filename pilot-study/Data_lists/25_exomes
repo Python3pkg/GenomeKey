@@ -1,8 +1,8 @@
-s3://COSMOS_Pilot/Trio_exomes/CEUTrio.HiSeq.WEx.b37_decoy.NA12878.clean.dedup.recal.20120117.bam
-s3://COSMOS_Pilot/Trio_exomes/CEUTrio.HiSeq.WEx.b37_decoy.NA12891.clean.dedup.recal.20120117.bam
-s3://COSMOS_Pilot/Trio_exomes/CEUTrio.HiSeq.WEx.b37_decoy.NA12892.clean.dedup.recal.20120117.bam
+s3://COSMOS_Pilot/Trio_exomes/CEUTrioWEx_NA12878.bam
+s3://COSMOS_Pilot/Trio_exomes/CEUTrioWEx_NA12891.bam
+s3://COSMOS_Pilot/Trio_exomes/CEUTrioWEx_NA12892.bam
 s3://COSMOS_Pilot/autism_exome/AU-1196a.bam
-s3://COSMOS_Pilot/autism_exome/AU-1196a.bam
+s3://COSMOS_Pilot/autism_exome/AU-1019a.bam
 s3://COSMOS_Pilot/autism_exome/AU-1210.bam
 s3://COSMOS_Pilot/autism_exome/AU-1206.bam
 s3://COSMOS_Pilot/autism_exome/AU-1203.bam
