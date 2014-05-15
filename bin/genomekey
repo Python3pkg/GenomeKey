@@ -14,7 +14,7 @@ from genomekey.workflows.pipeline  import pipeline
 # bam
 ###############################
 
-def bam(workflow,input_bam,input_bam_list,test_bam,high_coverage,**kwargs):
+def bam(workflow,input_bam,input_bam_list,test_bam,high_coverage,chromosome_only_split,**kwargs):
     """
     Input file is a bam with properly annotated readgroups.
 
@@ -34,7 +34,7 @@ def bam(workflow,input_bam,input_bam_list,test_bam,high_coverage,**kwargs):
     dag = DAG(ignore_stage_name_collisions=True)
 
     dag.sequence_(
-        pipeline(input_bams, test_bam=test_bam),
+        pipeline(input_bams, test_bam=test_bam, chromosome_only_split=chromosome_only_split),
         configure(genomekey_settings),
         add_run(workflow)
     )
@@ -57,6 +57,7 @@ def main():
     bam_sp.add_argument('-il','--input_bam_list',type=file,help='A path to a file containing a list of paths to BAMs, separated by newlines')
     bam_sp.add_argument('-t','--test_bam',action='store_true',help='Only do stages on chr1, skips VQSR, strictly for testing only')
     bam_sp.add_argument('-hc','--high_coverage',action='store_true',help='Special GATK options to handle high-coverage genomes')
+    bam_sp.add_argument('-c','--chromosome_only_split',action='store_true',help='Split only on chromosomes not read groups')
     bam_sp.set_defaults(func=bam)
 
     wf,kwargs = cli.parse_args(parser)

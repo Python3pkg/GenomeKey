@@ -37,7 +37,7 @@ def _getSeqName(header):
     return seqNameList
 
     
-def pipeline(bams, test_bam=False):
+def pipeline(bams, test_bam=False, chromosome_only_split=False):
 
     # split_ tuples
     #chrom  = ('chrom', range(1,23) + ['X', 'Y', 'MT'])
@@ -70,14 +70,16 @@ def pipeline(bams, test_bam=False):
         # use everything before extension as part of tag
         sample_name = os.path.splitext(os.path.basename(b))[0]
 
-# Stop splitting by rgId
-#        s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
-#                       split_([ ('rgId', rgid), ('prevSn', sn) ], pipes.Bam_To_BWA))
+        if chromosome_only_split:
+            # Stop splitting by rgId
+            bam_bwa_split = [ ('prevSn', sn), ('chromosome_only_split', [True]) ]
+            indelrealign_reduce =  ['bam']
+        else:
+            bam_bwa_split = [ ('rgId', rgid), ('prevSn', sn), ('chromosome_only_split', [False]) ]
+            indelrealign_reduce =  ['bam','rgId']
 
         s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
-                       split_([('prevSn', sn) ], pipes.Bam_To_BWA))
-
-
+                       split_(bam_bwa_split, pipes.Bam_To_BWA))
 
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = sequence_(bam_seq, s, combine=True)
@@ -85,8 +87,7 @@ def pipeline(bams, test_bam=False):
     # Previous pipeline
     pr_pipeline = sequence_(
         bam_seq,
-#        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
-        reduce_split_(['bam'], [chrom], pipes.IndelRealigner),
+        reduce_split_(indelrealign_reduce, [chrom], pipes.IndelRealigner),
         map_(                                  pipes.MarkDuplicates),
         reduce_(['bam','chrom'],               pipes.BaseQualityScoreRecalibration),
         map_(                                  pipes.ReduceReads),
@@ -101,8 +102,7 @@ def pipeline(bams, test_bam=False):
     # HaplotypeCaller Pipeline: official for GATK 3.0
     hc_pipeline = sequence_(
         bam_seq,
-#        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
-        reduce_split_(['bam'], [chrom], pipes.IndelRealigner),
+        reduce_split_(indelrealign_reduce, [chrom], pipes.IndelRealigner),
         map_(                                  pipes.MarkDuplicates),
         reduce_(['bam','chrom'],               pipes.BaseQualityScoreRecalibration),
         map_(                                  pipes.HaplotypeCaller),
