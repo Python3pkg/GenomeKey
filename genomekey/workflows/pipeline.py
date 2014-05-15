@@ -69,8 +69,15 @@ def pipeline(bams, test_bam=False):
         # if seqName is empty, then let's assume that the input is unaligned bam
         # use everything before extension as part of tag
         sample_name = os.path.splitext(os.path.basename(b))[0]
+
+# Stop splitting by rgId
+#        s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
+#                       split_([ ('rgId', rgid), ('prevSn', sn) ], pipes.Bam_To_BWA))
+
         s = sequence_( add_([INPUT(b, tags={'bam':sample_name})], stage_name="Load BAMs"), 
-                       split_([ ('rgId', rgid), ('prevSn', sn) ], pipes.Bam_To_BWA))
+                       split_([('prevSn', sn) ], pipes.Bam_To_BWA))
+
+
 
         if bam_seq is None:   bam_seq = s
         else:                 bam_seq = sequence_(bam_seq, s, combine=True)
@@ -78,7 +85,8 @@ def pipeline(bams, test_bam=False):
     # Previous pipeline
     pr_pipeline = sequence_(
         bam_seq,
-        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
+#        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
+        reduce_split_(['bam'], [chrom], pipes.IndelRealigner),
         map_(                                  pipes.MarkDuplicates),
         reduce_(['bam','chrom'],               pipes.BaseQualityScoreRecalibration),
         map_(                                  pipes.ReduceReads),
@@ -93,7 +101,8 @@ def pipeline(bams, test_bam=False):
     # HaplotypeCaller Pipeline: official for GATK 3.0
     hc_pipeline = sequence_(
         bam_seq,
-        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
+#        reduce_split_(['bam','rgId'], [chrom], pipes.IndelRealigner),
+        reduce_split_(['bam'], [chrom], pipes.IndelRealigner),
         map_(                                  pipes.MarkDuplicates),
         reduce_(['bam','chrom'],               pipes.BaseQualityScoreRecalibration),
         map_(                                  pipes.HaplotypeCaller),
