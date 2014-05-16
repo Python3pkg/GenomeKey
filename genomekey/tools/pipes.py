@@ -34,13 +34,22 @@ class Bam_To_BWA(Tool):
 
     def cmd(self,i,s,p):
         # removed -m MEM option in samtools sort
-        cmd_main = r"""
 
+        if p['chromosome_only_split']:
+            # Using first readgroup id
+            cmd_rg = r"""
+            rg=$({s[samtools]} view -H {i[bam][0]} | grep "@RG" | head -n 1 | sed 's/\t/\\t/g') && echo "RG= $rg";
+            {s[samtools]} view      -hu {i[bam][0]} 11111111111 > $tmpDir/empty.ubam 2> /dev/null;
+            {s[samtools]} view -f 2 -hu {i[bam][0]} {p[prevSn]} > $tmpDir/tmpIn.ubam;
+            """
+        else:
+            cmd_rg = r"""
             rg=$({s[samtools]} view -H {i[bam][0]} | grep {p[rgId]} | uniq | sed 's/\t/\\t/g') && echo "RG= $rg";
-
-            {s[samtools]} view -hur {p[rgId]} {i[bam][0]} 11111111111 > $tmpDir/empty.ubam 2> /dev/null;
+            {s[samtools]} view      -hur {p[rgId]} {i[bam][0]} 11111111111 > $tmpDir/empty.ubam 2> /dev/null;
             {s[samtools]} view -f 2 -hur {p[rgId]} {i[bam][0]} {p[prevSn]} > $tmpDir/tmpIn.ubam;
+            """
 
+        cmd_main = r"""
             sizeEmpty="$(du -b $tmpDir/empty.ubam | cut -f 1)";
             sizeTmpIn="$(du -b $tmpDir/tmpIn.ubam | cut -f 1)";
 
@@ -57,7 +66,7 @@ class Bam_To_BWA(Tool):
             {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
     
             """
-        return (cmd_init + cmd_main + cmd_out)
+        return (cmd_init + cmd_rg + cmd_main + cmd_out)
 
 
 class IndelRealigner(Tool):
