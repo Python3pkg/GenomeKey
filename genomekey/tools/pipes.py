@@ -62,8 +62,8 @@ class Bam_To_BWA(Tool):
             
             # If there's no out.bam available, put an empty bam as output
             [[ ! -a $tmpDir/out.bam ]] && cp {s[empty_sam]} $tmpDir/empty.sam && \
-            echo $rg >>  $tmpDir/empty.sam && \
-	    {s[samtools]} view -ubS $tmpDir/empty.sam > $tmpDir/out.bam
+             echo -e $rg >>  $tmpDir/empty.sam && \
+	    {s[samtools]} view -bS $tmpDir/empty.sam > $tmpDir/out.bam
             
 	    {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
     
