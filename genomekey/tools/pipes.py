@@ -61,9 +61,10 @@ class Bam_To_BWA(Tool):
             {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - $tmpDir/_sort > $tmpDir/out.bam;
             
             # If there's no out.bam available, put an empty bam as output
+            # FIXME: find a better way to suppress the error message from empty SAM file
             [[ ! -a $tmpDir/out.bam ]] && cp {s[empty_sam]} $tmpDir/empty.sam && \
              echo -e $rg >>  $tmpDir/empty.sam && \
-	    {s[samtools]} view -bS $tmpDir/empty.sam > $tmpDir/out.bam
+	    ({s[samtools]} view -bS $tmpDir/empty.sam > $tmpDir/out.bam 2> /dev/null) | true;
             
 	    {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
     
