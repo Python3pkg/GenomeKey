@@ -64,7 +64,7 @@ class Bam_To_BWA(Tool):
             # FIXME: find a better way to suppress the error message from empty SAM file
             [[ ! -a $tmpDir/out.bam ]] && cp {s[empty_sam]} $tmpDir/empty.sam && \
              echo -e $rg >>  $tmpDir/empty.sam && \
-	    ({s[samtools]} view -bS $tmpDir/empty.sam > $tmpDir/out.bam 2> /dev/null) | true;
+	    ({s[samtools]} view -bS $tmpDir/empty.sam > $tmpDir/out.bam 2> /dev/null) || true;
             
 	    {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
     
