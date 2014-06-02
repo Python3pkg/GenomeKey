@@ -1,4 +1,4 @@
-import os
+import os, sys
 
 from cosmos.config import settings as cosmos_settings
 
@@ -26,6 +26,9 @@ def _get_drmaa_native_specification(jobAttempt):
 
 
 svr  = cosmos_settings['server_name']
+
+# get path to current genomekey installation
+genomekey_path = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 if svr == 'orchestra':
     ref_path   = '/groups/cbi/WGA/reference'
@@ -65,7 +68,9 @@ settings = {
     '1ksnp_vcf'             : opj(ref_path,   '1000G_phase1.snps.high_confidence.b37.vcf'),
     '1komni_vcf'            : opj(ref_path,   '1000G_omni2.5.b37.vcf'),
     '1kindel_vcf'           : opj(ref_path,   '1000G_phase1.indels.b37.vcf'),
-    'empty_bam'             : opj(ref_path,   'empty.bam'),
+    # keep in home directory for the moment, should ultimately be part of the AMI
+    #'empty_sam'             : opj(ref_path,   'empty.sam'),
+    'empty_sam'             : opj(genomekey_path, '../test/empty.sam'),
 
     'gatk_realigntarget'    : '',
     'gatk_indelrealign'     : '',
