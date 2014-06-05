@@ -48,11 +48,11 @@ class Bam_To_BWA(Tool):
             """
 
         cmd_main = r"""
-	    cp {s[empty_sam]} empty.sam && echo -e $rg >> ./empty.sam;
+	    cp {s[empty_sam]} empty.sam && echo -e $rg >> empty.sam;
             {s[samtools]} view -u {i[bam][0]} "empty_region" > empty.ubam 2> /dev/null;
             
-            sizeEmpty="$(du -b empty.ubam | cut -f 1)";
-            sizeTmpIn="$(du -b tmpIn.ubam | cut -f 1)";
+            sizeEmpty="$(du -b empty.ubam | cut -f 1)"; printf "Empty bam file size = %-6d\n" "$sizeEmpty";
+            sizeTmpIn="$(du -b tmpIn.ubam | cut -f 1)"; printf "Input bam file size = %-6d\n" "$sizeTmpIn";
 
             [[ "$sizeTmpIn" -gt "$sizeEmpty" ]] &&
             {s[samtools]} sort -n -o -l 0 -@ {self.cpu_req} tmpIn.ubam _shuf |
@@ -63,7 +63,7 @@ class Bam_To_BWA(Tool):
             
             # If there's no out.bam available, put an empty bam as output;
             # FIXME: find a better way to suppress the error message from empty SAM file;
-            [[ ! -a out.bam ]] && ({s[samtools]} view -bS empty.sam > out.bam 2> /dev/null) || true;
+            [[ ! -a out.bam ]] && ({s[samtools]} view -Sb empty.sam > out.bam 2> /dev/null) || true;
             
 	    {s[samtools]} index out.bam out.bai;
     
