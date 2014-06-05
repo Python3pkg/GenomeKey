@@ -5,7 +5,7 @@ def _list2input(l, opt):
 
 cmd_init = r"""
             set -e -o pipefail && tmpDir=$(mktemp -d --tmpdir={s[scratch]}) && export TMPDIR=$tmpDir;
-            printf "%s %s at %s\n" "{s[date]}" "$(hostname)" "$tmpDir" | tee /dev/stderr;
+            printf "%s %s at %s\n" "{s[date]}" "$(hostname)" "$tmpDir" | tee /dev/stderr && cd $tmpDir;
             """
 cmd_out  = r"""
 
@@ -13,7 +13,7 @@ cmd_out  = r"""
             [[ -a $tmpDir/out.bam ]] && mv -f $tmpDir/out.bam $OUT.bam;
             [[ -a $tmpDir/out.bai ]] && mv -f $tmpDir/out.bai $OUT.bai;
             echo "{s[date]} Moving done";
-            /bin/rm -rf $tmpDir;
+            cd && /bin/rm -rf $tmpDir;
             """
 cmd_out_vcf = r"""
 
@@ -21,7 +21,7 @@ cmd_out_vcf = r"""
             [[ -a $tmpDir/out.vcf     ]] && mv -f $tmpDir/out.vcf     $OUT.vcf;
             [[ -a $tmpDir/out.vcf.idx ]] && mv -f $tmpDir/out.vcf.idx $OUT.vcf.idx;
             echo "{s[date]} Moving done";
-            /bin/rm -rf $tmpDir;
+            cd && /bin/rm -rf $tmpDir;
             """
            
 class Bam_To_BWA(Tool):
@@ -39,34 +39,33 @@ class Bam_To_BWA(Tool):
             # Using first readgroup id
             cmd_rg = r"""
             rg=$({s[samtools]} view -H {i[bam][0]} | grep "@RG" | head -n 1 | sed 's/\t/\\t/g') && echo "RG= $rg";
-            {s[samtools]} view      -hu {i[bam][0]} 11111111111 > $tmpDir/empty.ubam 2> /dev/null;
-            {s[samtools]} view -f 2 -hu {i[bam][0]} {p[prevSn]} > $tmpDir/tmpIn.ubam;
+            {s[samtools]} view -f 2 -u              {i[bam][0]} {p[prevSn]} > tmpIn.ubam;
             """
         else:
             cmd_rg = r"""
             rg=$({s[samtools]} view -H {i[bam][0]} | grep {p[rgId]} | uniq | sed 's/\t/\\t/g') && echo "RG= $rg";
-            {s[samtools]} view      -hur {p[rgId]} {i[bam][0]} 11111111111 > $tmpDir/empty.ubam 2> /dev/null;
-            {s[samtools]} view -f 2 -hur {p[rgId]} {i[bam][0]} {p[prevSn]} > $tmpDir/tmpIn.ubam;
+            {s[samtools]} view -f 2 -u -r {p[rgId]} {i[bam][0]} {p[prevSn]} > tmpIn.ubam;
             """
 
         cmd_main = r"""
-            sizeEmpty="$(du -b $tmpDir/empty.ubam | cut -f 1)";
-            sizeTmpIn="$(du -b $tmpDir/tmpIn.ubam | cut -f 1)";
+	    cp {s[empty_sam]} empty.sam && echo -e $rg >> ./empty.sam;
+            {s[samtools]} view -u {i[bam][0]} "empty_region" > empty.ubam 2> /dev/null;
+            
+            sizeEmpty="$(du -b empty.ubam | cut -f 1)";
+            sizeTmpIn="$(du -b tmpIn.ubam | cut -f 1)";
 
             [[ "$sizeTmpIn" -gt "$sizeEmpty" ]] &&
-            {s[samtools]} sort -n -o -l 0 -@ {self.cpu_req} $tmpDir/tmpIn.ubam $tmpDir/_shuf |
-            {s[bamUtil]} bam2FastQ --in -.ubam --readname --noeof --firstOut /dev/stdout --merge --unpairedout $tmpDir/un.fq 2> /dev/null |
+            {s[samtools]} sort -n -o -l 0 -@ {self.cpu_req} tmpIn.ubam _shuf |
+            {s[bamUtil]} bam2FastQ --in -.ubam --readname --noeof --firstOut /dev/stdout --merge --unpairedout un.fq 2> /dev/null |
             {s[bwa]} mem -p -M -t {self.cpu_req} -R "$rg" {s[reference_fasta]} - |
             {s[samtools]} view -Shu - |
-            {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - $tmpDir/_sort > $tmpDir/out.bam;
+            {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - _sort > out.bam;
             
-            # If there's no out.bam available, put an empty bam as output
-            # FIXME: find a better way to suppress the error message from empty SAM file
-            [[ ! -a $tmpDir/out.bam ]] && cp {s[empty_sam]} $tmpDir/empty.sam && \
-             echo -e $rg >>  $tmpDir/empty.sam && \
-	    ({s[samtools]} view -bS $tmpDir/empty.sam > $tmpDir/out.bam 2> /dev/null) || true;
+            # If there's no out.bam available, put an empty bam as output;
+            # FIXME: find a better way to suppress the error message from empty SAM file;
+            [[ ! -a out.bam ]] && ({s[samtools]} view -bS empty.sam > out.bam 2> /dev/null) || true;
             
-	    {s[samtools]} index $tmpDir/out.bam $tmpDir/out.bai;
+	    {s[samtools]} index out.bam out.bai;
     
             """
         return (cmd_init + cmd_rg + cmd_main + cmd_out)
