@@ -40,8 +40,8 @@ def _getSeqName(header):
 def pipeline(bams, test_bam=False, chromosome_only_split=False):
 
     # split_ tuples
-    #chrom  = ('chrom', range(1,23) + ['X', 'Y', 'MT'])
-    chrom  = ('chrom', range(1,23))
+    chrom  = ('chrom', range(1,23) + ['X', 'Y', 'MT'])
+    #chrom  = ('chrom', range(1,23))
 
     glm = ('glm', ['SNP', 'INDEL'])
 

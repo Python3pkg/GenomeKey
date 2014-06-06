@@ -149,10 +149,12 @@ echo "log: $DATE : $STARTDATE : Beginning : GenomeKey run" >>  ${LOG_FILE}
 
 GK_OUTPUT="${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/GK${RUNNAME}.out"
 
-cmd="${GK_PATH}/bin/genomekey bam -n "${RUNNAME}" -r -y -di -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx ${GK_ARGS} &> ${GK_OUTPUT}"
+printf "%s in CosmosReset.sh, about to start genomekey\n" "$(date "+%D %T")"
+cmd="${GK_PATH}/bin/genomekey bam -n "${RUNNAME}"  -y -di -il ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx ${GK_ARGS} &> ${GK_OUTPUT}"
 echo $cmd
 eval $cmd
 GK_EVAL=$?
+printf "%s in CosmosReset.sh, genomekey was terminated\n" "$(date "+%D %T")"
 
 DATE=$(date)
 ENDDATE=$(date +%s)
