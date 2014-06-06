@@ -30,5 +30,5 @@ for node in `cat /etc/hosts | awk '{print $1}'`; do
          ssh "$node" "chown -R ubuntu:ubuntu /gluster/$GLUSTER_VOLUME"
 
          echo $node
-         ssh "$node" "df -h | grep scratch"
+         ssh "$node" "df -h | grep ${GLUSTER_VOLUME}"
 done
