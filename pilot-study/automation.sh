@@ -44,7 +44,7 @@ elif [ "${server_name}" = "aws" ]; then
     TOOLS_PATH=/WGA/tools
 fi
 
-echo ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory} ${EMAIL} ${TOOLS_PATH} ${GK_PATH} ${GK_ARGS} ${TOOLS_PATH}
+echo "variables:" ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory} ${EMAIL} ${TOOLS_PATH} ${GK_PATH} ${GK_ARGS} ${TOOLS_PATH}
 
 ################
 # Starting the run
@@ -52,7 +52,11 @@ echo ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory}
 while read F
 do
 printf "%s started CosmosReset.out\n" "$(date "+%D %T")"
-${GK_PATH}/pilot-study/CosmosReset.sh $F ${OUTBUCKET} ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory} ${EMAIL} ${GK_PATH} ${TOOLS_PATH} ${GK_ARGS} &> /gluster/shared/3_genomes.CosmosReset.out
+
+RUN_NAME=$(basename $F)
+cmd="${GK_PATH}/pilot-study/CosmosReset.sh $F ${OUTBUCKET} ${NAME} ${USER} ${PASSWORD} ${default_root_output_dir} ${working_directory} ${EMAIL} ${GK_PATH} ${TOOLS_PATH} ${GK_ARGS} &> /gluster/scratch/${RUN_NAME}.cosmosreset.out"
+echo $cmd
+eval $cmd
 printf "%s   ended CosmosReset.out\n" "$(date "%D-%T")"
 done <${LISTS}
 
