@@ -207,7 +207,7 @@ class HaplotypeCaller(Tool):
             -o $tmpDir/out.vcf
             -pairHMM VECTOR_LOGLESS_CACHING
             -L {p[chrom]}
-            -nct {self.cpu_req}
+            -nct 1
             --emitRefConfidence GVCF --variant_index_type LINEAR --variant_index_parameter 128000
             -A DepthPerAlleleBySample
             -stand_call_conf 30

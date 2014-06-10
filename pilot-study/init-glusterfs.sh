@@ -19,7 +19,7 @@ if [ `hostname` == "master" ]; then
     
 	# sudo gluster volume create $GLUSTER_VOLUME master:/mnt/$GLUSTER_VOLUME node001:/mnt/$GLUSTER_VOLUME # if you want to add master:/$GLUSTER_VOLUME AND node001:/$GLUSTER_VOLUME
       
-      sleep 10
+      sleep 20
       gluster volume start  $GLUSTER_VOLUME
 fi
 
@@ -30,5 +30,5 @@ for node in `cat /etc/hosts | awk '{print $1}'`; do
          ssh "$node" "chown -R ubuntu:ubuntu /gluster/$GLUSTER_VOLUME"
 
          echo $node
-         df -h | grep scratch
+         ssh "$node" "df -h | grep ${GLUSTER_VOLUME}"
 done
