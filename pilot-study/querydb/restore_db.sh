@@ -38,3 +38,8 @@ for SQLNAME in $*; do
     echo $cmd
     eval $cmd
 done
+
+# group all data
+ cmd="Rscript -e \"library(lattice); library(directlabels); all.jobs=NULL; for (f in Sys.glob('cluster-*.txt')) { all.jobs = rbind(all.jobs, read.csv(f, header=T)); pdf('all-normalized.pdf'); densityplot(~stop/total_wall_time, groups=run, plot.points=FALSE, data=subset(all.jobs, status!='Load_BAMs'));dev.off()\""
+echo $cmd
+eval $cmd
