@@ -28,7 +28,7 @@ do
                         DOWNLOAD_DEP_JOB_ID=$(eval $cmd | cut -d' ' -f3)
 
                         #generating the local list of files
-                        echo ${TRIO_DIR}/${BASENAME}'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
+                        echo ${TRIO_DIR}/${BASENAME}.bam >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
 
                         #Indexing
                     if [[ ! -f "${TRIO_DIR}/${BASENAME}.bam.bai" ]] && [[ ! -f "${TRIO_DIR}/${BASENAME}.bai" ]]
@@ -64,7 +64,7 @@ do
                         DOWNLOAD_DEP_JOB_ID=$(eval $cmd | cut -d' ' -f3)
 
                         #generating the local list of files
-                        echo ${$INPUT_DIR}/${BASENAME}'.bam' >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
+                        echo ${INPUT_DIR}/${BASENAME}.bam >> ${COSMOS_DEFAULT_ROOT_OUTPUT_DIR}/"${RUNNAME}".idx
 
                         #Indexing
                     if [[ ! -f "${INPUT_DIR}/${BASENAME}.bam.bai" ]] && [[ ! -f "${INPUT_DIR}/${BASENAME}.bai" ]]
