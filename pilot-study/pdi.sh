@@ -33,7 +33,7 @@ do
                         #Indexing
                     if [[ ! -f "${TRIO_DIR}/${BASENAME}.bam.bai" ]] && [[ ! -f "${TRIO_DIR}/${BASENAME}.bai" ]]
                     then
-                        cmd="qsub -hold_jid $DOWNLOAD_DEP_JOB_ID -V -b y -cwd /WGA/tools/samtools.v0.1.19 index ${TRIO_DIR}/${BASENAME}'.bam'"
+                        cmd="qsub -hold_jid $DOWNLOAD_DEP_JOB_ID -V -b y -cwd /WGA/tools/samtools.v0.1.19 index ${TRIO_DIR}/${BASENAME}.bam"
                         echo $cmd
                         INDEX_DEP_JOB_ID=$(eval $cmd | cut -d' ' -f3)
                         sleep 1
@@ -46,7 +46,7 @@ do
                     #Indexing
                     if [[ ! -f "${TRIO_DIR}/${BASENAME}.bam.bai" ]] && [[ ! -f "${TRIO_DIR}/${BASENAME}.bai" ]]
                     then
-                        cmd="qsub -V -b y -cwd /WGA/tools/samtools.v0.1.19 index ${TRIO_DIR}/${BASENAME}'.bam'"
+                        cmd="qsub -V -b y -cwd /WGA/tools/samtools.v0.1.19 index ${TRIO_DIR}/${BASENAME}.bam"
                         echo $cmd
                         INDEX_DEP_JOB_ID=$(eval $cmd | cut -d' ' -f3)
                         sleep 1
@@ -69,7 +69,7 @@ do
                         #Indexing
                     if [[ ! -f "${INPUT_DIR}/${BASENAME}.bam.bai" ]] && [[ ! -f "${INPUT_DIR}/${BASENAME}.bai" ]]
                     then
-                        cmd="qsub -hold_jid $DOWNLOAD_DEP_JOB_ID -V -b y -cwd /WGA/tools/samtools.v0.1.19 index ${$INPUT_DIR}/${BASENAME}'.bam'"
+                        cmd="qsub -hold_jid $DOWNLOAD_DEP_JOB_ID -V -b y -cwd /WGA/tools/samtools.v0.1.19 index ${INPUT_DIR}/${BASENAME}.bam"
                         echo $cmd
                         INDEX_DEP_JOB_ID=$(eval $cmd | cut -d' ' -f3)
                         sleep 1
@@ -82,7 +82,7 @@ do
                     #Indexing
                     if [[ ! -f "${INPUT_DIR}/${BASENAME}.bam.bai" ]] && [[ ! -f "${INPUT_DIR}/${BASENAME}.bai" ]]
                     then
-                        cmd="qsub -V -b y -cwd /WGA/tools/samtools.v0.1.19 index ${INPUT_DIR}/${BASENAME}'.bam'"
+                        cmd="qsub -V -b y -cwd /WGA/tools/samtools.v0.1.19 index ${INPUT_DIR}/${BASENAME}.bam"
                         echo $cmd
                         INDEX_DEP_JOB_ID=$(eval $cmd | cut -d' ' -f3)
                         sleep 1
