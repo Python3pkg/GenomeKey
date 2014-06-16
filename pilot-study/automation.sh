@@ -14,7 +14,7 @@
 ##################
 ### Flags for errors
 ##################
-set -e -o pipefail
+#set -e -o pipefail
 #set -x  # set this on for debugging
 ##################
 
