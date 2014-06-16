@@ -11,6 +11,11 @@ if [ `hostname` == "master" ]; then
     for node in `cat /etc/hosts | awk '{print $1}'`; do 
 	gluster peer probe "$node"
     done
+
+    for node in `cat /etc/hosts | awk '{print $1}'`; do
+        gluster peer probe "$node"
+    done
+
     
       mkdir -pv /mnt/${GLUSTER_VOLUME}1
 
