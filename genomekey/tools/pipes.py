@@ -38,12 +38,12 @@ class Bam_To_BWA(Tool):
         if p['chromosome_only_split']:
             # Using first readgroup id
             cmd_rg = r"""
-            rg=$({s[samtools]} view -H {i[bam][0]} | grep "@RG" | head -n 1 | sed 's/\t/\\t/g') && echo "RG= $rg";
+            rg=$({s[samtools]} view -H {i[bam][0]} | grep -w "@RG" | head -n 1 | sed 's/\t/\\t/g') && echo "RG= $rg";
             {s[samtools]} view -f 2 -u              {i[bam][0]} {p[prevSn]} > tmpIn.ubam;
             """
         else:
             cmd_rg = r"""
-            rg=$({s[samtools]} view -H {i[bam][0]} | grep {p[rgId]} | uniq | sed 's/\t/\\t/g') && echo "RG= $rg";
+            rg=$({s[samtools]} view -H {i[bam][0]} | grep -w {p[rgId]} | uniq | sed 's/\t/\\t/g') && echo "RG= $rg";
             {s[samtools]} view -f 2 -u -r {p[rgId]} {i[bam][0]} {p[prevSn]} > tmpIn.ubam;
             """
 
@@ -62,7 +62,6 @@ class Bam_To_BWA(Tool):
             {s[samtools]} sort    -o -l 0 -@ {self.cpu_req} - _sort > out.bam;
             
             # If there's no out.bam available, put an empty bam as output;
-            # FIXME: find a better way to suppress the error message from empty SAM file;
             [[ ! -a out.bam ]] && ({s[samtools]} view -Sb empty.sam > out.bam 2> /dev/null) || true;
             
 	    {s[samtools]} index out.bam out.bai;

@@ -17,10 +17,13 @@ if [ `hostname` == "master" ]; then
     done
 
     
-      mkdir -pv /mnt/${GLUSTER_VOLUME}1
+      mkdir -pv /mnt/${GLUSTER_VOLUME}0
+      ssh "node001" "mkdir -pv /mnt/${GLUSTER_VOLUME}1"
+      ssh "node002" "mkdir -pv /mnt/${GLUSTER_VOLUME}2"
+      ssh "node003" "mkdir -pv /mnt/${GLUSTER_VOLUME}3"
 
          # ssh "node001" "sudo mkdir -p /mnt/gv2"   # if you want to add this storage to the volume
-      gluster volume create $GLUSTER_VOLUME master:/mnt/${GLUSTER_VOLUME}1
+      gluster volume create $GLUSTER_VOLUME master:/mnt/${GLUSTER_VOLUME}0 node001:/mnt/${GLUSTER_VOLUME}1 node002:/mnt/${GLUSTER_VOLUME}2 node003:/mnt/${GLUSTER_VOLUME}3
     
 	# sudo gluster volume create $GLUSTER_VOLUME master:/mnt/$GLUSTER_VOLUME node001:/mnt/$GLUSTER_VOLUME # if you want to add master:/$GLUSTER_VOLUME AND node001:/$GLUSTER_VOLUME
       
