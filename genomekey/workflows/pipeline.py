@@ -107,7 +107,11 @@ def pipeline(bams, test_bam=False, chromosome_only_split=False):
         reduce_(['bam','chrom'],               pipes.BaseQualityScoreRecalibration),
         map_(                                  pipes.HaplotypeCaller),
         reduce_(['chrom'],                     pipes.GenotypeGVCFs),
-        split_([glm, skip_VQSR],               pipes.VariantQualityScoreRecalibration, tag={'vcf':'main'})
+        split_([glm, skip_VQSR],               pipes.VariantQualityScoreRecalibration, tag={'vcf':'main'}),
+        reduce_(['vcf'],                       pipes.CombineVariants, "Merge VCF"),
+        map_(                                  pipes.Vcf2Anno_in),       
+        split_([dbnames],                      pipes.Annotate, tag={'build':'hg19'}),
+        reduce_(['vcf'],                       pipes.MergeAnnotations)
     )
 
     return hc_pipeline
