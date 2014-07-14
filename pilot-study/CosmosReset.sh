@@ -196,11 +196,10 @@ if [ $GK_EVAL -eq 0 ]; then
     # rm the .bai and .idx files 
     find ${RUNNAME_OUTPUT} -name "*.bai" -type f -delete
     find ${RUNNAME_OUTPUT} -name "*.idx" -type f -delete
-	
-#FIXME:
+    find ${RUNNAME_OUTPUT} -name "*.bam" -type f -delete	
 # all the paths should be corrected down here:
     
-    # rm input files
+    #rm input files
     #rm -rf $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/Inputs/
 
     #cp everything    
@@ -230,11 +229,11 @@ if [ $GK_EVAL -eq 0 ]; then
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe"
     echo "log: $DATE : $STARTDATE : Beginning :  Run Data wipe" >>  ${LOG_FILE}
 
-#    rm -R -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/*
+    rm -R -f $COSMOS_DEFAULT_ROOT_OUTPUT_DIR/"${RUNNAME}"/*
 #    rm -R -f ${COSMOS_WORKING_DIRECTORY}/*
     
     # Reset cosmos DB
-#    echo "yes" | cosmos resetdb
+    echo "yes" | cosmos resetdb
  
     DATE=$(date)
     ENDDATE=$(date +%s)
