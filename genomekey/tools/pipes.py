@@ -1,7 +1,7 @@
 from cosmos.lib.ezflow.tool import Tool, TaskFile
 
 def _list2input(l, opt):
-    return opt + ("\n"+opt).join(map(lambda x: str(x), l))
+    return opt + ("\n"+opt).join([str(x) for x in l])
 
 cmd_init = r"""
             set -e -o pipefail && tmpDir=$(mktemp -d --tmpdir={s[scratch]}) && export TMPDIR=$tmpDir;

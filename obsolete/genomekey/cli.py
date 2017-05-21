@@ -97,7 +97,7 @@ def anno(workflow,input_file,input_file_list,file_format='vcf',**kwargs):
     input_files = input_file_list.read().strip().split('\n') if input_file_list else []
     if input_file:
         input_files.append(input_file.name)
-    print >> sys.stderr, 'annotating {0}'.format(', '.join(input_files))
+    print('annotating {0}'.format(', '.join(input_files)), file=sys.stderr)
 
     DAG().sequence_(
         add_([ INPUT(input_file,tags={'vcf':i}) for i,input_file in enumerate(input_files) ]),

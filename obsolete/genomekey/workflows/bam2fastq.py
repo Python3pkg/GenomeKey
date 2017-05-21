@@ -31,7 +31,7 @@ def _inputbam2rgids(input_bam):
     elif input_bam[-3:] == 'sam':
         RG = pysam.Samfile(input_bam,'r').header['RG']
     else:
-        raise TypeError, 'input file is not a bam or sam'
+        raise TypeError('input file is not a bam or sam')
 
     return [ tags['ID'] for tags in RG ]
 
@@ -70,7 +70,7 @@ def _splitfastq2inputs(dag):
 
 def Bam2Fastq(workflow, dag, settings, input_bams):
     if len(input_bams) == 0:
-        raise WorkflowException, 'At least 1 BAM input required'
+        raise WorkflowException('At least 1 BAM input required')
     dag.sequence_(
         sequence_(
             *[

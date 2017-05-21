@@ -13,7 +13,7 @@ def _getHeaderInfo(input_bam):
     elif input_bam[-3:] == 'sam': 
         header = pysam.Samfile(input_bam,'r' , check_sq = False).header
     else:
-        raise TypeError, 'input file is not a bam or sam'
+        raise TypeError('input file is not a bam or sam')
 
     return {'rg': [ [tags['ID'], tags['SM'], tags.get('LB','noLBinfo'), tags.get('PL','noPLinfo') ] for tags in header['RG']],
             'sq': [ [tags['SN']                                                                   ] for tags in header['SQ']]
@@ -41,7 +41,7 @@ def pipeline(bams, test_bam=False, chromosome_only_split=False):
 
     # split_ tuples
     #chrom  = ('chrom', range(1,23) + ['X', 'Y', 'MT'])
-    chrom  = ('chrom', range(1,23))
+    chrom  = ('chrom', list(range(1,23)))
 
     glm = ('glm', ['SNP', 'INDEL'])
 

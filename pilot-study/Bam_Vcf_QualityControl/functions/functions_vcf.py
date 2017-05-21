@@ -43,18 +43,18 @@ def Copy_VQSR_SNP(vqsr_cosmos_folder, temp_dir, out_dir, vcf_name):
     vcf_concat=settings.setting['vcf_concat']
     out_vcf=out_dir+"/"+vcf_name+".vcf"
     cmd="perl "+vcf_concat+" "+concatenate_vcf+"> "+out_vcf
-    print cmd
+    print(cmd)
     os.system(cmd)
     cmd_bgzip="bgzip "+out_vcf
     os.system(cmd_bgzip)
     cmd_tabix="tabix -p vcf "+out_vcf+".gz"
-    print cmd
+    print(cmd)
     os.system(cmd_tabix)
     
     # Sort the vcf file generated
     vcf_sort=settings.setting['vcf_sort']
     cmd="perl "+vcf_sort+" -c "+out_vcf+".gz > "+out_dir+"/"+vcf_name+"_sorted.vcf"
-    print cmd
+    print(cmd)
     os.system(cmd)
       
     # Delete temp folder and unsorted vcf
@@ -149,7 +149,7 @@ def Stat(vcf, sample, out, file_stat, out_dir):
         num_biallelic_variants = num_biallelic_variants*2
     Stat_file.write("NUM BIALLELIC VARIANTS\t"+str(num_biallelic_variants)+"\n")
     os.system("rm "+out_biallelic+"_no_header.vcf")
-    print num_biallelic_variants
+    print(num_biallelic_variants)
     
     # Split biallelic sites on multiple lines because otherwise they will be not taken into account in the count of Ti and Tv 
     out_biallelic_splitted=out_biallelic.replace(".vcf","")+"_splitted.vcf"
@@ -189,7 +189,7 @@ def Stat(vcf, sample, out, file_stat, out_dir):
         num_biallelic_variants = num_biallelic_variants*2
     Stat_file.write("NUM BIALLELIC VARIANTS NOT REPORTED IN DBSNP\t"+str(num_biallelic_variants)+"\n")
     os.system("rm "+out_without_rs+"_no_header.vcf")
-    print num_biallelic_variants  
+    print(num_biallelic_variants)  
      
     os.system("rm "+join(out_dir,"*log"))
     os.system("rm "+join(out_dir,"*idx"))          

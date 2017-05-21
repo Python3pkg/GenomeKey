@@ -6,7 +6,7 @@ import shutil
 def Copy_BQSR_bam(bqsr_cosmos_folder, out_dir, bam_name, sample):
     bam_chunk=[]
     sample="SM:"+sample
-    print sample
+    print(sample)
     # Create temp_dir and out_dir if don't exist
     if not os.path.exists(out_dir):
             os.makedirs(out_dir)
@@ -19,7 +19,7 @@ def Copy_BQSR_bam(bqsr_cosmos_folder, out_dir, bam_name, sample):
             if filePath.endswith(".bam"):
                 header = out_dir + '/' + file+"_temp"
                 cmd= "samtools view -H "+filePath+" > "+header
-                print cmd
+                print(cmd)
                 os.system(cmd)
                 with open(header) as f:
                     for line in f:
@@ -31,16 +31,16 @@ def Copy_BQSR_bam(bqsr_cosmos_folder, out_dir, bam_name, sample):
             if check_sample==1:
                 bam_chunk.append(filePath)
     chunk=' '.join(bam_chunk)
-    print chunk
+    print(chunk)
     out_bam=join(out_dir,bam_name)
     cmd="samtools merge "+out_bam+" "+chunk
-    print cmd
+    print(cmd)
     os.system(cmd)
 
 def Stat_Bam(out_dir,file_in,file_stat):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
-    print file_in
+    print(file_in)
     file_out=open(join(out_dir,file_stat),'w')
     temp_file=file_stat+"_tmp"
     os.system("samtools view -c "+file_in+" > "+join(out_dir,temp_file))

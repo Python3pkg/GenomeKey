@@ -22,14 +22,14 @@ w_finished = my_workflow.finished_on
 w_name = my_workflow.name
 w_wall_time = my_workflow.wall_time.total_seconds()
 
-print "run,stage,status,total_wall_time,start,stop,cpu_time,wall_time,percent_cpu,system_time,user_time"
+print("run,stage,status,total_wall_time,start,stop,cpu_time,wall_time,percent_cpu,system_time,user_time")
  
 for task in my_workflow.tasks:
     fields = "\"%s\",\"%s\",\"%s\",%s" % (w_name, task.stage.name, task.status, w_wall_time)
     job = task.jobattempt_set.all()
     if job:
         for ja in job:
-            print "%s,%s,%s,%s,%s,%s,%s,%s" % \
+            print("%s,%s,%s,%s,%s,%s,%s,%s" % \
                   (fields,
                    (ja.created_on - w_created).total_seconds(),
                    (ja.finished_on - w_created).total_seconds(),
@@ -37,8 +37,8 @@ for task in my_workflow.tasks:
                    ja.wall_time,
                    ja.percent_cpu,
                    ja.system_time,
-                   ja.user_time)
+                   ja.user_time))
     else:
-        print "%s,0,0,0,0,0,0,0" % fields
+        print("%s,0,0,0,0,0,0,0" % fields)
 
 
